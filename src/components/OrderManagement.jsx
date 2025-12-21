@@ -232,7 +232,10 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
       if (aValue > bValue) {
         return sortDirection === 'asc' ? 1 : -1
       }
-      return 0
+      // Tie breaker: Last added (by ID) on top when primary sort is equal
+      const aIdNum = parseInt(a.id) || 0
+      const bIdNum = parseInt(b.id) || 0
+      return bIdNum - aIdNum
     })
 
     return filtered
@@ -260,8 +263,10 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
       onUpdateOrders(updatedOrders)
       setEditingOrder(null)
       addToast(editingOrder ? 'Order updated successfully' : 'Order added successfully', 'success')
+      return true
     } else {
       addToast('Failed to save order. Please try again.', 'error')
+      return false
     }
   }
 
@@ -696,7 +701,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     const itemDetailsString = orderItems.map(it => {
       const c = products.categories.find(cat => cat.id === it.categoryId)
       const catName = c?.name || 'N/A'
-      const itName = it.customItemName || c?.items?.find(x => x.id === it.itemId)?.name || 'N/A'
+      const itName = it.name || it.itemName || it.customItemName || c?.items?.find(x => x.id === it.itemId)?.name || 'N/A'
       const qty = Number(it.quantity) || 0
       const price = Number(it.unitPrice) || 0
       return `🔸ITEM: ${catName} - ${itName}\n🔸 QTY: ${qty}\n🔸PRICE: Rs. ${price.toFixed(2)}`

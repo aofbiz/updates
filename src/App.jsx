@@ -24,6 +24,7 @@ function App() {
   const [orders, setOrders] = useState([])
   const [inventory, setInventory] = useState([])
   const [expenses, setExpenses] = useState([])
+  const [products, setProducts] = useState({ categories: [] })
   const [triggerOrderForm, setTriggerOrderForm] = useState(0)
   const [triggerExpenseForm, setTriggerExpenseForm] = useState(0)
   const [initialFilters, setInitialFilters] = useState({})
@@ -52,14 +53,16 @@ function App() {
     const loadData = async () => {
       setDataLoading(true)
       try {
-        const [ordersData, expensesData, inventoryData] = await Promise.all([
+        const [ordersData, expensesData, inventoryData, productsData] = await Promise.all([
           getOrders(),
           getExpenses(),
-          getInventory()
+          getInventory(),
+          getProducts()
         ])
         setOrders(ordersData)
         setExpenses(expensesData)
         setInventory(inventoryData)
+        setProducts(productsData)
       } catch (error) {
         console.error('Error loading data:', error)
       } finally {
@@ -193,6 +196,7 @@ function App() {
             orders={orders}
             expenses={expenses}
             inventory={inventory}
+            products={products}
             onNavigate={handleNavigate}
           />
         )
@@ -248,7 +252,7 @@ function App() {
           />
         )
       default:
-        return <Dashboard orders={orders} expenses={expenses} />
+        return <Dashboard orders={orders} expenses={expenses} inventory={inventory} products={products} onNavigate={navigateToView} />
     }
   }
 

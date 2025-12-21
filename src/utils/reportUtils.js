@@ -50,12 +50,29 @@ export const getTopSellingProducts = (orders, inventory = [], products = { categ
     }
 
     // Helper to get item name from products list
+    // Helper to get item name from products list
     const getItemName = (categoryId, itemId) => {
-        if (!categoryId || !itemId) return null;
-        const category = products.categories.find(c => c.id === categoryId);
-        if (!category || !category.items) return null;
-        const item = category.items.find(i => i.id === itemId);
-        return item ? item.name : null;
+        if (!itemId) return null; // Item ID is strictly required
+
+        // 1. Try direct lookup if Category ID is available
+        if (categoryId && products.categories) {
+            const category = products.categories.find(c => c.id === categoryId);
+            if (category && category.items) {
+                const item = category.items.find(i => String(i.id) === String(itemId) || i.id === itemId);
+                if (item) return item.name;
+            }
+        }
+
+        // 2. Global Backup Search: Look through ALL categories
+        if (products.categories) {
+            for (const cat of products.categories) {
+                if (cat.items) {
+                    const found = cat.items.find(i => String(i.id) === String(itemId) || i.id === itemId);
+                    if (found) return found.name;
+                }
+            }
+        }
+        return null;
     }
 
     // Fallback: Create a lookup map for inventory items
@@ -76,6 +93,7 @@ export const getTopSellingProducts = (orders, inventory = [], products = { categ
             items.push({
                 itemId: order.itemId,
                 categoryId: order.categoryId,
+                itemName: order.itemName, // Critical: capture stored item name
                 customItemName: order.customItemName,
                 quantity: order.quantity || 1,
                 unitPrice: order.unitPrice || 0
@@ -101,8 +119,10 @@ export const getTopSellingProducts = (orders, inventory = [], products = { categ
             }
 
             // 2. Resolve Item Name
-            // Prioritize what is recorded in the order (customItemName)
-            if (item.customItemName) {
+            // Prioritize what is recorded in the order (the most reliable source)
+            if (item.name || item.itemName) {
+                name = item.name || item.itemName;
+            } else if (item.customItemName) {
                 name = item.customItemName;
             } else {
                 // Try to resolve from products list
@@ -132,6 +152,27 @@ export const getTopSellingProducts = (orders, inventory = [], products = { categ
                     category: category,
                     quantity: 0,
                     revenue: 0
+                }
+            } else {
+                // Better name resolution strategy:
+                // Always prefer a name that comes from a resolved source (not 'Product ...' and not 'Unknown')
+                const isCurrentNameGeneric = productStats[key].name.startsWith('Product ') || productStats[key].name === 'Unknown Product';
+                const isNewNameGeneric = name.startsWith('Product ') || name === 'Unknown Product';
+
+                if (isCurrentNameGeneric && !isNewNameGeneric) {
+                    productStats[key].name = name;
+                } else if (!isNewNameGeneric && name !== productStats[key].name) {
+                    // If we have two "real" names for the same ID, prefer the most recent one (implied by order iteration order)
+                    // or purely by length/specificity if possible?
+                    // For now, let's assume later orders might have corrected names, or just keep the first found valid one.
+                    // Actually, let's try to lookup the ID in the Inventory/Products AGAIN to be sure we get the Canonical Name
+                    if (item.itemId) {
+                        // Force lookup to ensure we use the canonical catalog name if available, overriding potential "custom" variations in old orders
+                        const canonicalName = getItemName(item.categoryId, item.itemId) || (inventoryMap.has(item.itemId) ? inventoryMap.get(item.itemId).name : null);
+                        if (canonicalName) {
+                            productStats[key].name = canonicalName;
+                        }
+                    }
                 }
             }
             productStats[key].quantity += Number(item.quantity) || 0

@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react'
-import { Package, TrendingUp, AlertTriangle, Calendar, CreditCard, X, ShoppingBag } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Package, TrendingUp, AlertTriangle, Calendar, CreditCard, X, ShoppingBag, BarChart2, PieChart as PieChartIcon, Activity } from 'lucide-react'
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend, BarChart, Bar
+} from 'recharts'
 import SummaryCard from './SummaryCard'
 import {
   calculateNetProfit,
   getPendingDispatch
 } from '../utils/calculations'
+import { getTopSellingProducts, formatCurrency } from '../utils/reportUtils'
 
-const Dashboard = ({ orders, expenses, inventory = [], onNavigate }) => {
+const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) => {
   const [dateFilter, setDateFilter] = useState({
     startDate: '',
     endDate: ''
@@ -98,6 +103,130 @@ const Dashboard = ({ orders, expenses, inventory = [], onNavigate }) => {
     const firstThree = criticalItems.slice(0, 3).map(item => item.itemName).join(', ')
     const remaining = criticalItems.length - 3
     return `${firstThree} and ${remaining} more`
+  }
+
+  // --- Chart Data Transformations ---
+
+  // 1. Trend Data: Daily Revenue vs Expenses
+  const trendData = useMemo(() => {
+    const dataMap = {}
+
+    // Group Revenue by Date
+    filteredOrders.forEach(order => {
+      if (order.paymentStatus !== 'Paid') return
+      const date = order.orderDate || order.createdDate || ''
+      if (!date) return
+      const dateKey = date.split('T')[0]
+      if (!dataMap[dateKey]) dataMap[dateKey] = { date: dateKey, revenue: 0, expenses: 0 }
+      dataMap[dateKey].revenue += Number(order.totalPrice || order.totalAmount || 0)
+    })
+
+    // Group Expenses by Date
+    filteredExpenses.forEach(expense => {
+      const date = expense.date || ''
+      if (!date) return
+      const dateKey = date.split('T')[0]
+      if (!dataMap[dateKey]) dataMap[dateKey] = { date: dateKey, revenue: 0, expenses: 0 }
+      dataMap[dateKey].expenses += Number(expense.amount || 0)
+    })
+
+    // Convert map to sorted array
+    return Object.values(dataMap)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(item => ({
+        ...item,
+        // Format date for display: Dec 15
+        displayName: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      }))
+  }, [filteredOrders, filteredExpenses])
+
+  // 2. Source Distribution: Ad vs Organic
+  const sourceData = useMemo(() => {
+    const sources = filteredOrders.reduce((acc, order) => {
+      const source = order.orderSource || 'Ad'
+      acc[source] = (acc[source] || 0) + 1
+      return acc
+    }, {})
+
+    return Object.entries(sources).map(([name, value]) => ({
+      name: name,
+      value: value
+    }))
+  }, [filteredOrders])
+
+  // 3. Top Selling Products (Clone of Sales Report Logic)
+  const topSellingProducts = useMemo(() => {
+    return getTopSellingProducts(orders, inventory, products)
+  }, [orders, inventory, products])
+
+  // Custom Label for Pie Chart (Donut Style)
+  const renderCustomizedLabel = (props) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, value, name, fill } = props
+    const RADIAN = Math.PI / 180
+    const sin = Math.sin(-midAngle * RADIAN)
+    const cos = Math.cos(-midAngle * RADIAN)
+    const sx = cx + (outerRadius + 0) * cos
+    const sy = cy + (outerRadius + 0) * sin
+    const mx = cx + (outerRadius + 30) * cos
+    const my = cy + (outerRadius + 30) * sin
+    const ex = mx + (cos >= 0 ? 1 : -1) * 20
+    const ey = my
+    const textAnchor = cos >= 0 ? 'start' : 'end'
+
+    return (
+      <g>
+        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+        <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={-6} textAnchor={textAnchor} fill={fill} style={{ fontWeight: 700, fontSize: '14px' }}>
+          {value}
+        </text>
+        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={14} textAnchor={textAnchor} fill="var(--text-muted)" style={{ fontSize: '12px' }}>
+          {name}
+        </text>
+      </g>
+    )
+  }
+
+  // Calculate Total Orders into a value for the center text
+  const totalOrdersCount = sourceData.reduce((sum, item) => sum + item.value, 0)
+
+
+  const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{
+          backgroundColor: 'rgba(20, 20, 20, 0.95)',
+          padding: '12px',
+          border: '1px solid var(--border-color)',
+          borderRadius: '12px',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+        }}>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', marginBottom: '8px', color: 'var(--text-primary)' }}>{label}</p>
+          {payload.map((entry, index) => {
+            const isCurrency = ['Revenue', 'Expenses', 'Value'].includes(entry.name);
+            const value = entry.value;
+            const revenue = entry.payload?.revenue;
+
+            return (
+              <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <p style={{ margin: 0, color: entry.color, fontSize: '0.85rem', fontWeight: 600 }}>
+                  {entry.name}: {isCurrency ? 'Rs. ' : ''}{value.toLocaleString()}{!isCurrency ? ' Units' : ''}
+                </p>
+                {revenue && !isCurrency && (
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                    Revenue: Rs. {revenue.toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
+    return null
   }
 
   // Calculate Total Orders for Current Month using Reports ROI logic
@@ -292,6 +421,7 @@ const Dashboard = ({ orders, expenses, inventory = [], onNavigate }) => {
         />
       </div>
 
+
       {/* Middle Section: Deliveries and Alerts */}
       <div style={{
         display: 'grid',
@@ -400,6 +530,150 @@ const Dashboard = ({ orders, expenses, inventory = [], onNavigate }) => {
         </div>
       </div>
 
+      {/* Business Insights Charts - Moved to Bottom */}
+      <h2 style={{
+        fontSize: '1.25rem',
+        fontWeight: 700,
+        margin: '2rem 0 1.5rem 0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        color: 'var(--text-primary)'
+      }}>
+        <Activity size={20} color="var(--accent-primary)" />
+        Business Insights
+      </h2>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
+        gap: '2rem',
+        marginBottom: '2.5rem'
+      }}>
+        {/* Trend Area Chart */}
+        <div className="card" style={{ padding: '1.5rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Activity size={18} color="var(--accent-primary)" />
+            Profit Trend
+          </h3>
+          <div style={{ height: '300px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--danger)" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="var(--danger)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="displayName" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="var(--accent-primary)"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorRevenue)"
+                  name="Revenue"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="expenses"
+                  stroke="var(--danger)"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorExpenses)"
+                  name="Expenses"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Source Pie Chart */}
+        <div className="card" style={{ padding: '1.5rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <PieChartIcon size={18} color="var(--success)" />
+            Order Sources
+          </h3>
+          <div style={{ height: '300px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={sourceData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={renderCustomizedLabel}
+                  innerRadius={80}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="rgba(255,255,255,0.05)"
+                  strokeWidth={2}
+                >
+                  {sourceData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      fillOpacity={0.8}
+                    />
+                  ))}
+                </Pie>
+                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                  <tspan x="50%" dy="-0.5em" fontSize="24" fontWeight="bold" fill="var(--text-primary)">
+                    {totalOrdersCount}
+                  </tspan>
+                  <tspan x="50%" dy="1.5em" fontSize="14" fill="var(--text-muted)">
+                    Total Orders
+                  </tspan>
+                </text>
+                <Tooltip
+                  contentStyle={{ backgroundColor: 'rgba(20, 20, 20, 0.95)', border: '1px solid var(--border-color)', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
+                  itemStyle={{ fontSize: '0.85rem' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top Selling Products Table (Cloned from Sales Reports) */}
+        <div className="card" style={{ padding: '1.5rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <BarChart2 size={18} color="var(--warning)" />
+            Top Selling Products
+          </h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Name</th>
+                  <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Category</th>
+                  <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'right', fontSize: '0.8rem' }}>Units</th>
+                  <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'right', fontSize: '0.8rem' }}>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topSellingProducts.slice(0, 5).map((p, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.75rem', fontWeight: 500, fontSize: '0.85rem' }}>{p.name}</td>
+                    <td style={{ padding: '0.75rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{p.category}</td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.85rem' }}>{p.quantity}</td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right', color: 'var(--success)', fontWeight: 600, fontSize: '0.85rem' }}>{formatCurrency(p.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
     </div>
   )
 }

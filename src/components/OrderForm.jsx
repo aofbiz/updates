@@ -18,6 +18,7 @@ const OrderForm = ({ order, onClose, onSave }) => {
   const [products, setProducts] = useState({ categories: [] })
   const [orderSources, setOrderSources] = useState([])
   const [codManuallyEdited, setCodManuallyEdited] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [discountType, setDiscountType] = useState(order?.discountType || 'Rs')
   const [orderItems, setOrderItems] = useState(() => {
     if (Array.isArray(order?.orderItems) && order.orderItems.length > 0) {
@@ -26,6 +27,7 @@ const OrderForm = ({ order, onClose, onSave }) => {
         categoryId: it.categoryId || '',
         itemId: it.itemId || '',
         customItemName: it.customItemName || '',
+        name: it.name || it.itemName || it.customItemName || '',
         quantity: it.quantity ?? 1,
         unitPrice: it.unitPrice ?? 0,
         notes: it.notes || '',
@@ -37,6 +39,7 @@ const OrderForm = ({ order, onClose, onSave }) => {
       categoryId: order?.categoryId || '',
       itemId: order?.itemId || '',
       customItemName: order?.customItemName || '',
+      name: order?.name || order?.customItemName || '',
       quantity: order?.quantity ?? 1,
       unitPrice: order?.unitPrice ?? 0,
       notes: '',
@@ -267,60 +270,73 @@ const OrderForm = ({ order, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isSaving) return
 
-    // Use the order number from the form (user can edit it)
-    // If creating new order and number is empty, calculate next number
-    let finalOrderNumber = orderNumber
-    if (!order?.id && !finalOrderNumber) {
-      const ordersData = await getOrders()
-      finalOrderNumber = calculateNextOrderNumber(ordersData)
-    }
-
-    const cleanedItems = (orderItems || []).map(it => ({
-      categoryId: it.categoryId || null,
-      itemId: isCustomCategory(it.categoryId) ? null : (it.itemId || null),
-      customItemName: isCustomCategory(it.categoryId) ? (it.customItemName || '') : null,
-      quantity: Number(it.quantity) || 0,
-      unitPrice: Number(it.unitPrice) || 0,
-      notes: (it.notes || '').toString(),
-      image: it.image || null
-    }))
-
-    const first = cleanedItems[0] || {}
-
-    const orderData = {
-      ...formData,
-      whatsapp: formatWhatsAppForStorage(formData.whatsapp),
-      id: finalOrderNumber,
-      // legacy single-item fields for compatibility
-      categoryId: first.categoryId || null,
-      itemId: first.itemId || null,
-      customItemName: first.customItemName || null,
-      quantity: first.quantity || 1,
-      unitPrice: first.unitPrice || 0,
-      // new multi-item fields
-      orderItems: cleanedItems,
-      deliveryCharge: Number(formData.deliveryCharge) || 0,
-      discountType: discountType,
-      totalPrice: computedTotal,
-      totalAmount: computedTotal,
-      codAmount: formData.codAmount,
-      deliveryDate: formData.deliveryDate || '',
-      createdDate: order?.createdDate || today
-    }
-
-    // Mark tracking number as used if provided
-    if (orderData.trackingNumber && (!order || order.trackingNumber !== orderData.trackingNumber)) {
-      try {
-        await markTrackingNumberAsUsed(orderData.trackingNumber)
-      } catch (error) {
-        console.error('Error marking tracking number as used:', error)
+    setIsSaving(true)
+    try {
+      // Use the order number from the form (user can edit it)
+      // If creating new order and number is empty, calculate next number
+      let finalOrderNumber = orderNumber
+      if (!order?.id && !finalOrderNumber) {
+        const ordersData = await getOrders()
+        finalOrderNumber = calculateNextOrderNumber(ordersData)
       }
-    }
 
-    // Save the order
-    onSave(orderData)
-    onClose()
+      const cleanedItems = (orderItems || []).map(it => ({
+        categoryId: it.categoryId || null,
+        itemId: isCustomCategory(it.categoryId) ? null : (it.itemId || null),
+        customItemName: isCustomCategory(it.categoryId) ? (it.customItemName || '') : null,
+        name: it.name || it.customItemName || '',
+        quantity: Number(it.quantity) || 0,
+        unitPrice: Number(it.unitPrice) || 0,
+        notes: (it.notes || '').toString(),
+        image: it.image || null
+      }))
+
+      const first = cleanedItems[0] || {}
+
+      const orderData = {
+        ...formData,
+        whatsapp: formatWhatsAppForStorage(formData.whatsapp),
+        id: finalOrderNumber,
+        // legacy single-item fields for compatibility
+        categoryId: first.categoryId || null,
+        itemId: first.itemId || null,
+        customItemName: first.customItemName || null,
+        quantity: first.quantity || 1,
+        unitPrice: first.unitPrice || 0,
+        // new multi-item fields
+        orderItems: cleanedItems,
+        deliveryCharge: Number(formData.deliveryCharge) || 0,
+        discountType: discountType,
+        totalPrice: computedTotal,
+        totalAmount: computedTotal,
+        codAmount: formData.codAmount,
+        deliveryDate: formData.deliveryDate || '',
+        createdDate: order?.createdDate || today
+      }
+
+      // 1. Save the order first
+      const success = await onSave(orderData)
+
+      if (success) {
+        // 2. ONLY if save was successful, mark tracking number as used
+        if (orderData.trackingNumber && (!order || order.trackingNumber !== orderData.trackingNumber)) {
+          try {
+            await markTrackingNumberAsUsed(orderData.trackingNumber)
+          } catch (error) {
+            console.error('Error marking tracking number as used:', error)
+            // We don't block the whole process if this small metadata update fails, 
+            // but the order is already safe.
+          }
+        }
+        onClose()
+      }
+    } catch (error) {
+      console.error('Submit Error:', error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -514,7 +530,7 @@ const OrderForm = ({ order, onClose, onSave }) => {
                         <input
                           className="form-input"
                           value={it.customItemName}
-                          onChange={(e) => updateItem(it.id, { customItemName: e.target.value })}
+                          onChange={(e) => updateItem(it.id, { customItemName: e.target.value, name: e.target.value })}
                           placeholder="Enter custom product name"
                           required
                         />
@@ -524,7 +540,7 @@ const OrderForm = ({ order, onClose, onSave }) => {
                           value={it.itemId}
                           onChange={(e) => {
                             const itemObj = items.find(x => x.id === e.target.value)
-                            updateItem(it.id, { itemId: e.target.value, unitPrice: itemObj?.price ?? 0 })
+                            updateItem(it.id, { itemId: e.target.value, unitPrice: itemObj?.price ?? 0, name: itemObj?.name || '' })
                           }}
                           required
                           disabled={!it.categoryId}
@@ -805,8 +821,15 @@ const OrderForm = ({ order, onClose, onSave }) => {
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              {order ? 'Update Order' : 'Create Order'}
+            <button type="submit" className="btn btn-primary" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <RefreshCw size={18} className="animate-spin" style={{ marginRight: '0.5rem' }} />
+                  Saving...
+                </>
+              ) : (
+                order ? 'Update Order' : 'Create Order'
+              )}
             </button>
           </div>
         </form>

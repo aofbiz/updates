@@ -99,10 +99,11 @@ const ViewOrderModal = ({ order, onClose, onSave, onRequestTrackingNumber, onReq
     return c?.name || 'N/A'
   }
 
-  const getItemName = (categoryId, itemId, customItemName) => {
-    if (customItemName) return customItemName
-    const c = products.categories.find(cat => cat.id === categoryId)
-    const it = c?.items?.find(x => x.id === itemId)
+  const getItemName = (item) => {
+    if (item.name || item.itemName) return item.name || item.itemName
+    if (item.customItemName) return item.customItemName
+    const c = products.categories.find(cat => cat.id === item.categoryId)
+    const it = c?.items?.find(x => x.id === item.itemId)
     return it?.name || 'N/A'
   }
 
@@ -182,7 +183,7 @@ const ViewOrderModal = ({ order, onClose, onSave, onRequestTrackingNumber, onReq
   const handleDownloadInvoice = () => {
     const invoiceRows = orderItems.map(it => {
       const catName = getCategoryName(it.categoryId)
-      const itName = getItemName(it.categoryId, it.itemId, it.customItemName)
+      const itName = getItemName(it)
       const qty = Number(it.quantity) || 0
       const price = Number(it.unitPrice) || 0
       const amount = qty * price
@@ -383,7 +384,7 @@ const ViewOrderModal = ({ order, onClose, onSave, onRequestTrackingNumber, onReq
     // Build item details string for template
     const itemDetailsString = orderItems.map(it => {
       const cName = getCategoryName(it.categoryId)
-      const iName = getItemName(it.categoryId, it.itemId, it.customItemName)
+      const iName = getItemName(it)
       const qty = Number(it.quantity) || 0
       const price = Number(it.unitPrice) || 0
       return `🔸ITEM: ${cName} - ${iName}\n🔸 QTY: ${qty}\n🔸PRICE: Rs. ${price.toFixed(2)}`

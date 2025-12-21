@@ -4,9 +4,9 @@ export const calculateNetProfit = (orders, expenses) => {
   const totalRevenue = orders
     .filter(order => order.paymentStatus === 'Paid')
     .reduce((sum, order) => sum + (order.totalPrice || 0), 0);
-  
+
   const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
-  
+
   return totalRevenue - totalExpenses;
 };
 
@@ -20,10 +20,10 @@ export const getTodaysOrders = (orders) => {
 };
 
 export const getPendingDispatch = (orders) => {
-  return orders.filter(order => 
-    order.status !== 'Dispatched' && 
-    order.status !== 'returned' && 
-    order.status !== 'refund' && 
+  return orders.filter(order =>
+    order.status !== 'Dispatched' &&
+    order.status !== 'returned' &&
+    order.status !== 'refund' &&
     order.status !== 'cancelled'
   );
 };
@@ -50,17 +50,17 @@ export const getMonthlySalesSummary = (orders, month, year) => {
     const orderDate = new Date(order.orderDate || order.createdDate || order.dispatchDate || '');
     return orderDate.getMonth() === month && orderDate.getFullYear() === year && order.paymentStatus === 'Paid';
   });
-  
+
   const totalSales = monthOrders.reduce((sum, order) => sum + (order.totalPrice || order.totalAmount || 0), 0);
   const orderCount = monthOrders.length;
   const avgOrderValue = orderCount > 0 ? totalSales / orderCount : 0;
-  
+
   return { totalSales, orderCount, avgOrderValue };
 };
 
 export const getTopProducts = (orders, products, limit = 10) => {
   const productSales = {};
-  
+
   orders.forEach(order => {
     if (order.paymentStatus === 'Paid') {
       const items = Array.isArray(order.orderItems) && order.orderItems.length > 0
@@ -74,9 +74,9 @@ export const getTopProducts = (orders, products, limit = 10) => {
         }]
 
       items.forEach(oi => {
-        const category = products.categories.find(cat => cat.id === oi.categoryId);
-        const item = category?.items.find(item => item.id === oi.itemId);
-        const itemName = oi.customItemName || item?.name || 'Unknown';
+        const category = products?.categories?.find(cat => cat.id === oi.categoryId);
+        const item = category?.items?.find(item => item.id === oi.itemId);
+        const itemName = oi.name || oi.itemName || oi.customItemName || item?.name || 'Unknown';
         const revenue = (oi.quantity || 0) * (oi.unitPrice || 0);
         const quantity = oi.quantity || 1;
 
@@ -89,7 +89,7 @@ export const getTopProducts = (orders, products, limit = 10) => {
       })
     }
   });
-  
+
   return Object.values(productSales)
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, limit);
@@ -97,7 +97,7 @@ export const getTopProducts = (orders, products, limit = 10) => {
 
 export const getSalesByChannel = (orders) => {
   const channelSales = { 'Ad': { revenue: 0, orders: 0 }, 'Organic': { revenue: 0, orders: 0 } };
-  
+
   orders.forEach(order => {
     const source = normalizeSourceName(order.orderSource);
     const revenue = order.totalPrice || order.totalAmount || 0;
@@ -105,7 +105,7 @@ export const getSalesByChannel = (orders) => {
     channelSales[source].revenue += revenue;
     channelSales[source].orders += 1;
   });
-  
+
   return channelSales;
 };
 
@@ -121,10 +121,10 @@ const normalizeSourceName = (name) => {
 export const getSourcePerformance = (orders, expenses, month, year, sourceNames = []) => {
   // Build a display-name map so we always show the "Settings" casing for known sources
   const displayMap = {}
-  ;(sourceNames || []).forEach(n => {
-    const key = normalizeSourceName(n).toLowerCase()
-    displayMap[key] = normalizeSourceName(n)
-  })
+    ; (sourceNames || []).forEach(n => {
+      const key = normalizeSourceName(n).toLowerCase()
+      displayMap[key] = normalizeSourceName(n)
+    })
 
   const periodOrders = orders.filter(order => {
     const orderDate = new Date(order.orderDate || order.createdDate || order.dispatchDate || '');
@@ -225,25 +225,25 @@ export const getInventoryStatusOverview = (inventory) => {
     return stock >= reorder && stock <= reorder * 1.2;
   });
   const normal = inventory.filter(item => item.currentStock > item.reorderLevel * 1.2);
-  
+
   return { critical, low, normal, total: inventory.length };
 };
 
 // Expense Reports Functions
 export const getHighCostItems = (expenses, limit = 10) => {
   const itemCosts = {};
-  
+
   expenses.forEach(expense => {
     const itemName = expense.item || expense.description || 'Unknown';
     const amount = expense.amount || 0;
-    
+
     if (!itemCosts[itemName]) {
       itemCosts[itemName] = { name: itemName, total: 0, count: 0 };
     }
     itemCosts[itemName].total += amount;
     itemCosts[itemName].count += 1;
   });
-  
+
   return Object.values(itemCosts)
     .sort((a, b) => b.total - a.total)
     .slice(0, limit);
@@ -257,11 +257,11 @@ export const getCostPerOrder = (expenses, orders) => {
 };
 
 export const getROIOnAds = (orders, expenses) => {
-  const adOrders = orders.filter(order => 
+  const adOrders = orders.filter(order =>
     (order.orderSource === 'Ad' || !order.orderSource) && order.paymentStatus === 'Paid'
   );
   const adRevenue = adOrders.reduce((sum, order) => sum + (order.totalPrice || order.totalAmount || 0), 0);
-  
+
   // Assume marketing expenses are expenses with category containing "marketing" or "ad"
   const adExpenses = expenses
     .filter(expense => {
@@ -269,7 +269,7 @@ export const getROIOnAds = (orders, expenses) => {
       return category.includes('marketing') || category.includes('ad') || category.includes('advertising');
     })
     .reduce((sum, expense) => sum + (expense.amount || 0), 0);
-  
+
   const roi = adExpenses > 0 ? ((adRevenue - adExpenses) / adExpenses) * 100 : 0;
   return { adRevenue, adExpenses, roi, adOrders: adOrders.length };
 };

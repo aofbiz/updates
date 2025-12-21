@@ -45,6 +45,7 @@ const transformOrderToDB = (order) => {
         categoryId: it.categoryId || null,
         itemId: it.itemId || null,
         customItemName: it.customItemName || null,
+        name: it.name || it.itemName || it.customItemName || null,
         quantity: it.quantity ?? 0,
         unitPrice: it.unitPrice ?? 0,
         notes: it.notes || '',
@@ -85,6 +86,7 @@ const transformOrderFromDB = (order) => {
       categoryId: it.categoryId || null,
       itemId: it.itemId || null,
       customItemName: it.customItemName || null,
+      name: it.name || it.itemName || it.customItemName || null,
       quantity: it.quantity ?? 0,
       unitPrice: it.unitPrice ?? 0,
       notes: it.notes || '',
@@ -94,6 +96,7 @@ const transformOrderFromDB = (order) => {
       categoryId: order.category_id || null,
       itemId: order.item_id || null,
       customItemName: order.custom_item_name || null,
+      name: order.custom_item_name || null,
       quantity: order.quantity || 1,
       unitPrice: order.unit_price || 0,
       notes: ''
