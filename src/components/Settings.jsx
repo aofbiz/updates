@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, AlertTriangle, Plus, Trash2, Edit2, Edit, Package, Search, ChevronDown, ChevronUp, Download, Upload, Trash, MessageCircle, X, LogOut } from 'lucide-react'
+import { Settings as SettingsIcon, Save, AlertTriangle, Plus, Trash2, Edit2, Edit, Package, Search, ChevronDown, ChevronUp, Download, Upload, Trash, MessageCircle, X, LogOut, Database } from 'lucide-react'
+import { loadGoogleScript, initTokenClient, uploadFileToDrive } from '../utils/googleDrive'
 import { generateTrackingNumbersFromRange, getSettings, saveSettings, getOrders, getTrackingNumbers, saveTrackingNumbers, getProducts, getOrderCounter, saveOrderCounter, exportAllData, importAllData, clearAllData } from '../utils/storage'
 import ProductsManagement from './ProductsManagement'
 import ExpenseManagement from './ExpenseManagement'
@@ -18,6 +19,7 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
     dataManagement: false,
     dataHealth: false,
     orderSources: false,
+    googleDrive: false,
     whatsappTemplates: false
   })
   const [products, setProducts] = useState({ categories: [] })
@@ -147,6 +149,7 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
       }}>
         {[
           { id: 'general', label: 'General' },
+          { id: 'backup', label: 'Backup & Data' },
           { id: 'products', label: 'Products' },
           { id: 'expenses', label: 'Expenses' },
           { id: 'inventory', label: 'Inventory' },
@@ -215,6 +218,31 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
           >
             <OrderSourcesManagement />
           </CollapsibleSection>
+        </>
+      )}
+
+      {/* Backup & Data Tab Content */}
+      {activeTab === 'backup' && (
+        <>
+          {/* Google Drive Backup Section */}
+          <CollapsibleSection
+            title="Google Drive Backup"
+            icon={Database}
+            isExpanded={expandedSections.googleDrive}
+            onToggle={() => toggleSection('googleDrive')}
+          >
+            <GoogleDriveBackup
+              settings={settings}
+              setSettings={setSettings}
+              orders={orders}
+              expenses={expenses}
+              inventory={inventory}
+              products={products}
+              trackingNumbers={trackingNumbers}
+              orderCounter={orderCounter}
+              showToast={addToast}
+            />
+          </CollapsibleSection>
 
           {/* Data Management Section (includes Health Check) */}
           <CollapsibleSection
@@ -236,31 +264,40 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
               showToast={addToast}
             />
 
-            <div style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertTriangle size={18} />
-                Data Health Check
-              </h3>
-              <DataHealthCheck orders={orders} expenses={expenses} inventory={inventory} />
-            </div>
+          </CollapsibleSection>
+
+          {/* Data Health Check Section */}
+          <CollapsibleSection
+            title="Data Health Check"
+            icon={AlertTriangle}
+            isExpanded={expandedSections.dataHealth}
+            onToggle={() => toggleSection('dataHealth')}
+          >
+            <DataHealthCheck orders={orders} expenses={expenses} inventory={inventory} />
           </CollapsibleSection>
         </>
       )}
 
       {/* Products Tab Content */}
-      {activeTab === 'products' && (
-        <ProductsManagement />
-      )}
+      {
+        activeTab === 'products' && (
+          <ProductsManagement />
+        )
+      }
 
       {/* Expenses Tab Content */}
-      {activeTab === 'expenses' && (
-        <ExpenseManagement />
-      )}
+      {
+        activeTab === 'expenses' && (
+          <ExpenseManagement />
+        )
+      }
 
       {/* Inventory Tab Content */}
-      {activeTab === 'inventory' && (
-        <InventoryManagement inventory={inventory} onUpdateInventory={onUpdateInventory} />
-      )}
+      {
+        activeTab === 'inventory' && (
+          <InventoryManagement inventory={inventory} onUpdateInventory={onUpdateInventory} />
+        )
+      }
 
       <ConfirmationModal
         isOpen={modalConfig.isOpen}
@@ -273,7 +310,7 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
         confirmText={modalConfig.confirmText}
       />
 
-    </div>
+    </div >
   )
 }
 
@@ -1132,6 +1169,236 @@ const WhatsAppTemplates = ({ settings, setSettings, showAlert, showConfirm, show
           <Save size={18} />
           {isSaving ? 'Saving...' : 'Save Templates'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+// Google Drive Backup Component
+const GoogleDriveBackup = ({ settings, setSettings, orders, expenses, inventory, products, trackingNumbers, orderCounter, showToast }) => {
+  const [clientId, setClientId] = useState(settings?.googleDrive?.clientId || '')
+  const [isAutoBackupEnabled, setIsAutoBackupEnabled] = useState(settings?.googleDrive?.autoBackup || false)
+  const [backupFrequency, setBackupFrequency] = useState(settings?.googleDrive?.frequency || 'daily')
+  const [isConnected, setIsConnected] = useState(false)
+  const [tokenClient, setTokenClient] = useState(null)
+  const [accessToken, setAccessToken] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [lastBackup, setLastBackup] = useState(settings?.googleDrive?.lastBackup || null)
+
+  useEffect(() => {
+    // Load setting on mount
+    if (settings?.googleDrive) {
+      setClientId(settings.googleDrive.clientId || '')
+      setIsAutoBackupEnabled(settings.googleDrive.autoBackup || false)
+      setBackupFrequency(settings.googleDrive.frequency || 'daily')
+      setLastBackup(settings.googleDrive.lastBackup || null)
+    }
+
+    // Load Google Script
+    loadGoogleScript().catch(err => console.error("Failed to load Google Script", err))
+  }, [settings])
+
+  const handleSaveSettings = async () => {
+    const updatedSettings = {
+      ...settings,
+      googleDrive: {
+        ...settings?.googleDrive,
+        clientId,
+        autoBackup: isAutoBackupEnabled,
+        frequency: backupFrequency
+      }
+    }
+    const success = await saveSettings(updatedSettings)
+    if (success) {
+      setSettings(updatedSettings)
+      showToast('Google Drive settings saved', 'success')
+
+      // Re-init token client if client ID changed
+      if (clientId && window.google) {
+        try {
+          const client = initTokenClient(clientId, (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              setAccessToken(tokenResponse.access_token)
+              setIsConnected(true)
+              showToast('Connected to Google Drive!', 'success')
+            }
+          })
+          setTokenClient(client)
+        } catch (e) {
+          console.error("Error initializing token client", e)
+        }
+      }
+    } else {
+      showToast('Failed to save settings', 'error')
+    }
+  }
+
+  const handleConnect = () => {
+    if (!clientId) {
+      showToast('Please enter a Client ID first', 'warning')
+      return
+    }
+
+    if (!tokenClient) {
+      try {
+        const client = initTokenClient(clientId, (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            setAccessToken(tokenResponse.access_token)
+            setIsConnected(true)
+            showToast('Connected to Google Drive!', 'success')
+          }
+        })
+        setTokenClient(client)
+        client.requestAccessToken();
+      } catch (e) {
+        console.error("Error initializing token client", e)
+        showToast('Error initializing Google Sign-In', 'error')
+      }
+    } else {
+      tokenClient.requestAccessToken();
+    }
+  }
+
+  const handleBackupNow = async () => {
+    if (!accessToken) {
+      showToast('Please connect to Google Drive first', 'warning')
+      handleConnect()
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      // Prepare Data
+      const exportData = {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        orders,
+        expenses,
+        products,
+        settings,
+        trackingNumbers,
+        orderCounter,
+        inventory
+      }
+
+      const fileName = `AOF_Backup_${new Date().toISOString().slice(0, 10)}_${new Date().getTime()}.json`
+      const content = JSON.stringify(exportData, null, 2)
+
+      await uploadFileToDrive(accessToken, fileName, content)
+
+      const now = new Date().toISOString()
+      setLastBackup(now)
+
+      // Update last backup time in settings
+      const updatedSettings = {
+        ...settings,
+        googleDrive: {
+          ...settings?.googleDrive,
+          lastBackup: now
+        }
+      }
+      await saveSettings(updatedSettings)
+      setSettings(updatedSettings)
+
+      showToast('Backup uploaded successfully!', 'success')
+    } catch (error) {
+      console.error("Backup failed", error)
+      showToast('Backup failed: ' + error.message, 'error')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  return (
+    <div>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          Automatically backup your data to a secure folder in your Google Drive.
+          To set this up, you need a Google Cloud Client ID.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '1.5rem' }}>
+        <div className="form-group">
+          <label className="form-label" style={{ fontWeight: 600 }}>Google Client ID</label>
+          <input
+            type="text"
+            className="form-input"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder="Search 'Google Cloud Console create OAuth client id'..."
+          />
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+            Origin must be set to <code>{window.location.origin}</code>
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={isAutoBackupEnabled}
+                onChange={(e) => setIsAutoBackupEnabled(e.target.checked)}
+              />
+              <span className="slider round"></span>
+            </label>
+            <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+              Enable Auto-Backup
+            </span>
+
+            {isAutoBackupEnabled && (
+              <select
+                className="form-input"
+                value={backupFrequency}
+                onChange={(e) => setBackupFrequency(e.target.value)}
+                style={{ marginLeft: '1rem', width: 'auto', padding: '0.25rem 0.5rem', height: 'auto' }}
+              >
+                <option value="hourly">Hourly</option>
+                <option value="6hours">Every 6 Hours</option>
+                <option value="12hours">Every 12 Hours</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            )}
+          </div>
+
+          {lastBackup && (
+            <p style={{ fontSize: '0.8rem', color: 'var(--success)' }}>
+              Last Backup: {new Date(lastBackup).toLocaleString()}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button
+          onClick={handleSaveSettings}
+          className="btn btn-secondary"
+        >
+          Save Settings
+        </button>
+
+        {!isConnected ? (
+          <button
+            onClick={handleConnect}
+            className="btn btn-primary"
+            disabled={!clientId}
+          >
+            <Database size={18} style={{ marginRight: '0.5rem' }} />
+            Connect Google Drive
+          </button>
+        ) : (
+          <button
+            onClick={handleBackupNow}
+            className="btn btn-primary"
+            disabled={isUploading}
+          >
+            <Upload size={18} style={{ marginRight: '0.5rem' }} />
+            {isUploading ? 'Uploading...' : 'Backup Now'}
+          </button>
+        )}
       </div>
     </div>
   )
