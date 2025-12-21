@@ -4,11 +4,14 @@ import OrderForm from './OrderForm'
 import DispatchModal from './DispatchModal'
 import ViewOrderModal from './ViewOrderModal'
 import TrackingNumberModal from './TrackingNumberModal'
+import ConfirmationModal from './ConfirmationModal'
 import { saveOrders, getProducts, getSettings } from '../utils/storage'
 import { formatWhatsAppNumber, generateWhatsAppMessage } from '../utils/whatsapp'
 import * as XLSX from 'xlsx'
+import { useToast } from './Toast/ToastContext'
 
 const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilters = {} }) => {
+  const { addToast } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [showDispatchModal, setShowDispatchModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
@@ -31,7 +34,45 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
   const [paymentStatusSelectFilter, setPaymentStatusSelectFilter] = useState('all') // Payment status filter for selection
   const [sortField, setSortField] = useState('status') // Sort field: orderNumber, date, totalPrice, status, paymentStatus, trackingNumber
   const [sortDirection, setSortDirection] = useState('asc') // Sort direction: 'asc' or 'desc'
+
   const [settings, setSettings] = useState(null)
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'default',
+    title: '',
+    message: '',
+    onConfirm: null,
+    isAlert: false
+  })
+
+  const showAlert = (title, message, type = 'default') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm: null,
+      isAlert: true
+    })
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'default', confirmText = 'Confirm') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      isAlert: false,
+      confirmText
+    })
+  }
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }))
+  }
 
   // Load data on mount
   useEffect(() => {
@@ -209,27 +250,33 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
         ? orders.map(o => (o.id === orderData.id ? orderData : o))
         : [...orders, orderData]
     }
-    await saveOrders(updatedOrders)
-    onUpdateOrders(updatedOrders)
-    setEditingOrder(null)
+    const success = await saveOrders(updatedOrders)
+    if (success) {
+      onUpdateOrders(updatedOrders)
+      setEditingOrder(null)
+      addToast(editingOrder ? 'Order updated successfully' : 'Order added successfully', 'success')
+    } else {
+      addToast('Failed to save order. Please try again.', 'error')
+    }
   }
 
-  const handleDeleteOrder = async (orderId) => {
-    if (window.confirm('Are you sure you want to delete this order?')) {
+  const handleDeleteOrder = (orderId) => {
+    showConfirm('Delete Order', 'Are you sure you want to delete this order?', async () => {
       try {
         const updatedOrders = orders.filter(order => order.id !== orderId)
         const saveSuccess = await saveOrders(updatedOrders)
         if (saveSuccess) {
           onUpdateOrders(updatedOrders)
+          addToast('Order deleted successfully', 'success')
         } else {
-          alert('Failed to delete order. Please try again.')
+          addToast('Failed to delete order. Please try again.', 'error')
           console.error('Failed to delete order from Supabase')
         }
       } catch (error) {
         console.error('Error deleting order:', error)
-        alert('Error deleting order: ' + error.message)
+        addToast('Error deleting order: ' + error.message, 'error')
       }
-    }
+    }, 'danger', 'Delete')
   }
 
   const handleStatusChange = async (orderId, field, newValue) => {
@@ -431,35 +478,33 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     const ordersToUpdate = getAllSelectedOrders()
 
     if (ordersToUpdate.length === 0) {
-      alert('No orders selected. Please select orders first.')
+      addToast('No orders selected. Please select orders first.', 'warning')
       return
     }
 
-    if (!window.confirm(`Are you sure you want to change order status to "${newStatus}" for ${ordersToUpdate.length} order(s)?`)) {
-      return
-    }
+    showConfirm('Confirm Status Change', `Are you sure you want to change order status to "${newStatus}" for ${ordersToUpdate.length} order(s)?`, async () => {
+      try {
+        const orderIdsToUpdate = new Set(ordersToUpdate.map(o => o.id))
+        const updatedOrders = orders.map(order => {
+          if (orderIdsToUpdate.has(order.id)) {
+            return { ...order, status: newStatus }
+          }
+          return order
+        })
 
-    try {
-      const orderIdsToUpdate = new Set(ordersToUpdate.map(o => o.id))
-      const updatedOrders = orders.map(order => {
-        if (orderIdsToUpdate.has(order.id)) {
-          return { ...order, status: newStatus }
+        const saveSuccess = await saveOrders(updatedOrders)
+        if (saveSuccess) {
+          onUpdateOrders(updatedOrders)
+          setSelectedOrders(new Set()) // Clear selection after update
+          addToast(`Successfully updated ${ordersToUpdate.length} order(s) status to "${newStatus}"`, 'success')
+        } else {
+          addToast('Failed to update orders. Please try again.', 'error')
         }
-        return order
-      })
-
-      const saveSuccess = await saveOrders(updatedOrders)
-      if (saveSuccess) {
-        onUpdateOrders(updatedOrders)
-        setSelectedOrders(new Set()) // Clear selection after update
-        alert(`Successfully updated ${ordersToUpdate.length} order(s) status to "${newStatus}"`)
-      } else {
-        alert('Failed to update orders. Please try again.')
+      } catch (error) {
+        console.error('Error updating orders:', error)
+        addToast('Error updating orders: ' + error.message, 'error')
       }
-    } catch (error) {
-      console.error('Error updating orders:', error)
-      alert('Error updating orders: ' + error.message)
-    }
+    }, 'warning', 'Update Status')
   }
 
   // Handle bulk payment status change for selected orders
@@ -467,35 +512,33 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     const ordersToUpdate = getAllSelectedOrders()
 
     if (ordersToUpdate.length === 0) {
-      alert('No orders selected. Please select orders first.')
+      addToast('No orders selected. Please select orders first.', 'warning')
       return
     }
 
-    if (!window.confirm(`Are you sure you want to change payment status to "${newPaymentStatus}" for ${ordersToUpdate.length} order(s)?`)) {
-      return
-    }
+    showConfirm('Confirm Payment Status Change', `Are you sure you want to change payment status to "${newPaymentStatus}" for ${ordersToUpdate.length} order(s)?`, async () => {
+      try {
+        const orderIdsToUpdate = new Set(ordersToUpdate.map(o => o.id))
+        const updatedOrders = orders.map(order => {
+          if (orderIdsToUpdate.has(order.id)) {
+            return { ...order, paymentStatus: newPaymentStatus }
+          }
+          return order
+        })
 
-    try {
-      const orderIdsToUpdate = new Set(ordersToUpdate.map(o => o.id))
-      const updatedOrders = orders.map(order => {
-        if (orderIdsToUpdate.has(order.id)) {
-          return { ...order, paymentStatus: newPaymentStatus }
+        const saveSuccess = await saveOrders(updatedOrders)
+        if (saveSuccess) {
+          onUpdateOrders(updatedOrders)
+          setSelectedOrders(new Set()) // Clear selection after update
+          addToast(`Successfully updated ${ordersToUpdate.length} order(s) payment status to "${newPaymentStatus}"`, 'success')
+        } else {
+          addToast('Failed to update orders. Please try again.', 'error')
         }
-        return order
-      })
-
-      const saveSuccess = await saveOrders(updatedOrders)
-      if (saveSuccess) {
-        onUpdateOrders(updatedOrders)
-        setSelectedOrders(new Set()) // Clear selection after update
-        alert(`Successfully updated ${ordersToUpdate.length} order(s) payment status to "${newPaymentStatus}"`)
-      } else {
-        alert('Failed to update orders. Please try again.')
+      } catch (error) {
+        console.error('Error updating orders:', error)
+        addToast('Error updating orders: ' + error.message, 'error')
       }
-    } catch (error) {
-      console.error('Error updating orders:', error)
-      alert('Error updating orders: ' + error.message)
-    }
+    }, 'warning', 'Update Status')
   }
 
   // Export orders to XLSX
@@ -503,7 +546,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     const ordersToExport = getOrdersToExport()
 
     if (ordersToExport.length === 0) {
-      alert('No orders selected for export. Please select orders or use status filter.')
+      addToast('No orders selected. Please select orders first.', 'warning')
       return
     }
 
@@ -553,20 +596,21 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
 
     // Clear selection after export
     setSelectedOrders(new Set())
-    alert(`Exported ${ordersToExport.length} order(s) to ${filename}`)
+    addToast(`Exported ${ordersToExport.length} order(s) to ${filename}`, 'success')
+
   }
 
   const handleWhatsApp = (order) => {
     const phone = order.whatsapp || order.phone
     if (!phone) {
-      alert('No WhatsApp number available for this order')
+      addToast('No WhatsApp number available for this order', 'warning')
       return
     }
 
     // Format the number for WhatsApp
     const formattedNumber = formatWhatsAppNumber(phone)
     if (!formattedNumber) {
-      alert('Invalid phone number format')
+      addToast('Invalid phone number format', 'warning')
       return
     }
 
@@ -627,7 +671,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     })
 
     if (!message) {
-      alert('Template error: Message is empty')
+      addToast('Message is empty', 'error')
       return
     }
 
@@ -1234,6 +1278,17 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
           onSave={handleSaveOrder}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        isAlert={modalConfig.isAlert}
+        confirmText={modalConfig.confirmText}
+      />
     </div>
   )
 }

@@ -4,14 +4,42 @@ import { getProducts, getSettings } from '../utils/storage'
 import { formatWhatsAppNumber, generateWhatsAppMessage } from '../utils/whatsapp'
 import TrackingNumberModal from './TrackingNumberModal'
 import DispatchModal from './DispatchModal'
+import ConfirmationModal from './ConfirmationModal'
+import { useToast } from './Toast/ToastContext'
 
 const ViewOrderModal = ({ order, onClose, onSave, onRequestTrackingNumber, onRequestDispatch }) => {
+  const { addToast } = useToast()
   const [products, setProducts] = useState({ categories: [] })
   const [localOrder, setLocalOrder] = useState(order)
   const [showTrackingModal, setShowTrackingModal] = useState(false)
   const [showDispatchModal, setShowDispatchModal] = useState(false)
   const [pendingStatus, setPendingStatus] = useState('Packed')
   const [settings, setSettings] = useState(null)
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'default',
+    title: '',
+    message: '',
+    onConfirm: null,
+    isAlert: false
+  })
+
+  const showAlert = (title, message, type = 'default') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm: null,
+      isAlert: true
+    })
+  }
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }))
+  }
 
   useEffect(() => {
     const loadData = async () => {
@@ -342,13 +370,13 @@ const ViewOrderModal = ({ order, onClose, onSave, onRequestTrackingNumber, onReq
 
   const handleSendInvoiceWhatsApp = () => {
     if (!safeOrder.whatsapp) {
-      alert('No WhatsApp number available for this order')
+      showAlert('Missing Information', 'No WhatsApp number available for this order', 'warning')
       return
     }
 
     const formattedNumber = formatWhatsAppNumber(safeOrder.whatsapp)
     if (!formattedNumber) {
-      alert('Invalid WhatsApp number format')
+      showAlert('Invalid Format', 'Invalid WhatsApp number format', 'warning')
       return
     }
 
@@ -374,7 +402,7 @@ const ViewOrderModal = ({ order, onClose, onSave, onRequestTrackingNumber, onReq
     })
 
     if (!invoiceMessage) {
-      alert('Template error: Message is empty')
+      showAlert('Template Error', 'Template error: Message is empty', 'danger')
       return
     }
 
@@ -397,8 +425,19 @@ const ViewOrderModal = ({ order, onClose, onSave, onRequestTrackingNumber, onReq
       justifyContent: 'center',
       zIndex: 1000,
       padding: '1rem',
+      padding: '1rem',
       backdropFilter: 'blur(4px)'
     }}>
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        isAlert={modalConfig.isAlert}
+        confirmText={modalConfig.confirmText}
+      />
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}

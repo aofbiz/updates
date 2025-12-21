@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { markTrackingNumberAsUsed } from '../utils/storage'
 import TrackingNumberInput from './TrackingNumberInput'
+import { useToast } from './Toast/ToastContext'
 
 const DispatchModal = ({ order, onClose, onSave }) => {
+  const { addToast } = useToast()
   // Handle Esc key press
   useEffect(() => {
     const handleEsc = (e) => {
@@ -27,24 +29,27 @@ const DispatchModal = ({ order, onClose, onSave }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     const updatedOrder = {
       ...order,
       ...formData,
       status: 'Dispatched'
     }
 
-    // Mark tracking number as used if provided and changed
-    if (updatedOrder.trackingNumber && (!order?.trackingNumber || order.trackingNumber !== updatedOrder.trackingNumber)) {
-      try {
+    try {
+      // Only mark as used if it changed from blank to something, or changed value
+      if (updatedOrder.trackingNumber && (!order?.trackingNumber || order.trackingNumber !== updatedOrder.trackingNumber)) {
         await markTrackingNumberAsUsed(updatedOrder.trackingNumber)
-      } catch (error) {
-        console.error('Error marking tracking number as used:', error)
       }
+    } catch (error) {
+      console.error('Error marking tracking number as used:', error)
+      addToast('Error marking tracking number as used', 'error')
+      // Don't block save on tracking error? Or maybe we should. 
+      // Proceeding for now but logging error.
     }
 
-    // Save the order
     onSave(updatedOrder)
+    addToast('Order dispatched successfully', 'success')
     onClose()
   }
 
@@ -117,4 +122,3 @@ const DispatchModal = ({ order, onClose, onSave }) => {
 }
 
 export default DispatchModal
-

@@ -4,12 +4,53 @@ import ExpenseForm from './ExpenseForm'
 import { saveExpenses } from '../utils/storage'
 import { getMonthlyExpenses, getCategoryBreakdown } from '../utils/calculations'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import ConfirmationModal from './ConfirmationModal'
+import { useToast } from './Toast/ToastContext'
 
 const ExpenseTracker = ({ expenses, onUpdateExpenses, triggerFormOpen, inventory, onUpdateInventory }) => {
+  const { addToast } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [editingExpense, setEditingExpense] = useState(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
+
   const [dateFilter, setDateFilter] = useState('all')
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'default',
+    title: '',
+    message: '',
+    onConfirm: null,
+    isAlert: false
+  })
+
+  const showAlert = (title, message, type = 'default') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm: null,
+      isAlert: true
+    })
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'default', confirmText = 'Confirm') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      isAlert: false,
+      confirmText
+    })
+  }
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }))
+  }
 
   // Handle external form trigger (only when triggerFormOpen > 0)
   useEffect(() => {
@@ -41,8 +82,8 @@ const ExpenseTracker = ({ expenses, onUpdateExpenses, triggerFormOpen, inventory
     if (dateFilter === 'month') {
       filtered = filtered.filter(expense => {
         const expenseDate = new Date(expense.date)
-        return expenseDate.getMonth() === currentMonth && 
-               expenseDate.getFullYear() === currentYear
+        return expenseDate.getMonth() === currentMonth &&
+          expenseDate.getFullYear() === currentYear
       })
     } else if (dateFilter === 'year') {
       filtered = filtered.filter(expense => {
@@ -73,27 +114,28 @@ const ExpenseTracker = ({ expenses, onUpdateExpenses, triggerFormOpen, inventory
       } else {
         updatedExpenses = [...expenses, expenseData]
       }
-      
+
       const saveSuccess = await saveExpenses(updatedExpenses)
       if (saveSuccess) {
         onUpdateExpenses(updatedExpenses)
         setEditingExpense(null)
+        addToast(editingExpense ? 'Expense updated successfully' : 'Expense added successfully', 'success')
       } else {
-        alert('Failed to save expense. Please try again.')
+        addToast('Failed to save expense. Please try again.', 'error')
         console.error('Failed to save expense to Supabase')
       }
     } catch (error) {
       console.error('Error saving expense:', error)
-      alert('Error saving expense: ' + error.message)
+      addToast('Error saving expense: ' + error.message, 'error')
     }
   }
 
-  const handleDelete = async (expenseId) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
+  const handleDelete = (expenseId) => {
+    showConfirm('Delete Expense', 'Are you sure you want to delete this expense?', async () => {
       try {
         // Find the expense being deleted
         const expenseToDelete = expenses.find(expense => expense.id === expenseId)
-        
+
         // If expense is linked to inventory, deduct the quantity from inventory stock
         if (expenseToDelete?.inventoryItemId && expenseToDelete?.quantity && inventory && onUpdateInventory) {
           const item = inventory.find(inv => inv.id === expenseToDelete.inventoryItemId)
@@ -114,21 +156,22 @@ const ExpenseTracker = ({ expenses, onUpdateExpenses, triggerFormOpen, inventory
             }
           }
         }
-        
+
         // Delete the expense
         const updatedExpenses = expenses.filter(expense => expense.id !== expenseId)
         const saveSuccess = await saveExpenses(updatedExpenses)
         if (saveSuccess) {
           onUpdateExpenses(updatedExpenses)
+          addToast('Expense deleted successfully', 'success')
         } else {
-          alert('Failed to delete expense. Please try again.')
+          addToast('Failed to delete expense. Please try again.', 'error')
           console.error('Failed to delete expense from Supabase')
         }
       } catch (error) {
         console.error('Error deleting expense:', error)
-        alert('Error deleting expense: ' + error.message)
+        addToast('Error deleting expense: ' + error.message, 'error')
       }
-    }
+    }, 'danger', 'Delete')
   }
 
   const handleEdit = (expense) => {
@@ -372,6 +415,17 @@ const ExpenseTracker = ({ expenses, onUpdateExpenses, triggerFormOpen, inventory
           onUpdateInventory={onUpdateInventory}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        isAlert={modalConfig.isAlert}
+        confirmText={modalConfig.confirmText}
+      />
     </div>
   )
 }

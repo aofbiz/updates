@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { markTrackingNumberAsUsed } from '../utils/storage'
 import TrackingNumberInput from './TrackingNumberInput'
+import { useToast } from './Toast/ToastContext'
 
 const TrackingNumberModal = ({ order, targetStatus = 'Packed', onClose, onSave }) => {
+  const { addToast } = useToast()
   // Handle Esc key press
   useEffect(() => {
     const handleEsc = (e) => {
@@ -32,6 +34,7 @@ const TrackingNumberModal = ({ order, targetStatus = 'Packed', onClose, onSave }
     }
 
     // Mark tracking number as used if provided and changed
+    // Only mark as used if it changed from blank to something, or changed value
     if (updatedOrder.trackingNumber && (!order?.trackingNumber || order.trackingNumber !== updatedOrder.trackingNumber)) {
       try {
         await markTrackingNumberAsUsed(updatedOrder.trackingNumber)
@@ -41,6 +44,7 @@ const TrackingNumberModal = ({ order, targetStatus = 'Packed', onClose, onSave }
     }
 
     onSave(updatedOrder)
+    addToast('Order updated successfully', 'success')
     onClose()
   }
 

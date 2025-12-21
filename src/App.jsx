@@ -11,6 +11,9 @@ import { getOrders, getExpenses, getInventory } from './utils/storage'
 import { supabase } from './utils/supabase'
 import { Loader2 } from 'lucide-react'
 
+import { ToastProvider } from './components/Toast/ToastContext'
+import ToastContainer from './components/Toast/ToastContainer'
+
 function App() {
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -159,6 +162,7 @@ function App() {
             inventory={inventory}
             onUpdateInventory={updateInventory}
             initialFilter={initialFilters.stockFilter}
+            onNavigate={handleNavigate}
           />
         )
       case 'expenses':
@@ -225,47 +229,55 @@ function App() {
   }
 
   if (!session) {
-    return <Login onLoginSuccess={(session) => setSession(session)} />
+    return (
+      <ToastProvider>
+        <ToastContainer />
+        <Login onLoginSuccess={(session) => setSession(session)} />
+      </ToastProvider>
+    )
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <div className="bg-blob bg-blob-3"></div>
-      <Sidebar
-        activeView={activeView}
-        setActiveView={handleViewChange}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        onAddOrder={handleAddOrder}
-        onAddExpense={handleAddExpense}
-        onLogout={handleLogout}
-      />
-      <main style={{
-        flex: 1,
-        padding: '1rem',
-        marginLeft: '0',
-        backgroundColor: 'transparent',
-        transition: 'margin-left 0.3s ease'
-      }}
-        className="main-content"
-      >
-        {renderView()}
-      </main>
-      {sidebarOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 99
-          }}
-          onClick={() => setSidebarOpen(false)}
+    <ToastProvider>
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <div className="bg-blob bg-blob-3"></div>
+        <ToastContainer />
+        <Sidebar
+          activeView={activeView}
+          setActiveView={handleViewChange}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          onAddOrder={handleAddOrder}
+          onAddExpense={handleAddExpense}
+          onLogout={handleLogout}
         />
-      )}
-    </div>
+        <main style={{
+          flex: 1,
+          padding: '1rem',
+          marginLeft: '0',
+          backgroundColor: 'transparent',
+          transition: 'margin-left 0.3s ease'
+        }}
+          className="main-content"
+        >
+          {renderView()}
+        </main>
+        {sidebarOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 99
+            }}
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </div>
+    </ToastProvider>
   )
 }
 

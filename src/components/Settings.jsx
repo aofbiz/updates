@@ -6,8 +6,11 @@ import ExpenseManagement from './ExpenseManagement'
 import InventoryManagement from './InventoryManagement'
 import DataHealthCheck from './DataHealthCheck'
 import OrderSourcesManagement from './OrderSourcesManagement'
+import ConfirmationModal from './ConfirmationModal'
+import { useToast } from './Toast/ToastContext'
 
 const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, onUpdateInventory }) => {
+  const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState('general')
   const [settings, setSettings] = useState({})
   const [expandedSections, setExpandedSections] = useState({
@@ -20,6 +23,43 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
   const [products, setProducts] = useState({ categories: [] })
   const [trackingNumbers, setTrackingNumbers] = useState([])
   const [orderCounter, setOrderCounter] = useState(null)
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'default',
+    title: '',
+    message: '',
+    onConfirm: null,
+    isAlert: false
+  })
+
+  const showAlert = (title, message, type = 'default') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm: null,
+      isAlert: true
+    })
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'default', confirmText = 'Confirm') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      isAlert: false,
+      confirmText
+    })
+  }
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }))
+  }
 
   const toggleSection = (section) => {
     setExpandedSections(prev => {
@@ -118,7 +158,6 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
       {activeTab === 'general' && (
         <>
 
-          {/* Tracking Number Management Section */}
           <CollapsibleSection
             title="Tracking Number Management"
             icon={Package}
@@ -128,46 +167,10 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
             <TrackingNumberManagement
               trackingNumbers={trackingNumbers}
               setTrackingNumbers={setTrackingNumbers}
+              showAlert={showAlert}
+              showConfirm={showConfirm}
+              showToast={addToast} // Pass showToast
             />
-          </CollapsibleSection>
-
-          {/* Data Management Section */}
-          <CollapsibleSection
-            title="Data Management"
-            icon={Package}
-            isExpanded={expandedSections.dataManagement}
-            onToggle={() => toggleSection('dataManagement')}
-          >
-            <DataManagement
-              orders={orders}
-              expenses={expenses}
-              inventory={inventory}
-              products={products}
-              settings={settings}
-              trackingNumbers={trackingNumbers}
-              orderCounter={orderCounter}
-              onDataImported={onDataImported}
-            />
-          </CollapsibleSection>
-
-          {/* Data Health Check Section */}
-          <CollapsibleSection
-            title="Data Health Check"
-            icon={AlertTriangle}
-            isExpanded={expandedSections.dataHealth}
-            onToggle={() => toggleSection('dataHealth')}
-          >
-            <DataHealthCheck orders={orders} expenses={expenses} inventory={inventory} />
-          </CollapsibleSection>
-
-          {/* Order Sources Section */}
-          <CollapsibleSection
-            title="Order Sources"
-            icon={Package}
-            isExpanded={expandedSections.orderSources}
-            onToggle={() => toggleSection('orderSources')}
-          >
-            <OrderSourcesManagement />
           </CollapsibleSection>
 
           {/* WhatsApp Templates Section */}
@@ -180,7 +183,49 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
             <WhatsAppTemplates
               settings={settings}
               setSettings={setSettings}
+              showAlert={showAlert}
+              showConfirm={showConfirm}
+              showToast={addToast}
             />
+          </CollapsibleSection>
+
+          {/* Order Sources Section */}
+          <CollapsibleSection
+            title="Order Sources"
+            icon={Package}
+            isExpanded={expandedSections.orderSources}
+            onToggle={() => toggleSection('orderSources')}
+          >
+            <OrderSourcesManagement />
+          </CollapsibleSection>
+
+          {/* Data Management Section (includes Health Check) */}
+          <CollapsibleSection
+            title="Data Management"
+            icon={Package}
+            isExpanded={expandedSections.dataManagement}
+            onToggle={() => toggleSection('dataManagement')}
+          >
+            <DataManagement
+              orders={orders}
+              expenses={expenses}
+              inventory={inventory}
+              products={products}
+              trackingNumbers={trackingNumbers}
+              orderCounter={orderCounter}
+              onDataImported={onDataImported}
+              showAlert={showAlert}
+              showConfirm={showConfirm}
+              showToast={addToast}
+            />
+
+            <div style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertTriangle size={18} />
+                Data Health Check
+              </h3>
+              <DataHealthCheck orders={orders} expenses={expenses} inventory={inventory} />
+            </div>
           </CollapsibleSection>
         </>
       )}
@@ -199,6 +244,17 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
       {activeTab === 'inventory' && (
         <InventoryManagement inventory={inventory} onUpdateInventory={onUpdateInventory} />
       )}
+
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        isAlert={modalConfig.isAlert}
+        confirmText={modalConfig.confirmText}
+      />
 
     </div>
   )
@@ -255,7 +311,8 @@ const CollapsibleSection = ({ title, icon: Icon, isExpanded, onToggle, children 
 }
 
 // Tracking Number Management Component
-const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers }) => {
+// Tracking Number Management Component
+const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers, showAlert, showConfirm, showToast }) => {
   const [showBulkAdd, setShowBulkAdd] = useState(false)
   const [showBulkDeleteRange, setShowBulkDeleteRange] = useState(false)
   const [rangeStart, setRangeStart] = useState('')
@@ -272,13 +329,13 @@ const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers }) => {
 
   const handleBulkAdd = async () => {
     if (!rangeStart || !rangeEnd) {
-      alert('Please enter both start and end tracking numbers')
+      showToast('Please enter both start and end tracking numbers', 'warning')
       return
     }
 
     const newNumbers = generateTrackingNumbersFromRange(rangeStart.trim(), rangeEnd.trim())
     if (newNumbers.length === 0) {
-      alert('Invalid range format. Please use format like RM02818735 – RM02818900')
+      showToast('Invalid range format. Please use format like RM02818735 – RM02818900', 'warning')
       return
     }
 
@@ -286,7 +343,7 @@ const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers }) => {
     const toAdd = newNumbers.filter(tn => !existingSet.has(tn.number))
 
     if (toAdd.length === 0) {
-      alert('All tracking numbers in this range already exist')
+      showToast('All tracking numbers in this range already exist', 'warning')
       return
     }
 
@@ -296,35 +353,31 @@ const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers }) => {
     setRangeStart('')
     setRangeEnd('')
     setShowBulkAdd(false)
-    alert(`Added ${toAdd.length} tracking numbers`)
+    showToast(`Added ${toAdd.length} tracking numbers`, 'success')
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedNumbers.size === 0) {
-      alert('Please select tracking numbers to delete')
+      showToast('Please select tracking numbers to delete', 'warning')
       return
     }
 
-    if (!window.confirm(`Delete ${selectedNumbers.size} tracking number(s)?`)) {
-      return
-    }
-
-    const updated = trackingNumbers.filter(tn => !selectedNumbers.has(tn.number))
-    await saveTrackingNumbers(updated)
-    setTrackingNumbers(updated)
-    setSelectedNumbers(new Set())
-    alert(`Deleted ${selectedNumbers.size} tracking number(s)`)
+    showConfirm('Delete Selected', `Delete ${selectedNumbers.size} tracking number(s)?`, async () => {
+      const updated = trackingNumbers.filter(tn => !selectedNumbers.has(tn.number))
+      await saveTrackingNumbers(updated)
+      setTrackingNumbers(updated)
+      setSelectedNumbers(new Set())
+      showToast(`Deleted ${selectedNumbers.size} tracking number(s)`, 'success')
+    }, 'danger', 'Delete')
   }
 
-  const handleDelete = async (number) => {
-    if (!window.confirm(`Delete tracking number ${number}?`)) {
-      return
-    }
-
-    const updated = trackingNumbers.filter(tn => tn.number !== number)
-    await saveTrackingNumbers(updated)
-    setTrackingNumbers(updated)
-    alert('Tracking number deleted')
+  const handleDelete = (number) => {
+    showConfirm('Delete Tracking Number', `Delete tracking number ${number}?`, async () => {
+      const updated = trackingNumbers.filter(tn => tn.number !== number)
+      await saveTrackingNumbers(updated)
+      setTrackingNumbers(updated)
+      showToast('Tracking number deleted', 'success')
+    }, 'danger', 'Delete')
   }
 
   const handleEdit = (tn) => {
@@ -334,7 +387,7 @@ const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers }) => {
 
   const handleSaveEdit = async () => {
     if (!editValue || (editValue !== 'available' && editValue !== 'used')) {
-      alert('Please select a valid status')
+      showToast('Please select a valid status', 'warning')
       return
     }
 
@@ -347,7 +400,7 @@ const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers }) => {
     setTrackingNumbers(updated)
     setEditingNumber(null)
     setEditValue('')
-    alert('Tracking number status updated')
+    showToast('Tracking number status updated', 'success')
   }
 
   const handleCancelEdit = () => {
@@ -355,15 +408,15 @@ const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers }) => {
     setEditValue('')
   }
 
-  const handleBulkDeleteByRange = async () => {
+  const handleBulkDeleteByRange = () => {
     if (!deleteRangeStart || !deleteRangeEnd) {
-      alert('Please enter both start and end tracking numbers')
+      showToast('Please enter both start and end tracking numbers', 'warning')
       return
     }
 
     const rangeNumbers = generateTrackingNumbersFromRange(deleteRangeStart.trim(), deleteRangeEnd.trim())
     if (rangeNumbers.length === 0) {
-      alert('Invalid range format. Please use format like RM02818735 – RM02818900')
+      showToast('Invalid range format. Please use format like RM02818735 – RM02818900', 'warning')
       return
     }
 
@@ -371,44 +424,41 @@ const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers }) => {
     const toDelete = trackingNumbers.filter(tn => rangeSet.has(tn.number))
 
     if (toDelete.length === 0) {
-      alert('No tracking numbers found in this range')
+      showToast('No tracking numbers found in this range', 'warning')
       return
     }
 
-    if (!window.confirm(`Delete ${toDelete.length} tracking number(s) in this range?`)) {
-      return
-    }
-
-    const updated = trackingNumbers.filter(tn => !rangeSet.has(tn.number))
-    await saveTrackingNumbers(updated)
-    setTrackingNumbers(updated)
-    setDeleteRangeStart('')
-    setDeleteRangeEnd('')
-    setShowBulkDeleteRange(false)
-    alert(`Deleted ${toDelete.length} tracking number(s)`)
+    showConfirm('Delete Range', `Delete ${toDelete.length} tracking number(s) in this range?`, async () => {
+      const updated = trackingNumbers.filter(tn => !rangeSet.has(tn.number))
+      await saveTrackingNumbers(updated)
+      setTrackingNumbers(updated)
+      setDeleteRangeStart('')
+      setDeleteRangeEnd('')
+      setShowBulkDeleteRange(false)
+      showToast(`Deleted ${toDelete.length} tracking number(s)`, 'success')
+    }, 'danger', 'Delete')
   }
 
-  const handleBulkDeleteByStatus = async () => {
+  const handleBulkDeleteByStatus = () => {
     if (filterStatus === 'all') {
-      alert('Please select a specific status (Available or Used) from the filter dropdown')
+      showToast('Please select a specific status (Available or Used) from the filter dropdown', 'warning')
       return
     }
 
     const toDelete = trackingNumbers.filter(tn => tn.status === filterStatus)
     if (toDelete.length === 0) {
-      alert(`No tracking numbers with status "${filterStatus}" found`)
+      showToast(`No tracking numbers with status "${filterStatus}" found`, 'warning')
       return
     }
 
     const statusLabel = filterStatus === 'available' ? 'Available' : 'Used'
-    if (!window.confirm(`Delete all ${toDelete.length} ${statusLabel} tracking number(s)? This action cannot be undone.`)) {
-      return
-    }
 
-    const updated = trackingNumbers.filter(tn => tn.status !== filterStatus)
-    await saveTrackingNumbers(updated)
-    setTrackingNumbers(updated)
-    alert(`Deleted ${toDelete.length} ${statusLabel} tracking number(s)`)
+    showConfirm('Delete All by Status', `Delete all ${toDelete.length} ${statusLabel} tracking number(s)? This action cannot be undone.`, async () => {
+      const updated = trackingNumbers.filter(tn => tn.status !== filterStatus)
+      await saveTrackingNumbers(updated)
+      setTrackingNumbers(updated)
+      showToast(`Deleted ${toDelete.length} ${statusLabel} tracking number(s)`, 'success')
+    }, 'danger', 'Delete')
   }
 
   const toggleSelect = (number) => {
@@ -803,16 +853,16 @@ const TrackingNumberManagement = ({ trackingNumbers, setTrackingNumbers }) => {
 }
 
 // Data Management Component
-const DataManagement = ({ orders, expenses, inventory, products, settings, trackingNumbers, orderCounter, onDataImported }) => {
+const DataManagement = ({ orders, expenses, inventory, products, settings, trackingNumbers, orderCounter, onDataImported, showAlert, showConfirm, showToast }) => {
   const [importStatus, setImportStatus] = useState(null)
 
   const handleExport = async () => {
     // Also include inventory in the export function call
     const result = await exportAllData(orders, expenses, products, settings, trackingNumbers, orderCounter, inventory)
     if (result.success) {
-      alert(result.message)
+      showToast(result.message, 'success')
     } else {
-      alert(result.message)
+      showToast(result.message, 'error')
     }
   }
 
@@ -821,7 +871,7 @@ const DataManagement = ({ orders, expenses, inventory, products, settings, track
     if (!file) return
 
     if (!file.name.endsWith('.json')) {
-      alert('Please select a valid JSON file')
+      showToast('Please select a valid JSON file', 'warning')
       return
     }
 
@@ -831,7 +881,7 @@ const DataManagement = ({ orders, expenses, inventory, products, settings, track
 
       if (result.success) {
         setImportStatus('Import successful!')
-        alert('Data imported successfully! Please refresh the page to see the changes.')
+        showToast('Data imported successfully! The page will reload.', 'success')
 
         // Call the callback to update parent state
         if (onDataImported) {
@@ -841,35 +891,31 @@ const DataManagement = ({ orders, expenses, inventory, products, settings, track
         // Reload page after a short delay to show imported data
         setTimeout(() => {
           window.location.reload()
-        }, 1000)
+        }, 1500)
       } else {
         setImportStatus('Import failed')
-        alert(result.message)
+        showToast(result.message, 'error')
       }
     } catch (error) {
       setImportStatus('Import failed')
-      alert('Failed to import data: ' + error.message)
+      showToast('Failed to import data: ' + error.message, 'error')
     } finally {
       e.target.value = '' // Reset file input
     }
   }
 
-  const handleClear = async () => {
-    if (!window.confirm('Are you sure you want to clear ALL data? This action cannot be undone!')) {
-      return
-    }
-
-    if (!window.confirm('This will delete all orders, expenses, products, settings, and tracking numbers. Are you absolutely sure?')) {
-      return
-    }
-
-    const result = await clearAllData()
-    if (result.success) {
-      alert('All data cleared! The page will reload.')
-      window.location.reload()
-    } else {
-      alert(result.message)
-    }
+  const handleClear = () => {
+    showConfirm('Warning: Data Loss', 'Are you sure you want to clear ALL data? This action cannot be undone!', () => {
+      showConfirm('Final Confirmation', 'This will delete all orders, expenses, products, settings, and tracking numbers. Are you absolutely sure?', async () => {
+        const result = await clearAllData()
+        if (result.success) {
+          showToast('All data cleared! The page will reload.', 'success')
+          setTimeout(() => window.location.reload(), 1500)
+        } else {
+          showToast(result.message, 'error')
+        }
+      }, 'danger', 'Yes, Delete Everything')
+    }, 'danger', 'Proceed')
   }
 
   return (
@@ -982,7 +1028,7 @@ const DataManagement = ({ orders, expenses, inventory, products, settings, track
 }
 
 // WhatsApp Templates Management Component
-const WhatsAppTemplates = ({ settings, setSettings }) => {
+const WhatsAppTemplates = ({ settings, setSettings, showAlert, showConfirm, showToast }) => {
   const [viewOrderTemplate, setViewOrderTemplate] = useState(settings?.whatsappTemplates?.viewOrder || '')
   const [quickActionTemplate, setQuickActionTemplate] = useState(settings?.whatsappTemplates?.quickAction || '')
   const [isSaving, setIsSaving] = useState(false)
@@ -999,9 +1045,9 @@ const WhatsAppTemplates = ({ settings, setSettings }) => {
     const success = await saveSettings(updatedSettings)
     if (success) {
       setSettings(updatedSettings)
-      alert('WhatsApp templates saved successfully!')
+      showToast('WhatsApp templates saved successfully!', 'success')
     } else {
-      alert('Failed to save templates.')
+      showToast('Failed to save templates.', 'error')
     }
     setIsSaving(false)
   }

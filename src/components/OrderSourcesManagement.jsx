@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, Save, Trash2, Edit2, X, Tag } from 'lucide-react'
 import { getOrderSources, saveOrderSources, renameOrderSourceInOrders } from '../utils/storage'
+import ConfirmationModal from './ConfirmationModal'
+import { useToast } from './Toast/ToastContext'
 
 const normalizeName = (name) => (name || '').trim()
 
@@ -16,11 +18,49 @@ const makeIdFromName = (name) => {
 }
 
 const OrderSourcesManagement = () => {
+  const { addToast } = useToast()
   const [sources, setSources] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [editingOriginalName, setEditingOriginalName] = useState(null)
   const [formName, setFormName] = useState('')
   const [showForm, setShowForm] = useState(false)
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'default',
+    title: '',
+    message: '',
+    onConfirm: null,
+    isAlert: false
+  })
+
+  const showAlert = (title, message, type = 'default') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm: null,
+      isAlert: true
+    })
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'danger', confirmText = 'Confirm') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      isAlert: false,
+      confirmText
+    })
+  }
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }))
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -57,7 +97,7 @@ const OrderSourcesManagement = () => {
   const persist = async (next) => {
     const ok = await saveOrderSources(next)
     if (!ok) {
-      alert('Failed to save order sources. Please try again.')
+      addToast('Failed to save order sources. Please try again.', 'error')
       return false
     }
     setSources(next)
@@ -69,14 +109,14 @@ const OrderSourcesManagement = () => {
   const save = async () => {
     const name = normalizeName(formName)
     if (!name) {
-      alert('Please enter a source name')
+      addToast('Please enter a source name', 'warning')
       return
     }
 
     // prevent duplicates by name (case-insensitive)
     const existsByName = sources.some(s => (s.name || '').toLowerCase() === name.toLowerCase() && s.id !== editingId)
     if (existsByName) {
-      alert('That source already exists.')
+      addToast('That source already exists.', 'warning')
       return
     }
 
@@ -98,10 +138,14 @@ const OrderSourcesManagement = () => {
     if (ok) cancel()
   }
 
-  const remove = async (src) => {
-    if (!window.confirm(`Delete order source "${src.name}"?`)) return
-    const next = sources.filter(s => s.id !== src.id)
-    await persist(next)
+  const remove = (src) => {
+    showConfirm('Delete Source', `Delete order source "${src.name}"?`, async () => {
+      const next = sources.filter(s => s.id !== src.id)
+      const ok = await persist(next)
+      if (ok) {
+        addToast('Order source deleted successfully', 'success')
+      }
+    }, 'danger', 'Delete')
   }
 
   return (
@@ -185,6 +229,16 @@ const OrderSourcesManagement = () => {
           </table>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        isAlert={modalConfig.isAlert}
+        confirmText={modalConfig.confirmText}
+      />
     </div>
   )
 }

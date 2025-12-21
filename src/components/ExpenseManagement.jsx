@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Save, X, DollarSign, Tag } from 'lucide-react'
 import { getExpenseCategories, saveExpenseCategories } from '../utils/storage'
+import ConfirmationModal from './ConfirmationModal'
+import { useToast } from './Toast/ToastContext'
 
 const ExpenseManagement = () => {
+  const { addToast } = useToast()
   const [expenseCategories, setExpenseCategories] = useState({ categories: [] })
   const [editingCategory, setEditingCategory] = useState(null)
   const [showCategoryForm, setShowCategoryForm] = useState(false)
@@ -10,6 +13,43 @@ const ExpenseManagement = () => {
   const [categoryFormData, setCategoryFormData] = useState({ name: '' })
   const [editingItem, setEditingItem] = useState(null) // { categoryId, itemId }
   const [itemFormData, setItemFormData] = useState({ name: '' })
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'default',
+    title: '',
+    message: '',
+    onConfirm: null,
+    isAlert: false
+  })
+
+  const showAlert = (title, message, type = 'default') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm: null,
+      isAlert: true
+    })
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'default', confirmText = 'Confirm') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      isAlert: false,
+      confirmText
+    })
+  }
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }))
+  }
 
   useEffect(() => {
     loadExpenseCategories()
@@ -31,7 +71,7 @@ const ExpenseManagement = () => {
   const saveCategories = async (data) => {
     const success = await saveExpenseCategories(data)
     if (!success) {
-      alert('Error saving expense categories. Please try again.')
+      addToast('Error saving expense categories. Please try again.', 'error')
     }
     return success
   }
@@ -61,12 +101,12 @@ const ExpenseManagement = () => {
 
   const handleSaveCategory = async () => {
     if (!categoryFormData.name.trim()) {
-      alert('Please enter a category name')
+      addToast('Please enter a category name', 'warning')
       return
     }
 
     const updated = { ...expenseCategories }
-    
+
     if (editingCategory) {
       // Edit existing category
       const categoryIndex = updated.categories.findIndex(cat => cat.id === editingCategory)
@@ -98,21 +138,21 @@ const ExpenseManagement = () => {
       setShowCategoryForm(false)
       setCategoryFormData({ name: '' })
       setEditingCategory(null)
+      addToast(editingCategory ? 'Category updated successfully' : 'Category added successfully', 'success')
     }
   }
 
-  const handleDeleteCategory = async (categoryId) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) {
-      return
-    }
-
-    const updated = { ...expenseCategories }
-    updated.categories = updated.categories.filter(cat => cat.id !== categoryId)
-    if (await saveCategories(updated)) {
-      setExpenseCategories(updated)
-    } else {
-      alert('Error deleting category. Please try again.')
-    }
+  const handleDeleteCategory = (categoryId) => {
+    showConfirm('Delete Category', 'Are you sure you want to delete this category?', async () => {
+      const updated = { ...expenseCategories }
+      updated.categories = updated.categories.filter(cat => cat.id !== categoryId)
+      if (await saveCategories(updated)) {
+        setExpenseCategories(updated)
+        addToast('Category deleted successfully', 'success')
+      } else {
+        addToast('Error deleting category. Please try again.', 'error')
+      }
+    }, 'danger', 'Delete')
   }
 
   // ===== Items inside categories (e.g., Ads -> FB Ads, Google Ads) =====
@@ -136,7 +176,7 @@ const ExpenseManagement = () => {
     if (!categoryId) return
     const name = (itemFormData.name || '').trim()
     if (!name) {
-      alert('Please enter an item name')
+      addToast('Please enter an item name', 'warning')
       return
     }
 
@@ -150,7 +190,7 @@ const ExpenseManagement = () => {
       (it.name || '').toLowerCase() === name.toLowerCase() && it.id !== editingItem.itemId
     )
     if (exists) {
-      alert('That item already exists in this category.')
+      addToast('That item already exists in this category.', 'warning')
       return
     }
 
@@ -163,34 +203,37 @@ const ExpenseManagement = () => {
     if (await saveCategories(updated)) {
       setExpenseCategories(updated)
       handleCancelItem()
+      addToast(editingItem.itemId ? 'Item updated successfully' : 'Item added successfully', 'success')
     }
   }
 
-  const handleDeleteItem = async (categoryId, itemId) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return
-    const updated = { ...expenseCategories }
-    const categoryIndex = updated.categories.findIndex(c => c.id === categoryId)
-    if (categoryIndex === -1) return
-    const cat = updated.categories[categoryIndex]
-    cat.items = (Array.isArray(cat.items) ? cat.items : []).filter(it => it.id !== itemId)
-    if (await saveCategories(updated)) {
-      setExpenseCategories(updated)
-    }
+  const handleDeleteItem = (categoryId, itemId) => {
+    showConfirm('Delete Item', 'Are you sure you want to delete this item?', async () => {
+      const updated = { ...expenseCategories }
+      const categoryIndex = updated.categories.findIndex(c => c.id === categoryId)
+      if (categoryIndex === -1) return
+      const cat = updated.categories[categoryIndex]
+      cat.items = (Array.isArray(cat.items) ? cat.items : []).filter(it => it.id !== itemId)
+      if (await saveCategories(updated)) {
+        setExpenseCategories(updated)
+        addToast('Item deleted successfully', 'success')
+      }
+    }, 'danger', 'Delete')
   }
 
   return (
     <div>
       {/* Header with Add Category Button */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '1.5rem' 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem'
       }}>
         <div>
-          <h2 style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 600, 
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: 600,
             color: 'var(--text-primary)',
             marginBottom: '0.5rem'
           }}>
@@ -214,11 +257,11 @@ const ExpenseManagement = () => {
       {showCategoryForm && (
         <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              marginBottom: '1.5rem' 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
             }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {editingCategory ? 'Edit Category' : 'Add New Category'}
@@ -287,10 +330,10 @@ const ExpenseManagement = () => {
 
       {/* Categories List */}
       {expenseCategories.categories.length === 0 ? (
-        <div className="card" style={{ 
-          padding: '3rem', 
-          textAlign: 'center', 
-          color: 'var(--text-muted)' 
+        <div className="card" style={{
+          padding: '3rem',
+          textAlign: 'center',
+          color: 'var(--text-muted)'
         }}>
           <DollarSign size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
           <p style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>No categories yet</p>
@@ -431,9 +474,18 @@ const ExpenseManagement = () => {
           ))}
         </div>
       )}
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        isAlert={modalConfig.isAlert}
+        confirmText={modalConfig.confirmText}
+      />
     </div>
   )
 }
 
 export default ExpenseManagement
-

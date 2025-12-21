@@ -276,7 +276,7 @@ export const saveOrders = async (orders) => {
         const items = data?.order_items
         const ok = Array.isArray(items) && items.length > 1
         if (!ok) {
-          alert(
+          console.warn(
             `Order #${savedOrderId} saved, but multiple items were NOT stored in Supabase.\n\n` +
             `Stored items count: ${Array.isArray(items) ? items.length : 0}\n\n` +
             'This means the save request is still falling back and stripping order_items.\n\n' +
@@ -355,7 +355,7 @@ export const saveOrders = async (orders) => {
       }
       if (multiItemOrderFromUI) {
         if (cacheRequiresDroppingItems) {
-          alert(
+          console.warn(
             `Order #${multiItemOrderFromUI.id} saved, but your app had to drop multi-item fields to match the current DB schema.\n\n` +
             `Result: order_items will be saved as [] (so after refresh you will see only one item).\n\n` +
             `Fix: Supabase must accept order_items and delivery_charge in the upsert payload. If you already added the columns, reload schema cache and try again.`
@@ -376,7 +376,7 @@ export const saveOrders = async (orders) => {
 
       // Duplicate IDs in the upsert payload
       if (error.code === '21000' || error.message?.includes('cannot affect row a second time')) {
-        alert(
+        console.warn(
           'Cannot save orders because there are duplicate Order Numbers (IDs) in your current data.\n\n' +
           'Fix: search Orders for the duplicated order number and change one of them to a unique number, then try again.'
         )
@@ -391,7 +391,7 @@ export const saveOrders = async (orders) => {
         cacheSchemaMode('datesOnly')
         console.warn('Saved orders without order_date/dispatch_date. Please run migration SQL to add them.')
         if (shouldAlertSchema()) {
-          alert(
+          console.warn(
             'Orders saved, but your database is missing some newer columns.\n\n' +
             'Please run this in Supabase SQL Editor:\n\n' +
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_date DATE;\n" +
@@ -415,7 +415,7 @@ export const saveOrders = async (orders) => {
         cacheSchemaMode('datesNoItems')
         console.warn('Saved orders without date/item fields. Please run migration SQL to add them.')
         if (shouldAlertSchema()) {
-          alert(
+          console.warn(
             'Orders saved, but your database is missing some newer columns.\n\n' +
             'Please run this in Supabase SQL Editor:\n\n' +
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_date DATE;\n" +
@@ -438,7 +438,7 @@ export const saveOrders = async (orders) => {
         cacheSchemaMode('datesSource')
         console.warn('Saved orders without order_date/dispatch_date/order_source. Please run migration SQL to add them.')
         if (shouldAlertSchema()) {
-          alert(
+          console.warn(
             'Orders saved, but your database is missing some newer columns.\n\n' +
             'Please run this in Supabase SQL Editor:\n\n' +
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_date DATE;\n" +
@@ -463,7 +463,7 @@ export const saveOrders = async (orders) => {
         cacheSchemaMode('datesSourceNoItems')
         console.warn('Saved orders without date/source/item fields. Please run migration SQL to add them.')
         if (shouldAlertSchema()) {
-          alert(
+          console.warn(
             'Orders saved, but your database is missing some newer columns.\n\n' +
             'Please run this in Supabase SQL Editor:\n\n' +
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_date DATE;\n" +
@@ -480,7 +480,7 @@ export const saveOrders = async (orders) => {
       console.error('Error saving orders (retry without date fields + order_source + item fields):', retrySourceItemsError)
 
       // If we still fail, surface a single actionable message
-      alert(
+      console.warn(
         'Failed to save orders due to a database schema mismatch.\n\n' +
         'Please ensure these columns exist in Supabase:\n' +
         '- order_date (DATE)\n' +

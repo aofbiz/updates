@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Save, X, Package, Tag } from 'lucide-react'
-import { getInventoryCategories, saveInventoryCategories, getInventory, saveInventory } from '../utils/storage'
+import { getInventoryCategories, saveInventoryCategories, saveInventory } from '../utils/storage'
+import ConfirmationModal from './ConfirmationModal'
+import { useToast } from './Toast/ToastContext'
 
 const InventoryManagement = ({ inventory, onUpdateInventory }) => {
+  const { addToast } = useToast()
   const [inventoryCategories, setInventoryCategories] = useState({ categories: [] })
   const [editingCategory, setEditingCategory] = useState(null)
   const [showCategoryForm, setShowCategoryForm] = useState(false)
@@ -16,6 +19,43 @@ const InventoryManagement = ({ inventory, onUpdateInventory }) => {
     supplier: '',
     currentStock: 0
   })
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'default',
+    title: '',
+    message: '',
+    onConfirm: null,
+    isAlert: false
+  })
+
+  const showAlert = (title, message, type = 'default') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm: null,
+      isAlert: true
+    })
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'default', confirmText = 'Confirm') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      isAlert: false,
+      confirmText
+    })
+  }
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }))
+  }
 
   useEffect(() => {
     loadInventoryCategories()
@@ -36,7 +76,7 @@ const InventoryManagement = ({ inventory, onUpdateInventory }) => {
   const saveCategories = async (data) => {
     const success = await saveInventoryCategories(data)
     if (!success) {
-      alert('Error saving inventory categories. Please try again.')
+      addToast('Error saving inventory categories. Please try again.', 'error')
     }
     return success
   }
@@ -53,34 +93,33 @@ const InventoryManagement = ({ inventory, onUpdateInventory }) => {
     setShowCategoryForm(true)
   }
 
-  const handleDeleteCategory = async (categoryId) => {
-    if (!window.confirm('Are you sure you want to delete this category? This will also delete all items in this category.')) {
-      return
-    }
-
-    // Remove items from inventory that belong to this category
-    const category = inventoryCategories.categories.find(cat => cat.id === categoryId)
-    if (category) {
-      const updatedInventory = inventory.filter(item => item.category !== category.name)
-      await saveInventory(updatedInventory)
-      if (onUpdateInventory) {
-        onUpdateInventory(updatedInventory)
+  const handleDeleteCategory = (categoryId) => {
+    showConfirm('Delete Category', 'Are you sure you want to delete this category? This will also delete all items in this category.', async () => {
+      // Remove items from inventory that belong to this category
+      const category = inventoryCategories.categories.find(cat => cat.id === categoryId)
+      if (category) {
+        const updatedInventory = inventory.filter(item => item.category !== category.name)
+        await saveInventory(updatedInventory)
+        if (onUpdateInventory) {
+          onUpdateInventory(updatedInventory)
+        }
       }
-    }
 
-    const updatedCategories = {
-      categories: inventoryCategories.categories.filter(cat => cat.id !== categoryId)
-    }
-    const success = await saveCategories(updatedCategories)
-    if (success) {
-      setInventoryCategories(updatedCategories)
-    }
+      const updatedCategories = {
+        categories: inventoryCategories.categories.filter(cat => cat.id !== categoryId)
+      }
+      const success = await saveCategories(updatedCategories)
+      if (success) {
+        setInventoryCategories(updatedCategories)
+        addToast('Category deleted successfully', 'success')
+      }
+    }, 'danger', 'Delete')
   }
 
   const handleSaveCategory = async (e) => {
     e.preventDefault()
     if (!categoryFormData.name.trim()) {
-      alert('Category name is required')
+      addToast('Category name is required', 'warning')
       return
     }
 
@@ -124,6 +163,7 @@ const InventoryManagement = ({ inventory, onUpdateInventory }) => {
       setShowCategoryForm(false)
       setCategoryFormData({ name: '' })
       setEditingCategory(null)
+      addToast(editingCategory ? 'Category updated successfully' : 'Category added successfully', 'success')
     }
   }
 
@@ -155,31 +195,30 @@ const InventoryManagement = ({ inventory, onUpdateInventory }) => {
     setShowCategoryForm(false)
   }
 
-  const handleDeleteItem = async (itemId) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) {
-      return
-    }
-
-    const updatedInventory = inventory.filter(item => item.id !== itemId)
-    const success = await saveInventory(updatedInventory)
-    if (success) {
-      if (onUpdateInventory) {
-        onUpdateInventory(updatedInventory)
+  const handleDeleteItem = (itemId) => {
+    showConfirm('Delete Item', 'Are you sure you want to delete this item?', async () => {
+      const updatedInventory = inventory.filter(item => item.id !== itemId)
+      const success = await saveInventory(updatedInventory)
+      if (success) {
+        if (onUpdateInventory) {
+          onUpdateInventory(updatedInventory)
+        }
+        addToast('Item deleted successfully', 'success')
+      } else {
+        addToast('Error deleting item. Please try again.', 'error')
       }
-    } else {
-      alert('Error deleting item. Please try again.')
-    }
+    }, 'danger', 'Delete')
   }
 
   const handleSaveItem = async (e) => {
     e.preventDefault()
     if (!itemFormData.name.trim()) {
-      alert('Item name is required')
+      addToast('Item name is required', 'warning')
       return
     }
 
     if (!editingCategory) {
-      alert('Please select a category first')
+      addToast('Please select a category first', 'warning')
       return
     }
 
@@ -216,8 +255,9 @@ const InventoryManagement = ({ inventory, onUpdateInventory }) => {
       })
       setEditingItem(null)
       setEditingCategory(null)
+      addToast(editingItem ? 'Item updated successfully' : 'Item added successfully', 'success')
     } else {
-      alert('Error saving item. Please try again.')
+      addToast('Error saving item. Please try again.', 'error')
     }
   }
 
@@ -460,7 +500,7 @@ const InventoryManagement = ({ inventory, onUpdateInventory }) => {
                   cursor: 'pointer',
                   padding: '0.5rem 0'
                 }}
-                onClick={() => toggleCategory(category.id)}
+                  onClick={() => toggleCategory(category.id)}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <Tag size={20} color="var(--accent-primary)" />
@@ -610,6 +650,16 @@ const InventoryManagement = ({ inventory, onUpdateInventory }) => {
           })}
         </div>
       )}
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        isAlert={modalConfig.isAlert}
+        confirmText={modalConfig.confirmText}
+      />
     </div>
   )
 }

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Save, X, Package, Tag } from 'lucide-react'
 import { getProducts, saveProducts } from '../utils/storage'
+import ConfirmationModal from './ConfirmationModal'
+import { useToast } from './Toast/ToastContext'
 
 const ProductsManagement = () => {
+  const { addToast } = useToast()
   const [products, setProducts] = useState({ categories: [] })
   const [editingCategory, setEditingCategory] = useState(null)
   const [editingItem, setEditingItem] = useState(null)
@@ -12,6 +15,43 @@ const ProductsManagement = () => {
   const [categoryFormData, setCategoryFormData] = useState({ name: '' })
   const [itemFormData, setItemFormData] = useState({ name: '', price: '' })
   const [selectedCategoryId, setSelectedCategoryId] = useState(null)
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'default',
+    title: '',
+    message: '',
+    onConfirm: null,
+    isAlert: false
+  })
+
+  const showAlert = (title, message, type = 'default') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm: null,
+      isAlert: true
+    })
+  }
+
+  const showConfirm = (title, message, onConfirm, type = 'danger', confirmText = 'Confirm') => {
+    setModalConfig({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      isAlert: false,
+      confirmText
+    })
+  }
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }))
+  }
 
   useEffect(() => {
     loadProducts()
@@ -55,12 +95,12 @@ const ProductsManagement = () => {
 
   const handleSaveCategory = async () => {
     if (!categoryFormData.name.trim()) {
-      alert('Please enter a category name')
+      addToast('Please enter a category name', 'warning')
       return
     }
 
     const updated = { ...products }
-    
+
     if (editingCategory) {
       // Edit existing category
       const categoryIndex = updated.categories.findIndex(cat => cat.id === editingCategory)
@@ -91,15 +131,14 @@ const ProductsManagement = () => {
     setEditingCategory(null)
   }
 
-  const handleDeleteCategory = async (categoryId) => {
-    if (!window.confirm('Are you sure you want to delete this category? All items in this category will also be deleted.')) {
-      return
-    }
-
-    const updated = { ...products }
-    updated.categories = updated.categories.filter(cat => cat.id !== categoryId)
-    await saveProducts(updated)
-    setProducts(updated)
+  const handleDeleteCategory = (categoryId) => {
+    showConfirm('Delete Category', 'Are you sure you want to delete this category? All items in this category will also be deleted.', async () => {
+      const updated = { ...products }
+      updated.categories = updated.categories.filter(cat => cat.id !== categoryId)
+      await saveProducts(updated)
+      setProducts(updated)
+      addToast('Category deleted successfully', 'success')
+    }, 'danger', 'Delete')
   }
 
   const handleAddItem = (categoryId) => {
@@ -118,19 +157,19 @@ const ProductsManagement = () => {
 
   const handleSaveItem = async () => {
     if (!itemFormData.name.trim()) {
-      alert('Please enter an item name')
+      addToast('Please enter an item name', 'warning')
       return
     }
 
     const price = parseFloat(itemFormData.price)
     if (isNaN(price) || price < 0) {
-      alert('Please enter a valid price')
+      addToast('Please enter a valid price', 'warning')
       return
     }
 
     const updated = { ...products }
     const categoryIndex = updated.categories.findIndex(cat => cat.id === selectedCategoryId)
-    
+
     if (categoryIndex === -1) return
 
     if (editingItem) {
@@ -164,38 +203,37 @@ const ProductsManagement = () => {
     setSelectedCategoryId(null)
   }
 
-  const handleDeleteItem = async (categoryId, itemId) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) {
-      return
-    }
+  const handleDeleteItem = (categoryId, itemId) => {
+    showConfirm('Delete Item', 'Are you sure you want to delete this item?', async () => {
+      const updated = { ...products }
+      const categoryIndex = updated.categories.findIndex(cat => cat.id === categoryId)
 
-    const updated = { ...products }
-    const categoryIndex = updated.categories.findIndex(cat => cat.id === categoryId)
-    
-    if (categoryIndex !== -1) {
-      updated.categories[categoryIndex].items = updated.categories[categoryIndex].items.filter(item => item.id !== itemId)
-      await saveProducts(updated)
-      setProducts(updated)
-    }
+      if (categoryIndex !== -1) {
+        updated.categories[categoryIndex].items = updated.categories[categoryIndex].items.filter(item => item.id !== itemId)
+        await saveProducts(updated)
+        setProducts(updated)
+        addToast('Item deleted successfully', 'success')
+      }
+    }, 'danger', 'Delete')
   }
 
-  const selectedCategory = selectedCategoryId 
+  const selectedCategory = selectedCategoryId
     ? products.categories.find(cat => cat.id === selectedCategoryId)
     : null
 
   return (
     <div>
       {/* Header with Add Category Button */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '1.5rem' 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem'
       }}>
         <div>
-          <h2 style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 600, 
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: 600,
             color: 'var(--text-primary)',
             marginBottom: '0.5rem'
           }}>
@@ -219,11 +257,11 @@ const ProductsManagement = () => {
       {showCategoryForm && (
         <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              marginBottom: '1.5rem' 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
             }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {editingCategory ? 'Edit Category' : 'Add New Category'}
@@ -294,11 +332,11 @@ const ProductsManagement = () => {
       {showItemForm && selectedCategory && (
         <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              marginBottom: '1.5rem' 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
             }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {editingItem ? 'Edit Item' : 'Add New Item'} - {selectedCategory.name}
@@ -383,10 +421,10 @@ const ProductsManagement = () => {
 
       {/* Categories List */}
       {products.categories.length === 0 ? (
-        <div className="card" style={{ 
-          padding: '3rem', 
-          textAlign: 'center', 
-          color: 'var(--text-muted)' 
+        <div className="card" style={{
+          padding: '3rem',
+          textAlign: 'center',
+          color: 'var(--text-muted)'
         }}>
           <Package size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
           <p style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>No categories yet</p>
@@ -534,6 +572,16 @@ const ProductsManagement = () => {
           ))}
         </div>
       )}
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        isAlert={modalConfig.isAlert}
+        confirmText={modalConfig.confirmText}
+      />
     </div>
   )
 }
