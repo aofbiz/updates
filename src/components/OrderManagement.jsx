@@ -123,11 +123,16 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
 
   const filteredOrders = useMemo(() => {
     let filtered = orders.filter(order => {
-      // Get category and item names for search
-      const category = products.categories.find(cat => cat.id === order.categoryId)
-      const item = category?.items.find(item => item.id === order.itemId)
-      const categoryName = category?.name || ''
-      const itemName = order.customItemName || item?.name || ''
+      // Get all item and category names for comprehensive search
+      const items = Array.isArray(order.orderItems) && order.orderItems.length > 0
+        ? order.orderItems
+        : [{ categoryId: order.categoryId, itemId: order.itemId, customItemName: order.customItemName }]
+
+      const allItemSearchString = items.map(it => {
+        const cat = products.categories.find(c => c.id === it.categoryId)
+        const product = cat?.items.find(p => p.id === it.itemId)
+        return `${cat?.name || ''} ${it.customItemName || product?.name || ''}`
+      }).join(' ').toLowerCase()
 
       const matchesSearch =
         order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,8 +140,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
         order.whatsapp?.includes(searchTerm) ||
         order.trackingNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-        categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        itemName.toLowerCase().includes(searchTerm.toLowerCase())
+        allItemSearchString.includes(searchTerm.toLowerCase())
 
       // Handle special "pendingDispatch" filter
       let matchesStatus = true
@@ -359,14 +363,29 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
   const getCategoryItemNames = (order) => {
     const items = Array.isArray(order.orderItems) && order.orderItems.length > 0
       ? order.orderItems
-      : [{ categoryId: order.categoryId, itemId: order.itemId, customItemName: order.customItemName, quantity: order.quantity }]
+      : [{
+        categoryId: order.categoryId,
+        itemId: order.itemId,
+        customItemName: order.customItemName,
+        quantity: Number(order.quantity) || 1
+      }]
+
+    const totalQty = items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0)
 
     if (items.length > 1) {
-      const totalQty = items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0)
+      // Map all items to their names
+      const itemNames = items.map(it => {
+        const category = products.categories.find(cat => cat.id === it.categoryId)
+        const item = category?.items.find(i => i.id === it.itemId)
+        const name = it.customItemName || item?.name || 'N/A'
+        return `${name} (x${it.quantity})`
+      })
+
       return {
         categoryName: 'Multi-Item',
-        itemName: `${items.length} Products`,
-        totalQuantity: totalQty
+        itemName: itemNames.join(', '),
+        totalQuantity: totalQty,
+        isMulti: true
       }
     }
 
@@ -377,7 +396,8 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     return {
       categoryName: category?.name || 'N/A',
       itemName: first.customItemName || item?.name || 'N/A',
-      totalQuantity: Number(first.quantity) || Number(order.quantity) || 1
+      totalQuantity: totalQty,
+      isMulti: false
     }
   }
 
@@ -1107,7 +1127,15 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                         return (
                           <>
                             <td>{names.categoryName}</td>
-                            <td>{names.itemName}</td>
+                            <td style={{
+                              maxWidth: '250px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              fontSize: '0.85rem'
+                            }} title={names.itemName}>
+                              {names.itemName}
+                            </td>
                             <td>{names.totalQuantity}</td>
                           </>
                         )
