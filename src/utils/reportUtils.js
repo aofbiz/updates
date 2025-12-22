@@ -371,8 +371,14 @@ export const calculateProfitabilityMetrics = (orders, expenses) => {
 
 export const calculateInventoryMetrics = (inventory) => {
     const totalValue = inventory.reduce((sum, item) => sum + (Number(item.currentStock || 0) * (Number(item.unitCost || 0))), 0)
+
     const lowStockItems = inventory
-        .filter(item => (Number(item.currentStock) || 0) <= (Number(item.reorderLevel) || 10))
+        .filter(item => {
+            const qty = Number(item.currentStock) || 0
+            const min = Number(item.reorderLevel) || 0
+            if (min === 0) return false // Ignore low stock check if reorder level is 0
+            return qty <= min
+        })
         .map(i => ({
             name: i.itemName,
             category: i.category,
@@ -391,9 +397,10 @@ export const calculateInventoryMetrics = (inventory) => {
 
     inventory.forEach(item => {
         const qty = Number(item.currentStock) || 0
-        const min = Number(item.reorderLevel) || 10
-        if (qty <= 0) statusCounts['Out of Stock']++
-        else if (qty <= min) statusCounts['Low Stock']++
+        const min = Number(item.reorderLevel) || 0
+
+        if (qty <= 0 && min > 0) statusCounts['Out of Stock']++
+        else if (min > 0 && qty <= min) statusCounts['Low Stock']++
         else statusCounts['In Stock']++
     })
 

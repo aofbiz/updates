@@ -98,7 +98,7 @@ const InventoryReports = ({ inventory, isMobile }) => {
                                     <td style={{ padding: '0.75rem 1rem', fontWeight: 500, fontSize: '0.85rem' }}>{item.name}</td>
                                     <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{item.category}</td>
                                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'var(--error)', fontWeight: 600, fontSize: '0.85rem' }}>{item.quantity}</td>
-                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{item.minStock || 10}</td>
+                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{item.minStock}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -111,7 +111,7 @@ const InventoryReports = ({ inventory, isMobile }) => {
                             <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>{item.name}</div>
                             <div className="inventory-card-row"><span>Category</span><span>{item.category}</span></div>
                             <div className="inventory-card-row"><span>Current Stock</span><span style={{ color: 'var(--error)', fontWeight: 700 }}>{item.quantity}</span></div>
-                            <div className="inventory-card-row" style={{ marginBottom: 0 }}><span>Min Required</span><span>{item.minStock || 10}</span></div>
+                            <div className="inventory-card-row" style={{ marginBottom: 0 }}><span>Min Required</span><span>{item.minStock}</span></div>
                         </div>
                     ))}
                 </div>
