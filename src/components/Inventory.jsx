@@ -178,8 +178,10 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
   }
 
   const getStockStatus = (item) => {
-    const stock = item.currentStock
-    const reorder = item.reorderLevel
+    const stock = Number(item.currentStock) || 0
+    const reorder = Number(item.reorderLevel) || 0
+
+    if (reorder === 0) return null
 
     if (stock < reorder) {
       return { label: 'Critical', color: 'var(--error)', bg: 'rgba(239, 68, 68, 0.1)', icon: AlertTriangle }
@@ -475,7 +477,7 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
               <tbody>
                 {filteredInventory.map((item) => {
                   const status = getStockStatus(item)
-                  const StatusIcon = status.icon
+                  const StatusIcon = status ? status.icon : null
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <td style={{ padding: '1rem', color: 'var(--text-primary)', fontWeight: 500 }}>{item.itemName}</td>
@@ -488,14 +490,16 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
                         Rs.{(item.currentStock * (item.unitCost || 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </td>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                          padding: '0.25rem 0.75rem', borderRadius: '999px',
-                          backgroundColor: status.bg, color: status.color,
-                          fontSize: '0.75rem', fontWeight: 600
-                        }}>
-                          <StatusIcon size={12} /> {status.label}
-                        </span>
+                        {status && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                            padding: '0.25rem 0.75rem', borderRadius: '999px',
+                            backgroundColor: status.bg, color: status.color,
+                            fontSize: '0.75rem', fontWeight: 600
+                          }}>
+                            <StatusIcon size={12} /> {status.label}
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '1rem', textAlign: 'right' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
@@ -527,7 +531,7 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
           <div className="inventory-mobile-cards">
             {filteredInventory.map((item) => {
               const status = getStockStatus(item)
-              const StatusIcon = status.icon
+              const StatusIcon = status ? status.icon : null
               return (
                 <div key={item.id + '-mobile'} className="inventory-mobile-card">
                   <div className="inv-card-header">
@@ -535,20 +539,22 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
                       <h4 className="inv-card-title">{item.itemName}</h4>
                       <p className="inv-card-category">{item.category || 'No Category'}</p>
                     </div>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                      padding: '0.2rem 0.6rem', borderRadius: '999px',
-                      backgroundColor: status.bg, color: status.color,
-                      fontSize: '0.65rem', fontWeight: 600
-                    }}>
-                      <StatusIcon size={10} /> {status.label}
-                    </span>
+                    {status && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                        padding: '0.2rem 0.6rem', borderRadius: '999px',
+                        backgroundColor: status.bg, color: status.color,
+                        fontSize: '0.65rem', fontWeight: 600
+                      }}>
+                        <StatusIcon size={10} /> {status.label}
+                      </span>
+                    )}
                   </div>
 
                   <div className="inv-card-stats">
                     <div>
                       <p className="inv-stat-label">Stock</p>
-                      <p className="inv-stat-value" style={{ color: status.color }}>{item.currentStock.toLocaleString('en-IN')}</p>
+                      <p className="inv-stat-value" style={{ color: status ? status.color : 'var(--text-primary)' }}>{item.currentStock.toLocaleString('en-IN')}</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <p className="inv-stat-label">Value</p>
