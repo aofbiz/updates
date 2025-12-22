@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
     PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { formatCurrency, calculateInventoryMetrics } from '../../utils/reportUtils'
+import { getInventoryLogs } from '../../utils/inventoryLogs'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
@@ -10,6 +11,12 @@ const InventoryReports = ({ inventory, isMobile }) => {
     const { statusData, lowStockItems, totalValue, stockAlerts } = useMemo(() =>
         calculateInventoryMetrics(inventory), [inventory]
     )
+
+    const [logs, setLogs] = useState([])
+
+    useEffect(() => {
+        getInventoryLogs().then(setLogs)
+    }, [inventory])
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '1rem' : '1.5rem' }}>
@@ -109,6 +116,78 @@ const InventoryReports = ({ inventory, isMobile }) => {
                             <div className="inventory-card-row"><span>Category</span><span>{item.category}</span></div>
                             <div className="inventory-card-row"><span>Current Stock</span><span style={{ color: 'var(--error)', fontWeight: 700 }}>{item.quantity}</span></div>
                             <div className="inventory-card-row" style={{ marginBottom: 0 }}><span>Min Required</span><span>{item.minStock || 10}</span></div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Inventory History Table */}
+            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Usage History</h3>
+                </div>
+                <div className="inventory-desktop-table" style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-card)', zIndex: 1 }}>
+                            <tr style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Date</th>
+                                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Item</th>
+                                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Action</th>
+                                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', textAlign: 'right', fontSize: '0.8rem' }}>Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {logs.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                        No history recorded yet
+                                    </td>
+                                </tr>
+                            ) : (
+                                logs.map((log, idx) => (
+                                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                        <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                            {new Date(log.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                        </td>
+                                        <td style={{ padding: '0.75rem 1rem', fontWeight: 500, fontSize: '0.85rem' }}>{log.itemName}</td>
+                                        <td style={{ padding: '0.75rem 1rem', fontSize: '0.8rem' }}>
+                                            <span style={{
+                                                padding: '0.2rem 0.5rem',
+                                                borderRadius: '4px',
+                                                backgroundColor: log.action === 'Restock' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                color: log.action === 'Restock' ? 'var(--success)' : 'var(--error)',
+                                                fontWeight: 600
+                                            }}>
+                                                {log.action}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, fontSize: '0.85rem' }}>{log.quantity}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Mobile View for History */}
+                <div className="inventory-mobile-list" style={{ display: 'none', padding: '1rem' }}>
+                    {logs.map((log, idx) => (
+                        <div key={idx} className="inventory-mobile-card">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{log.itemName}</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.date).toLocaleDateString()}</span>
+                            </div>
+                            <div className="inventory-card-row">
+                                <span>Action</span>
+                                <span style={{
+                                    color: log.action === 'Restock' ? 'var(--success)' : 'var(--error)',
+                                    fontWeight: 600
+                                }}>{log.action}</span>
+                            </div>
+                            <div className="inventory-card-row" style={{ marginBottom: 0 }}>
+                                <span>Quantity</span>
+                                <span>{log.quantity}</span>
+                            </div>
                         </div>
                     ))}
                 </div>

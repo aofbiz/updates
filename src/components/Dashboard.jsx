@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Package, TrendingUp, AlertTriangle, Calendar, CreditCard, X, ShoppingBag, BarChart2, PieChart as PieChartIcon, Activity } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, BarChart, Bar
+  PieChart, Pie, Cell, Legend, BarChart, Bar, LabelList
 } from 'recharts'
 import SummaryCard from './SummaryCard'
 import {
@@ -622,7 +622,6 @@ const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) =
                     <Cell
                       key={`cell-${index}`}
                       fill={CHART_COLORS[index % CHART_COLORS.length]}
-                      fillOpacity={0.8}
                     />
                   ))}
                 </Pie>
@@ -643,33 +642,69 @@ const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) =
           </div>
         </div>
 
-        {/* Top Selling Products Table (Cloned from Sales Reports) */}
+        {/* Top Selling Products Chart */}
         <div className="card" style={{ padding: '1.5rem', border: '1px solid rgba(255,255,255,0.05)' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <BarChart2 size={18} color="var(--warning)" />
             Top Selling Products
           </h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr>
-                  <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Name</th>
-                  <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Category</th>
-                  <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'right', fontSize: '0.8rem' }}>Units</th>
-                  <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'right', fontSize: '0.8rem' }}>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topSellingProducts.slice(0, 5).map((p, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 500, fontSize: '0.85rem' }}>{p.name}</td>
-                    <td style={{ padding: '0.75rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{p.category}</td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.85rem' }}>{p.quantity}</td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right', color: 'var(--success)', fontWeight: 600, fontSize: '0.85rem' }}>{formatCurrency(p.revenue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ height: '300px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                layout="vertical"
+                data={topSellingProducts.slice(0, 5)}
+                margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+              >
+                <defs>
+                  {CHART_COLORS.map((color, index) => (
+                    <linearGradient key={`barGrad-${index}`} id={`barGrad-${index}`} x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor={color} stopOpacity={0.8} />
+                      <stop offset="100%" stopColor={color} stopOpacity={0.3} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis type="number" hide />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  stroke="var(--text-muted)"
+                  fontSize={11}
+                  axisLine={false}
+                  tickLine={false}
+                  width={130}
+                />
+                <Tooltip
+                  cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div style={{ backgroundColor: 'rgba(20, 20, 20, 0.95)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '10px', backdropFilter: 'blur(10px)' }}>
+                          <p style={{ color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '5px' }}>{data.name}</p>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '5px' }}>{data.category}</p>
+                          <div style={{ display: 'flex', gap: '15px' }}>
+                            <span style={{ color: 'var(--accent-primary)' }}>{data.quantity} Units</span>
+                            <span style={{ color: 'var(--success)' }}>{formatCurrency(data.revenue)}</span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar
+                  dataKey="quantity"
+                  radius={[0, 4, 4, 0]}
+                  barSize={24}
+                >
+                  <LabelList dataKey="quantity" position="right" fill="var(--text-muted)" fontSize={11} formatter={(val) => `${val}`} />
+                  {topSellingProducts.slice(0, 5).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

@@ -627,7 +627,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
         customer_address: order.address || '',
         customer_email: '', // Always blank
         cod: order.codAmount || 0,
-        destination_city: order.nearestCity || '',
+        destination_city: order.nearestCity || order.district || '',
         weight: 1, // Always 1
         description: description,
         remark: '' // Always blank

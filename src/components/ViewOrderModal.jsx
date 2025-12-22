@@ -648,7 +648,7 @@ const ViewOrderModal = ({ order, onClose, onSave, onRequestTrackingNumber, onReq
               <tbody>
                 {orderItems.map((it, idx) => {
                   const catName = getCategoryName(it.categoryId)
-                  const itName = getItemName(it.categoryId, it.itemId, it.customItemName)
+                  const itName = getItemName(it)
                   const qty = Number(it.quantity) || 0
                   const price = Number(it.unitPrice) || 0
                   const amount = qty * price
@@ -684,7 +684,7 @@ const ViewOrderModal = ({ order, onClose, onSave, onRequestTrackingNumber, onReq
           <div className="items-card-mobile">
             {orderItems.map((it, idx) => {
               const catName = getCategoryName(it.categoryId)
-              const itName = getItemName(it.categoryId, it.itemId, it.customItemName)
+              const itName = getItemName(it)
               const qty = Number(it.quantity) || 0
               const price = Number(it.unitPrice) || 0
               const amount = qty * price

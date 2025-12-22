@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Package, Filter, Search, AlertTriangle, CheckCircle, Plus, X, Save } from 'lucide-react'
 import { getInventory, getInventoryCategories, saveInventory } from '../utils/storage'
+import { addInventoryLog } from '../utils/inventoryLogs'
 
 // --- Quick Restock Modal ---
 const QuickRestockModal = ({ item, mode = 'add', onClose, onConfirm }) => {
@@ -122,6 +123,17 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
   }, [inventory])
 
   const handleRestock = async (itemId, quantity, mode) => {
+    // Log the action
+    const item = inventory.find(i => i.id === itemId)
+    if (item) {
+      await addInventoryLog({
+        itemId: item.id,
+        itemName: item.itemName,
+        action: mode === 'remove' ? 'Deduct' : 'Restock',
+        quantity: quantity
+      })
+    }
+
     const updatedInventory = inventory.map(item => {
       if (item.id === itemId) {
         const adjustment = mode === 'remove' ? -quantity : quantity
