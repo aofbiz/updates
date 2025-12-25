@@ -1590,6 +1590,37 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
             setEditingOrder(null)
           }}
           onSave={handleSaveOrder}
+          checkIsBlacklisted={(number) => {
+            if (!number) return 0
+            const cleanNumber = (number || '').replace(/\D/g, '')
+            if (cleanNumber.length < 5) return 0
+
+            return orders.filter(o => {
+              const last9 = cleanNumber.slice(-9)
+              const oPhone = (o.phone || '').replace(/\D/g, '')
+              const oWhatsapp = (o.whatsapp || '').replace(/\D/g, '')
+              const match = oPhone.endsWith(last9) || oWhatsapp.endsWith(last9)
+              return match && o.status === 'returned'
+            }).length
+          }}
+          onBlacklistWarning={(number, count) => {
+            showConfirm(
+              '⚠️ High Return Risk',
+              `This client has ${count} previously returned order(s). Do you want to check them?`,
+              () => {
+                // On Confirm: Close form and view returned orders
+                setShowForm(false)
+                setEditingOrder(null)
+                const cleanNumber = (number || '').replace(/\D/g, '')
+                const searchKey = cleanNumber.length >= 9 ? cleanNumber.slice(-9) : cleanNumber
+                setSearchTerm(searchKey)
+                setStatusFilter('returned')
+                addToast(`Filtering returned orders for ${number}`, 'info')
+              },
+              'warning', // Type
+              'View Returned Orders' // Confirm Button Text
+            )
+          }}
         />
       )}
 

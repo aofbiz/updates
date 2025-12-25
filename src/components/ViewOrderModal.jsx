@@ -178,7 +178,8 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
   }
 
   const finalPrice = Math.max(0, subtotal - discountAmount)
-  const codAmount = localOrder.codAmount || Math.max(0, finalPrice + deliveryCharge)
+  const advancePayment = Number(localOrder.advancePayment) || 0
+  const codAmount = localOrder.codAmount || Math.max(0, finalPrice + deliveryCharge - advancePayment)
 
   const handleDownloadInvoice = () => {
     // Basic HTML escaping to prevent XSS in the generated invoice window
@@ -350,6 +351,12 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
       <span>Delivery Charge:</span>
       <span>Rs. ${deliveryCharge.toFixed(2)}</span>
     </div>
+    ${advancePayment > 0 ? `
+    <div class="total-row">
+      <span>Advance Payment:</span>
+      <span>- Rs. ${advancePayment.toFixed(2)}</span>
+    </div>
+    ` : ''}
     <div class="total-row final">
       <span>Total Amount (COD):</span>
       <span>Rs. ${codAmount.toFixed(2)}</span>
@@ -782,6 +789,12 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
                 <span>Delivery Charge:</span>
                 <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>Rs. {deliveryCharge.toFixed(2)}</span>
               </div>
+              {advancePayment > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', color: 'var(--success)' }}>
+                  <span>Advance Payment:</span>
+                  <span style={{ fontWeight: 500 }}>- Rs. {advancePayment.toFixed(2)}</span>
+                </div>
+              )}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',

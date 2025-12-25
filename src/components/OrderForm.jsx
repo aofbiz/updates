@@ -14,7 +14,7 @@ const SRI_LANKAN_DISTRICTS = [
   'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
 ]
 
-const OrderForm = ({ order, onClose, onSave }) => {
+const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarning }) => {
   const [products, setProducts] = useState({ categories: [] })
   const [orderSources, setOrderSources] = useState([])
   const [codManuallyEdited, setCodManuallyEdited] = useState(false)
@@ -122,7 +122,10 @@ const OrderForm = ({ order, onClose, onSave }) => {
     trackingNumber: order?.trackingNumber || '',
     orderDate: order?.orderDate || today,
     deliveryDate: order?.deliveryDate || '',
-    orderSource: order?.orderSource || 'Ad' // Default to 'Ad'
+    orderDate: order?.orderDate || today,
+    deliveryDate: order?.deliveryDate || '',
+    orderSource: order?.orderSource || 'Ad', // Default to 'Ad'
+    advancePayment: order?.advancePayment || 0
   })
 
   const subtotal = useMemo(() => {
@@ -199,8 +202,14 @@ const OrderForm = ({ order, onClose, onSave }) => {
 
   const computedCod = useMemo(() => {
     const delivery = Number(formData.deliveryCharge) || 0
-    return Math.max(0, computedTotal + delivery)
-  }, [computedTotal, formData.deliveryCharge])
+    const advance = Number(formData.advancePayment) || 0
+    return Math.max(0, computedTotal + delivery - advance) // COD still includes delivery
+  }, [computedTotal, formData.deliveryCharge, formData.advancePayment])
+
+  const computedBalance = useMemo(() => {
+    const advance = Number(formData.advancePayment) || 0
+    return Math.max(0, computedTotal - advance)
+  }, [computedTotal, formData.advancePayment])
 
   useEffect(() => {
     // keep total/cod in sync unless user manually edited COD
@@ -221,7 +230,7 @@ const OrderForm = ({ order, onClose, onSave }) => {
     }
 
     // Handle numeric fields
-    if (name === 'discount' || name === 'deliveryCharge') {
+    if (name === 'discount' || name === 'deliveryCharge' || name === 'advancePayment') {
       updatedData[name] = parseFloat(value) || 0
     }
 
@@ -419,7 +428,16 @@ const OrderForm = ({ order, onClose, onSave }) => {
                   onChange={handleChange}
                   onBlur={() => {
                     if (formData.whatsapp) {
-                      setFormData(prev => ({ ...prev, whatsapp: formatWhatsAppForStorage(prev.whatsapp) }))
+                      const formatted = formatWhatsAppForStorage(formData.whatsapp)
+                      setFormData(prev => ({ ...prev, whatsapp: formatted }))
+
+                      // Check for blacklist
+                      if (checkIsBlacklisted && onBlacklistWarning) {
+                        const count = checkIsBlacklisted(formatted)
+                        if (count > 0) {
+                          onBlacklistWarning(formatted, count)
+                        }
+                      }
                     }
                   }}
                   placeholder="e.g., 0771234567"
@@ -700,6 +718,31 @@ const OrderForm = ({ order, onClose, onSave }) => {
                   onChange={handleChange}
                   min="0"
                   step="1"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Advance Payment</label>
+                <input
+                  type="number"
+                  name="advancePayment"
+                  className="form-input"
+                  value={formData.advancePayment}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Balance Remaining</label>
+                <input
+                  className="form-input"
+                  value={`Rs. ${(computedBalance).toFixed(2)}`}
+                  readOnly
+                  tabIndex="-1"
+                  style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-muted)' }}
                 />
               </div>
             </div>

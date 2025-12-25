@@ -344,7 +344,6 @@ const Reports = ({ orders, expenses, inventory }) => {
                                 />
                             </div>
                         )}
-                        <Calendar size={14} style={{ color: 'var(--text-muted)', marginRight: '0.5rem' }} />
                     </div>
 
                     <div className="export-dropdown" ref={exportMenuRef}>

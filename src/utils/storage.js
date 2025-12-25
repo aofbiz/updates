@@ -39,6 +39,7 @@ const transformOrderToDB = (order) => {
     discount_value: parseFloat(order.discountValue || order.discount || 0),
     total_amount: parseFloat(order.totalAmount || order.totalPrice || 0),
     cod_amount: parseFloat(order.codAmount || 0),
+    advance_payment: parseFloat(order.advancePayment || 0),
     delivery_charge: parseFloat(order.deliveryCharge ?? 400),
     order_items: Array.isArray(order.orderItems)
       ? order.orderItems.map(it => ({
@@ -132,7 +133,8 @@ const transformOrderFromDB = (order) => {
     createdDate: order.created_date || new Date().toISOString().split('T')[0],
     orderDate: order.order_date || null,
     dispatchDate: order.dispatch_date || null,
-    orderSource: order.order_source || 'Ad'
+    orderSource: order.order_source || 'Ad',
+    advancePayment: order.advance_payment || 0
   }
 }
 
@@ -223,10 +225,10 @@ export const saveOrders = async (orders) => {
     // - datesSource: remove date fields + order_source
     // - datesSourceNoItems: remove date fields + order_source + multi-item fields
     const compatModes = {
-      datesOnly: ['order_date', 'dispatch_date', 'delivery_date'],
-      datesNoItems: ['order_date', 'dispatch_date', 'delivery_date', 'order_items', 'delivery_charge'],
-      datesSource: ['order_date', 'dispatch_date', 'delivery_date', 'order_source'],
-      datesSourceNoItems: ['order_date', 'dispatch_date', 'delivery_date', 'order_source', 'order_items', 'delivery_charge']
+      datesOnly: ['order_date', 'dispatch_date', 'delivery_date', 'advance_payment'],
+      datesNoItems: ['order_date', 'dispatch_date', 'delivery_date', 'order_items', 'delivery_charge', 'advance_payment'],
+      datesSource: ['order_date', 'dispatch_date', 'delivery_date', 'order_source', 'advance_payment'],
+      datesSourceNoItems: ['order_date', 'dispatch_date', 'delivery_date', 'order_source', 'order_items', 'delivery_charge', 'advance_payment']
     }
 
     const getCachedSchemaMode = () => {

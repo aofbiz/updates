@@ -4,6 +4,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, BarChart, Bar, LabelList
 } from 'recharts'
+import { startOfMonth, endOfMonth, format } from 'date-fns'
 import SummaryCard from './SummaryCard'
 import {
   calculateNetProfit,
@@ -12,32 +13,47 @@ import {
 import { getTopSellingProducts, formatCurrency } from '../utils/reportUtils'
 
 const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) => {
-  const [dateFilter, setDateFilter] = useState({
-    startDate: '',
-    endDate: ''
+  // --- Filter State ---
+  const [filterType, setFilterType] = useState('month') // 'month' or 'range'
+  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'))
+  const [dateRange, setDateRange] = useState({
+    startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd')
   })
-  const [showDateFilter, setShowDateFilter] = useState(false)
 
-  // Get today's date for default end date
-  const today = new Date().toISOString().split('T')[0]
-  // Get 30 days ago for default start date
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const defaultStartDate = thirtyDaysAgo.toISOString().split('T')[0]
+
+  // Calculate effective date range for filtering
+  const { effectiveStartDate, effectiveEndDate } = useMemo(() => {
+    if (filterType === 'month') {
+      const date = new Date(selectedMonth + '-01')
+      return {
+        effectiveStartDate: format(startOfMonth(date), 'yyyy-MM-dd'),
+        effectiveEndDate: format(endOfMonth(date), 'yyyy-MM-dd')
+      }
+    }
+    return {
+      effectiveStartDate: dateRange.startDate,
+      effectiveEndDate: dateRange.endDate
+    }
+  }, [filterType, selectedMonth, dateRange])
 
   // Filter orders and expenses by date range
   const filterByDateRange = (items, dateField) => {
-    if (!dateFilter.startDate && !dateFilter.endDate) {
+    if (!effectiveStartDate && !effectiveEndDate) {
       return items
     }
+
+    const start = effectiveStartDate ? new Date(effectiveStartDate) : null
+    if (start) start.setHours(0, 0, 0, 0)
+
+    const end = effectiveEndDate ? new Date(effectiveEndDate) : null
+    if (end) end.setHours(23, 59, 59, 999)
 
     return items.filter(item => {
       const itemDate = item[dateField] || item.createdDate || ''
       if (!itemDate) return false
 
       const date = new Date(itemDate)
-      const start = dateFilter.startDate ? new Date(dateFilter.startDate) : null
-      const end = dateFilter.endDate ? new Date(dateFilter.endDate) : null
 
       if (start && end) {
         return date >= start && date <= end
@@ -291,21 +307,7 @@ const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) =
     return extra > 0 ? `${names.join(', ')} and ${extra} more` : names.join(', ')
   }
 
-  const handleDateFilterChange = (field, value) => {
-    setDateFilter(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
 
-  const clearDateFilter = () => {
-    setDateFilter({
-      startDate: '',
-      endDate: ''
-    })
-  }
-
-  const hasDateFilter = dateFilter.startDate || dateFilter.endDate
 
   return (
     <div className="dashboard-container">
@@ -333,53 +335,86 @@ const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) =
             flexWrap: 'wrap',
             width: window.innerWidth < 600 ? '100%' : 'auto'
           }}>
-            {showDateFilter && (
-              <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                alignItems: 'center',
-                padding: '0.5rem',
-                backgroundColor: 'var(--bg-card)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: '12px',
-                border: '1px solid var(--border-color)',
-                width: window.innerWidth < 600 ? '100%' : 'auto',
-                justifyContent: 'space-between'
-              }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+              padding: '0.4rem',
+              borderRadius: '12px',
+              border: '1px solid var(--border-color)',
+              width: window.innerWidth < 600 ? '100%' : 'auto'
+            }}>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  padding: '0.25rem 0.5rem',
+                  borderRight: '1px solid var(--border-color)',
+                  marginRight: '0.25rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="month" style={{ background: '#1f2937' }}>By Month</option>
+                <option value="range" style={{ background: '#1f2937' }}>Custom Range</option>
+              </select>
+
+              {filterType === 'month' ? (
                 <input
-                  type="date"
-                  value={dateFilter.startDate}
-                  onChange={(e) => handleDateFilterChange('startDate', e.target.value)}
-                  className="form-input"
-                  style={{ flex: 1, minWidth: '0', height: '36px', fontSize: '0.8rem', padding: '0.25rem' }}
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    padding: '0.25rem 0.5rem',
+                    colorScheme: 'dark'
+                  }}
                 />
-                <span style={{ color: 'var(--text-muted)' }}>—</span>
-                <input
-                  type="date"
-                  value={dateFilter.endDate}
-                  onChange={(e) => handleDateFilterChange('endDate', e.target.value)}
-                  className="form-input"
-                  style={{ flex: 1, minWidth: '0', height: '36px', fontSize: '0.8rem', padding: '0.25rem' }}
-                />
-              </div>
-            )}
-            <button
-              onClick={() => setShowDateFilter(!showDateFilter)}
-              className="btn btn-secondary"
-              style={{
-                height: '42px',
-                padding: '0 1.25rem',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                flex: window.innerWidth < 600 ? 1 : 'none',
-                justifyContent: 'center'
-              }}
-            >
-              <Calendar size={18} />
-              <span>{showDateFilter ? 'Hide Filter' : 'Date Range'}</span>
-            </button>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <input
+                    type="date"
+                    value={dateRange.startDate}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      padding: '0.25rem',
+                      width: '110px',
+                      colorScheme: 'dark'
+                    }}
+                  />
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>to</span>
+                  <input
+                    type="date"
+                    value={dateRange.endDate}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      padding: '0.25rem',
+                      width: '110px',
+                      colorScheme: 'dark'
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
