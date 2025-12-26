@@ -417,8 +417,39 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
 
     try {
       setIsDispatching(true)
+      const currentSettings = await getSettings()
+      const { email, password, tenant } = currentSettings?.curfox || {}
+
+      if (!email || !password || !tenant) {
+        addToast('Curfox credentials missing. Please check Settings.', 'error')
+        return
+      }
+
+      if (!currentSettings.curfox.originCity || !currentSettings.curfox.originDistrict) {
+        addToast('Missing Origin Location. Please go to Settings > Curfox and set Pickup City/District.', 'error')
+        return
+      }
+
+      // Authenticate to get fresh token
+      const authResponse = await curfoxService.login(email, password, tenant)
+      if (!authResponse || !authResponse.token) {
+        addToast('Curfox Authentication Failed', 'error')
+        return
+      }
+
+      const authPayload = {
+        ...currentSettings.curfox, // email, password, tenant, businessId, originCity, originDistrict
+        token: authResponse.token,
+        // prefer stored ID, fallback to login response
+        businessId: currentSettings.curfox.businessId || authResponse.businessId,
+        merchantRefNo: authResponse.user?.merchant?.ref_no,
+        user: authResponse.user
+      }
+
+      console.log("Dispatching with AuthPayload:", { ...authPayload, token: '***' })
+
       // Call API
-      await curfoxService.createOrder(order, order.trackingNumber, settings?.curfox) // Assuming settings loaded in curfoxService or passed
+      await curfoxService.createOrder(order, order.trackingNumber, authPayload)
 
       // Update Order Status
       const today = new Date().toISOString().split('T')[0]

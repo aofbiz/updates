@@ -31,7 +31,7 @@ export const curfoxService = {
             }
 
             const data = await response.json()
-            console.log('Curfox Login Success:', data)
+            console.log('Curfox Login Success:', JSON.stringify(data, null, 2))
 
             // Return token and potentially business_id if available in response
             // Adjust based on actua response structure. common: { token: '...', user: { business_id: ... } }
@@ -42,6 +42,40 @@ export const curfoxService = {
         } catch (error) {
             console.error('Curfox Login Error:', error)
             return null
+        }
+    },
+
+    getUserDetails: async (authData) => {
+        try {
+            const { tenant, token } = authData
+            const response = await fetch(`${curfoxService.baseUrl}/user/get-current`, {
+                method: 'GET',
+                headers: curfoxService.getHeaders(tenant, token)
+            })
+            if (!response.ok) return null
+            const json = await response.json()
+            console.log("Curfox User Details:", JSON.stringify(json.data, null, 2))
+            return json.data || null
+        } catch (e) {
+            console.error("Fetch User Details Error", e)
+            return null
+        }
+    },
+
+    getBusinesses: async (authData) => {
+        try {
+            const { tenant, token } = authData
+            const response = await fetch(`${curfoxService.baseUrl}/business`, {
+                method: 'GET',
+                headers: curfoxService.getHeaders(tenant, token)
+            })
+            if (!response.ok) return []
+            const json = await response.json()
+            console.log("Curfox Businesses List:", JSON.stringify(json.data, null, 2))
+            return json.data || []
+        } catch (e) {
+            console.error("Fetch Businesses Error", e)
+            return []
         }
     },
 
@@ -123,35 +157,35 @@ export const curfoxService = {
     // 3. Create Order
     createOrder: async (order, trackingNumber, authData) => {
         try {
-            const { email, password, tenant, token, businessId } = authData
+            const { email, password, tenant, token, businessId, originCity, originDistrict } = authData
 
-            // We need businessId. If not saved, we might have issues.
-            // Using a fallback or checking if it's passed.
-            const merchantBusinessId = businessId || "YOUR_BUSINESS_ID"
+            if (!businessId) {
+                throw new Error("Missing Merchant Business ID. Please configure it in Settings.")
+            }
 
             const payload = {
                 general_data: {
-                    merchant_business_id: merchantBusinessId,
-                    origin_city_name: "Colombo", // Default or Configurable?
-                    origin_state_name: "Colombo"
+                    merchant_business_id: businessId,
+                    origin_city_name: originCity || "Colombo",
+                    origin_state_name: originDistrict || "Colombo"
                 },
                 order_data: [{
                     waybill_number: trackingNumber,
                     customer_name: order.customerName,
                     customer_address: order.address,
-                    customer_phone: order.phone || order.whatsapp,
+                    customer_phone: (order.phone || order.whatsapp || "").replace(/\D/g, ''), // Clean phone
                     destination_city_name: order.nearestCity,
                     destination_state_name: order.district,
-                    cod: order.paymentStatus === 'Paid' ? 0 : (order.totalPrice || 0),
+                    cod: order.paymentStatus === 'Paid' ? 0 : Math.round(order.totalPrice || 0), // Integer
                     description: `Order #${order.id}`,
-                    weight: 1, // Default
+                    weight: 1,
                     remark: order.notes || ""
                 }]
             }
 
-            console.log('Pushing to Curfox:', payload)
+            console.log('Pushing to Curfox:', JSON.stringify(payload, null, 2))
 
-            const response = await fetch(`${curfoxService.baseUrl}/order/bulk`, {
+            let response = await fetch(`${curfoxService.baseUrl}/order/bulk`, {
                 method: 'POST',
                 headers: curfoxService.getHeaders(tenant, token),
                 body: JSON.stringify(payload)
@@ -159,7 +193,28 @@ export const curfoxService = {
 
             if (!response.ok) {
                 const errText = await response.text()
-                throw new Error(`Curfox Dispatch Failed: ${response.status} - ${errText}`)
+
+                // Content-aware Retry Logic
+                // If "Business not found" and we have a Ref No, try that instead of the numeric ID.
+                const shouldRetry = response.status === 422 && errText.includes("Business not found") && authData.merchantRefNo
+
+                if (shouldRetry) {
+                    console.warn(`Curfox: Retrying with Merchant Ref No (${authData.merchantRefNo})...`)
+                    payload.general_data.merchant_business_id = authData.merchantRefNo
+
+                    response = await fetch(`${curfoxService.baseUrl}/order/bulk`, {
+                        method: 'POST',
+                        headers: curfoxService.getHeaders(tenant, token),
+                        body: JSON.stringify(payload)
+                    })
+
+                    if (!response.ok) {
+                        const errText2 = await response.text()
+                        await curfoxService.handleDispatchError(response, errText2)
+                    }
+                } else {
+                    await curfoxService.handleDispatchError(response, errText)
+                }
             }
 
             const data = await response.json()
@@ -170,22 +225,65 @@ export const curfoxService = {
         }
     },
 
+    // Helper for error parsing
+    handleDispatchError: async (response, errText) => {
+        console.error("Curfox API Error Body:", errText)
+        let errorMessage = `Curfox Dispatch Failed: ${response.status}`
+        try {
+            const errorJson = JSON.parse(errText)
+            const errors = errorJson.errors || {}
+
+            if (errors['rate_card.destination_city_id']) {
+                errorMessage = `Delivery Coverage Error: ${errors['rate_card.destination_city_id'][0]}`
+            } else if (errors['order_data.0.waybill_number']) {
+                errorMessage = `Duplicate Waybill: ${errors['order_data.0.waybill_number'][0]}`
+            } else if (errorJson.message) {
+                errorMessage = `Curfox Error: ${errorJson.message}`
+                if (Object.keys(errors).length > 0) {
+                    errorMessage += ` (${JSON.stringify(errors)})`
+                }
+            }
+        } catch (e) {
+            errorMessage += ` - ${errText}`
+        }
+        throw new Error(errorMessage)
+    },
+
     // 4. Tracking
     getTracking: async (waybill, authData) => {
         try {
             const { tenant, token } = authData || {}
-            if (!tenant) return []
+            if (!tenant || !token) return []
 
-            // Common pattern: GET /order/tracking?waybill=...
-            // Or /public/merchant/tracking/...
-            // Based on search, no specific tracking endpoint found yet, 
-            // but we can try a likely one or return empty to prevent errors.
             console.log('Fetching tracking for', waybill)
 
-            // Placeholder: Assume NO tracking endpoint confirmed yet.
-            // Returning empty array to avoid UI errors.
-            return []
+            // Docs say GET with body, which is invalid in browsers. 
+            // Trying with Query String first.
+            const url = `${curfoxService.baseUrl}/order/tracking-info?waybill_number=${waybill}`
+
+            const response = await fetch(url, {
+                method: 'GET', // Standard GET
+                headers: curfoxService.getHeaders(tenant, token)
+            })
+
+            if (!response.ok) {
+                // If 405 Method Not Allowed, maybe it IS a POST?
+                if (response.status === 405) {
+                    console.warn("GET tracking failed, trying POST...")
+                    const postResp = await fetch(`${curfoxService.baseUrl}/order/tracking-info`, {
+                        method: 'POST',
+                        headers: curfoxService.getHeaders(tenant, token),
+                        body: JSON.stringify({ waybill_number: waybill })
+                    })
+                    if (postResp.ok) return (await postResp.json()).data || []
+                }
+                return []
+            }
+
+            const data = await response.json()
+            return data.data || [] // Returns array of history
         } catch (error) {
+            console.error("Tracking Fetch Error:", error)
             return []
         }
     }

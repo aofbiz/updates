@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, AlertTriangle, Plus, Trash2, Edit2, Edit, Package, Search, ChevronDown, ChevronUp, Download, Upload, Trash, MessageCircle, X, LogOut, Database, Truck } from 'lucide-react'
+import { Settings as SettingsIcon, Save, AlertTriangle, Plus, Trash2, Edit2, Edit, Package, Search, ChevronDown, ChevronUp, Download, Upload, Trash, MessageCircle, X, LogOut, Database, Truck, RefreshCw, CheckCircle } from 'lucide-react'
 import { loadGoogleScript, initTokenClient, uploadFileToDrive, listFilesFromDrive, downloadFileFromDrive } from '../utils/googleDrive'
 import { curfoxService } from '../utils/curfox'
 
@@ -1169,6 +1169,8 @@ const CurfoxSettings = ({ settings, setSettings, showToast }) => {
   const [password, setPassword] = useState(settings?.curfox?.password || '')
   const [tenant, setTenant] = useState(settings?.curfox?.tenant || '')
   const [businessId, setBusinessId] = useState(settings?.curfox?.businessId || '')
+  const [originCity, setOriginCity] = useState(settings?.curfox?.originCity || '')
+  const [originDistrict, setOriginDistrict] = useState(settings?.curfox?.originDistrict || '')
   const [isEnabled, setIsEnabled] = useState(settings?.curfox?.enabled || false)
   const [isTesting, setIsTesting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -1184,18 +1186,48 @@ const CurfoxSettings = ({ settings, setSettings, showToast }) => {
 
       const authData = await curfoxService.login(email, password, tenant)
       if (authData && authData.token) {
-        showToast('Connection Successful! Token verified.', 'success')
-        if (authData.businessId) {
-          setBusinessId(authData.businessId)
-          showToast('Business ID retrieved: ' + authData.businessId, 'info')
+        showToast('Connection Successful! Fetching profile data...', 'success')
+
+        const authPayload = { ...settings.curfox, token: authData.token, email, password, tenant }
+
+        // 1. Fetch Businesses (Branches) - This is usually what merchant_business_id needs!
+        const businesses = await curfoxService.getBusinesses(authPayload)
+        let foundBusinessId = null
+
+        if (businesses && businesses.length > 0) {
+          foundBusinessId = businesses[0].id
+          setBusinessId(foundBusinessId)
+          showToast(`Found Business: ${businesses[0].name || businesses[0].id}`, 'info')
+        }
+
+        // 2. Fetch User Profile for backup info (City/District)
+        const userProfile = await curfoxService.getUserDetails(authPayload)
+
+        if (userProfile) {
+          if (!foundBusinessId) {
+            const bId = userProfile.merchant_id || userProfile.merchant?.id
+            setBusinessId(bId)
+          }
+
+          const m = userProfile.merchant || {}
+          const cityCandidate = userProfile.city || m.city || m.city_name || m.origin_city
+          const districtCandidate = userProfile.district || m.district || m.district_name || m.origin_state
+
+          if (cityCandidate) setOriginCity(cityCandidate)
+          if (districtCandidate) setOriginDistrict(districtCandidate)
+
+          if (cityCandidate || foundBusinessId) {
+            showToast('Profile data auto-filled', 'info')
+          }
         }
       } else {
         showToast('Connection Failed. Check credentials.', 'error')
       }
     } catch (error) {
       showToast('Connection Error: ' + error.message, 'error')
+    } finally {
+      setIsTesting(false)
     }
-    setIsTesting(false)
   }
 
   const handleSave = async () => {
@@ -1206,7 +1238,9 @@ const CurfoxSettings = ({ settings, setSettings, showToast }) => {
         email,
         password,
         tenant,
-        businessId, // Save the business ID
+        businessId,
+        originCity,
+        originDistrict,
         enabled: isEnabled
       }
     }
@@ -1227,7 +1261,7 @@ const CurfoxSettings = ({ settings, setSettings, showToast }) => {
         <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
           Connect to Curfox Courier API to enable automated dispatching.
           <br />
-          <strong>Note:</strong> Enabling this will disable manual Tracking Number management.
+          <strong>Note:</strong> Enabling this allows both hybrid and fully automated workflows.
         </p>
       </div>
 
@@ -1245,69 +1279,97 @@ const CurfoxSettings = ({ settings, setSettings, showToast }) => {
         </span>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '1.5rem',
-        marginBottom: '1.5rem',
-        opacity: isEnabled ? 1 : 0.6,
-        pointerEvents: isEnabled ? 'auto' : 'none'
-      }}>
-        <div className="form-group">
-          <label className="form-label">Merchant Email</label>
-          <input
-            type="email"
-            className="form-input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="merchant@example.com"
-          />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input
-            type="password"
-            className="form-input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your Curfox password"
-          />
-        </div>
+      {isEnabled && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '1.5rem',
+          marginBottom: '1.5rem'
+        }}>
+          <div className="form-group">
+            <label className="form-label">Merchant Email</label>
+            <input
+              type="email"
+              className="form-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="merchant@example.com"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              type="password"
+              className="form-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your Curfox password"
+            />
+          </div>
 
-        <div className="form-group">
-          <label className="form-label">Tenant Name ID</label>
-          <input
-            type="text"
-            className="form-input"
-            value={tenant}
-            onChange={(e) => setTenant(e.target.value)}
-            placeholder="e.g. developers"
-          />
-          <small style={{ color: 'var(--text-muted)' }}>Found in your Curfox URL (e.g. <strong>tenant</strong>.curfox.com)</small>
-        </div>
-      </div>
+          <div className="form-group">
+            <label className="form-label">Tenant Name ID</label>
+            <input
+              type="text"
+              className="form-input"
+              value={tenant}
+              onChange={(e) => setTenant(e.target.value)}
+              placeholder="e.g. developers"
+            />
+            <small style={{ color: 'var(--text-muted)' }}>Found in your Curfox URL (e.g. <strong>tenant</strong>.curfox.com)</small>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Merchant Business ID</label>
+            <input
+              type="text"
+              className="form-input"
+              value={businessId}
+              onChange={(e) => setBusinessId(e.target.value)}
+              placeholder="Auto-fetched or Enter Manually"
+            />
+            <small style={{ color: 'var(--text-muted)' }}>Required for Dispatch orders</small>
+          </div>
 
+          <div className="form-group">
+            <label className="form-label">Pickup City (Origin)</label>
+            <input
+              type="text"
+              className="form-input"
+              value={originCity}
+              onChange={(e) => setOriginCity(e.target.value)}
+              placeholder="e.g. Colombo 05"
+            />
+            <small style={{ color: 'var(--text-muted)' }}>Must match your Curfox Pickup City</small>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Pickup District (Origin)</label>
+            <input
+              type="text"
+              className="form-input"
+              value={originDistrict}
+              onChange={(e) => setOriginDistrict(e.target.value)}
+              placeholder="e.g. Colombo"
+            />
+            <small style={{ color: 'var(--text-muted)' }}>Must match your Curfox Pickup District</small>
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
         <button
           onClick={handleTestConnection}
           className="btn btn-secondary"
           disabled={isTesting || !isEnabled}
         >
-          {isTesting ? 'Testing...' : 'Test Connection'}
+          {isTesting ? (
+            <><RefreshCw className="spin" size={18} /> Testing...</>
+          ) : 'Test Connection'}
         </button>
         <button
           onClick={handleSave}
           className="btn btn-primary"
           disabled={isSaving}
         >
-          {isSaving ? (
-            'Saving...'
-          ) : (
-            <>
-              <Save size={18} />
-              Save Settings
-            </>
-          )}
+          {isSaving ? 'Saving...' : <><Save size={18} /> Save Settings</>}
         </button>
       </div>
     </div>
