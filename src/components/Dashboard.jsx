@@ -248,6 +248,10 @@ const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) =
     const currentMonth = currentDate.getMonth()
 
     const monthOrders = filteredOrders.filter(order => {
+      // 1. Valid Status Filter (Crucial Fix)
+      const status = (order.status || '').toLowerCase()
+      if (status === 'cancelled' || status === 'returned') return false
+
       // Logic matching Reports ROI period filtering
       const orderDate = new Date(order.orderDate || order.createdDate || order.dispatchDate || '')
       return orderDate.getFullYear() === currentYear && orderDate.getMonth() === currentMonth

@@ -14,7 +14,11 @@ export const filterByDateRange = (data, dateField, startDate, endDate) => {
     end.setHours(23, 59, 59, 999)
 
     return data.filter(item => {
-        const d = new Date(item[dateField])
+        // Fallback logic: Try primary field, then createdDate, then empty
+        const dateStr = item[dateField] || item.createdDate
+        if (!dateStr) return false
+
+        const d = new Date(dateStr)
         return d >= start && d <= end
     })
 }
@@ -22,9 +26,15 @@ export const filterByDateRange = (data, dateField, startDate, endDate) => {
 // --- Sales Calculations ---
 
 export const calculateSalesMetrics = (orders, inventory = [], expenses = []) => {
-    const paidOrders = orders.filter(o => o.paymentStatus === 'Paid')
+    // 1. Filter Valid Orders first (Exclude cancelled/returned)
+    const validOrders = orders.filter(o => !['cancelled', 'returned'].includes((o.status || '').toLowerCase()));
+
+    // Revenue is strictly from Paid orders (usually a subset of valid)
+    const paidOrders = validOrders.filter(o => o.paymentStatus === 'Paid')
     const revenue = paidOrders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0)
-    const totalOrders = orders.length
+
+    // Total Orders count should reflect Valid orders (Placed/Dispatched etc), not Cancelled ones.
+    const totalOrders = validOrders.length
 
     // Create inventory lookup map
     const inventoryMap = {}
@@ -32,9 +42,9 @@ export const calculateSalesMetrics = (orders, inventory = [], expenses = []) => 
         if (item.id) inventoryMap[String(item.id)] = item
     })
 
-    // 1. Source Distribution (Volume) - All Orders
+    // 1. Source Distribution (Volume) - All VALID Orders
     const sourceStats = {}
-    orders.forEach(order => {
+    validOrders.forEach(order => {
         const source = (order.orderSource || 'Ad').trim() // Default to 'Ad' to match Dashboard
         if (!sourceStats[source]) {
             sourceStats[source] = { name: source, orders: 0, revenue: 0, cost: 0, adsExpense: 0 }
@@ -93,7 +103,10 @@ export const calculateSalesMetrics = (orders, inventory = [], expenses = []) => 
     return { revenue, totalOrders, sourceData, profitabilityData }
 }
 
-export const getTopSellingProducts = (orders, inventory = [], products = { categories: [] }) => {
+const calculateProductPerformance = (orders, inventory = [], products = { categories: [] }) => {
+    // Filter Valid Orders
+    const validOrders = orders.filter(o => !['cancelled', 'returned'].includes((o.status || '').toLowerCase()));
+
     const productStats = {}
 
     // Helper to get category name from products list
@@ -103,7 +116,6 @@ export const getTopSellingProducts = (orders, inventory = [], products = { categ
         return category ? category.name : null;
     }
 
-    // Helper to get item name from products list
     // Helper to get item name from products list
     const getItemName = (categoryId, itemId) => {
         if (!itemId) return null; // Item ID is strictly required
@@ -140,7 +152,7 @@ export const getTopSellingProducts = (orders, inventory = [], products = { categ
         }
     });
 
-    orders.forEach(order => {
+    validOrders.forEach(order => {
         const items = order.orderItems || []
         // Handle legacy structure
         if (items.length === 0 && order.itemId) {
@@ -216,16 +228,9 @@ export const getTopSellingProducts = (orders, inventory = [], products = { categ
                 if (isCurrentNameGeneric && !isNewNameGeneric) {
                     productStats[key].name = name;
                 } else if (!isNewNameGeneric && name !== productStats[key].name) {
-                    // If we have two "real" names for the same ID, prefer the most recent one (implied by order iteration order)
-                    // or purely by length/specificity if possible?
-                    // For now, let's assume later orders might have corrected names, or just keep the first found valid one.
-                    // Actually, let's try to lookup the ID in the Inventory/Products AGAIN to be sure we get the Canonical Name
-                    if (item.itemId) {
-                        // Force lookup to ensure we use the canonical catalog name if available, overriding potential "custom" variations in old orders
-                        const canonicalName = getItemName(item.categoryId, item.itemId) || (inventoryMap.has(item.itemId) ? inventoryMap.get(item.itemId).name : null);
-                        if (canonicalName) {
-                            productStats[key].name = canonicalName;
-                        }
+                    const canonicalName = getItemName(item.categoryId, item.itemId) || (inventoryMap.has(item.itemId) ? inventoryMap.get(item.itemId).name : null);
+                    if (canonicalName) {
+                        productStats[key].name = canonicalName;
                     }
                 }
             }
@@ -234,7 +239,19 @@ export const getTopSellingProducts = (orders, inventory = [], products = { categ
         })
     })
 
-    return Object.values(productStats).sort((a, b) => b.quantity - a.quantity).slice(0, 10)
+    return Object.values(productStats)
+}
+
+export const getTopSellingProducts = (orders, inventory = [], products = { categories: [] }) => {
+    return calculateProductPerformance(orders, inventory, products)
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 10)
+}
+
+export const getTopRevenueProducts = (orders, inventory = [], products = { categories: [] }) => {
+    return calculateProductPerformance(orders, inventory, products)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10)
 }
 
 // --- Expense Calculations ---

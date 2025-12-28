@@ -4,7 +4,7 @@ import {
     PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts'
 import { Calendar } from 'lucide-react'
-import { formatCurrency, calculateSalesMetrics, getTopSellingProducts } from '../../utils/reportUtils'
+import { formatCurrency, calculateSalesMetrics, getTopSellingProducts, getTopRevenueProducts } from '../../utils/reportUtils'
 import { getProducts } from '../../utils/storage'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
@@ -19,6 +19,7 @@ const SalesReports = ({ orders, inventory, expenses, isMobile }) => {
 
     const metrics = useMemo(() => calculateSalesMetrics(orders, inventory, expenses), [orders, inventory, expenses])
     const topProducts = useMemo(() => getTopSellingProducts(orders, inventory, products), [orders, inventory, products])
+    const topRevenueProducts = useMemo(() => getTopRevenueProducts(orders, inventory, products), [orders, inventory, products])
 
     // Prepare Chart Data (Revenue over time)
     const chartData = useMemo(() => {
@@ -155,9 +156,9 @@ const SalesReports = ({ orders, inventory, expenses, isMobile }) => {
 
             </div>
 
-            {/* Top Products */}
+            {/* Top Products (Volume) */}
             <div className="card" style={{ padding: isMobile ? '1rem' : '1.5rem' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem' }}>Top Selling Products</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem' }}>Top Selling Products (By Volume)</h3>
 
                 <div className="sales-desktop-table" style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -184,6 +185,54 @@ const SalesReports = ({ orders, inventory, expenses, isMobile }) => {
 
                 <div className="sales-mobile-list" style={{ display: 'none' }}>
                     {topProducts.map((p, idx) => (
+                        <div key={idx} className="sales-mobile-card">
+                            <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>{p.name}</div>
+                            <div className="sales-card-row">
+                                <span style={{ color: 'var(--text-muted)' }}>Category:</span>
+                                <span>{p.category}</span>
+                            </div>
+                            <div className="sales-card-row">
+                                <span style={{ color: 'var(--text-muted)' }}>Units:</span>
+                                <span>{p.quantity}</span>
+                            </div>
+                            <div className="sales-card-row" style={{ marginBottom: 0 }}>
+                                <span style={{ color: 'var(--text-muted)' }}>Revenue:</span>
+                                <span style={{ color: 'var(--success)', fontWeight: 700 }}>{formatCurrency(p.revenue)}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Top Revenue Products */}
+            <div className="card" style={{ padding: isMobile ? '1rem' : '1.5rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem' }}>Top Selling Products (By Revenue)</h3>
+
+                <div className="sales-desktop-table" style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                            <tr>
+                                <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Name</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Category</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'right', fontSize: '0.8rem' }}>Units</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'right', fontSize: '0.8rem' }}>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {topRevenueProducts.map((p, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '0.75rem', fontWeight: 500, fontSize: '0.85rem' }}>{p.name}</td>
+                                    <td style={{ padding: '0.75rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{p.category}</td>
+                                    <td style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.85rem' }}>{p.quantity}</td>
+                                    <td style={{ padding: '0.75rem', textAlign: 'right', color: 'var(--success)', fontWeight: 600, fontSize: '0.85rem' }}>{formatCurrency(p.revenue)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="sales-mobile-list" style={{ display: 'none' }}>
+                    {topRevenueProducts.map((p, idx) => (
                         <div key={idx} className="sales-mobile-card">
                             <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>{p.name}</div>
                             <div className="sales-card-row">
