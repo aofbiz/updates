@@ -283,12 +283,12 @@ const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) =
       // Exclude orders that are already processed/dispatched
       if (['Dispatched', 'returned', 'refund', 'cancelled'].includes(o.status)) return false
 
-      const d = o.deliveryDate
+      const d = o.scheduledDeliveryDate || o.deliveryDate
       if (!d) return false
       const dt = new Date(d)
-      if (Number.isNaN(dt.getTime())) return false
-      return dt >= start && dt <= end
-    }).sort((a, b) => new Date(a.deliveryDate) - new Date(b.deliveryDate))
+      // Include anything from the past up to 3 days in the future
+      return dt <= end
+    }).sort((a, b) => new Date(a.scheduledDeliveryDate || a.deliveryDate) - new Date(b.scheduledDeliveryDate || b.deliveryDate))
   }
 
   const upcomingScheduledDeliveries = getUpcomingScheduledDeliveries()
@@ -499,37 +499,44 @@ const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) =
                 No deliveries scheduled for the next 3 days
               </div>
             ) : (
-              upcomingScheduledDeliveries.slice(0, 4).map(delivery => (
-                <div key={delivery.id} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '1rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                  flexDirection: window.innerWidth < 400 ? 'column' : 'row',
-                  alignItems: window.innerWidth < 400 ? 'flex-start' : 'center',
-                  gap: window.innerWidth < 400 ? '0.75rem' : '0'
-                }}>
-                  <div>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.25rem' }}>{delivery.customerName}</h4>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{delivery.nearestCity} • Order #{delivery.id}</p>
+              upcomingScheduledDeliveries.slice(0, 4).map(delivery => {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                const dateToDisplay = delivery.scheduledDeliveryDate || delivery.deliveryDate
+                const isOverdue = new Date(dateToDisplay) < today
+
+                return (
+                  <div key={delivery.id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '12px',
+                    border: isOverdue ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(255, 255, 255, 0.05)',
+                    flexDirection: window.innerWidth < 400 ? 'column' : 'row',
+                    alignItems: window.innerWidth < 400 ? 'flex-start' : 'center',
+                    gap: window.innerWidth < 400 ? '0.75rem' : '0'
+                  }}>
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.25rem', color: isOverdue ? 'var(--danger)' : 'inherit' }}>{delivery.customerName}</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{delivery.nearestCity} • Order #{delivery.id}</p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        padding: '0.25rem 0.6rem',
+                        backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.1)',
+                        color: isOverdue ? 'var(--danger)' : 'var(--accent-primary)',
+                        borderRadius: '20px',
+                        fontWeight: 600
+                      }}>
+                        {new Date(dateToDisplay).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      padding: '0.25rem 0.6rem',
-                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                      color: 'var(--accent-primary)',
-                      borderRadius: '20px',
-                      fontWeight: 600
-                    }}>
-                      {new Date(delivery.deliveryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>

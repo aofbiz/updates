@@ -168,7 +168,8 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
     createdDate: localOrder.createdDate || localOrder.orderDate || '',
     dispatchDate: localOrder.dispatchDate || '',
     trackingNumber: localOrder.trackingNumber || '',
-    notes: localOrder.notes || ''
+    notes: localOrder.notes || '',
+    scheduledDeliveryDate: localOrder.scheduledDeliveryDate || localOrder.deliveryDate || ''
   }
 
   // Handle status changes
@@ -196,6 +197,9 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
     }
 
     const updatedOrder = { ...localOrder, [field]: newValue }
+    if (field === 'status' && newValue === 'Dispatched' && !updatedOrder.dispatchDate) {
+      updatedOrder.dispatchDate = new Date().toISOString().split('T')[0]
+    }
     setLocalOrder(updatedOrder)
     if (onSave) {
       await onSave(updatedOrder)
@@ -628,10 +632,17 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
                   </select>
                 </div>
 
+                {safeOrder.scheduledDeliveryDate && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Scheduled Delivery:</span>
+                    <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{safeOrder.scheduledDeliveryDate}</span>
+                  </div>
+                )}
+
                 {safeOrder.dispatchDate && (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Dispatched Date:</span>
-                    <span style={{ color: 'var(--text-primary)' }}>{safeOrder.dispatchDate}</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{safeOrder.dispatchDate.includes('T') ? safeOrder.dispatchDate.split('T')[0] : safeOrder.dispatchDate}</span>
                   </div>
                 )}
 

@@ -293,5 +293,47 @@ export const curfoxService = {
             console.error("Tracking Fetch Error:", error)
             return []
         }
+    },
+
+    // 5. Finance
+    getFinanceStatus: async (waybill, authData) => {
+        try {
+            const { tenant, token } = authData || {}
+            if (!tenant || !token) return null
+
+            console.log('Fetching finance status for', waybill)
+
+            // Documentation says GET with body. We'll try POST first as it's more standard for body-reqs, 
+            // then fallback to GET with body if that fails.
+            const url = `${curfoxService.baseUrl}/order/waybill-finance-status`
+
+            // Try POST first (common workaround for GET with body)
+            let response = await fetch(url, {
+                method: 'POST',
+                headers: curfoxService.getHeaders(tenant, token),
+                body: JSON.stringify({ waybill_number: waybill })
+            })
+
+            if (!response.ok) {
+                // Try GET with body if POST failed
+                response = await fetch(url, {
+                    method: 'GET',
+                    headers: curfoxService.getHeaders(tenant, token),
+                    body: JSON.stringify({ waybill_number: waybill })
+                })
+            }
+
+            if (!response.ok) {
+                console.error(`Finance Status Fetch Failed: ${response.status}`)
+                return null
+            }
+
+            const data = await response.json()
+            console.log('Finance Status JSON:', data)
+            return data.data || null
+        } catch (error) {
+            console.error("Finance Status Fetch Error:", error)
+            return null
+        }
     }
 }

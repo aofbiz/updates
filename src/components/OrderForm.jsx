@@ -180,11 +180,10 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
     dispatchDate: order?.dispatchDate || '',
     trackingNumber: order?.trackingNumber || '',
     orderDate: order?.orderDate || today,
-    deliveryDate: order?.deliveryDate || '',
-    orderDate: order?.orderDate || today,
-    deliveryDate: order?.deliveryDate || '',
+    scheduledDeliveryDate: order?.scheduledDeliveryDate || order?.deliveryDate || '',
     orderSource: order?.orderSource || 'Ad', // Default to 'Ad'
-    advancePayment: order?.advancePayment || 0
+    advancePayment: order?.advancePayment || 0,
+    paymentMethod: order?.paymentMethod || 'COD'
   })
 
   const subtotal = useMemo(() => {
@@ -317,6 +316,12 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
       setCodManuallyEdited(true)
     }
 
+    // Handle Payment Method
+    if (name === 'paymentMethod') {
+      updatedData.paymentMethod = value
+      updatedData.paymentStatus = value === 'COD' ? 'Pending' : 'Paid'
+    }
+
     // Update available cities when district changes
     if (name === 'district') {
       const newDistrict = value
@@ -335,6 +340,16 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
       } else if (isCurfoxEnabled) {
         console.warn('Clearing available cities - Curfox enabled but cities list empty/loading.')
         setAvailableCities([])
+      }
+    }
+
+    // Handle Status change for auto-generating dispatchDate
+    if (name === 'status') {
+      if (value === 'Dispatched') {
+        updatedData.dispatchDate = new Date().toISOString()
+      } else if (value !== 'Dispatched' && !order?.dispatchDate) {
+        // Only clear it if it wasn't already set on an existing order
+        updatedData.dispatchDate = ''
       }
     }
 
@@ -440,7 +455,8 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
         totalPrice: computedTotal,
         totalAmount: computedTotal,
         codAmount: formData.codAmount,
-        deliveryDate: formData.deliveryDate || '',
+        paymentMethod: formData.paymentMethod,
+        scheduledDeliveryDate: formData.scheduledDeliveryDate || '',
         createdDate: order?.createdDate || today
       }
 
@@ -620,12 +636,12 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
 
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Delivery Date</label>
+                <label className="form-label">Scheduled Delivery Date</label>
                 <input
                   type="date"
-                  name="deliveryDate"
+                  name="scheduledDeliveryDate"
                   className="form-input"
-                  value={formData.deliveryDate}
+                  value={formData.scheduledDeliveryDate}
                   onChange={handleChange}
                   min={today}
                 />
@@ -876,7 +892,29 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
             </div>
 
             <div className="form-group">
-              <label className="form-label">COD Amount</label>
+              <label className="form-label">Payment Method</label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <button
+                  type="button"
+                  className={`btn ${formData.paymentMethod === 'COD' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ flex: 1, justifyContent: 'center' }}
+                  onClick={() => handleChange({ target: { name: 'paymentMethod', value: 'COD' } })}
+                >
+                  Cash on Delivery (COD)
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${formData.paymentMethod === 'Bank Deposit' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ flex: 1, justifyContent: 'center' }}
+                  onClick={() => handleChange({ target: { name: 'paymentMethod', value: 'Bank Deposit' } })}
+                >
+                  Bank Deposit
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">{formData.paymentMethod === 'COD' ? 'COD Amount' : 'Amount'}</label>
               <input
                 type="number"
                 name="codAmount"
@@ -887,7 +925,9 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
                 step="0.01"
               />
               <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                Auto-calculated as Total + Delivery. You can edit manually if needed.
+                {formData.paymentMethod === 'COD'
+                  ? 'Auto-calculated as Total + Delivery. You can edit manually if needed.'
+                  : 'Final amount including delivery.'}
               </small>
             </div>
           </div>
@@ -941,16 +981,6 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
 
           {(formData.status === 'Packed' || formData.status === 'Dispatched') && (
             <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Dispatch Date</label>
-                <input
-                  type="date"
-                  name="dispatchDate"
-                  className="form-input"
-                  value={formData.dispatchDate}
-                  onChange={handleChange}
-                />
-              </div>
               <div className="form-group">
                 <label className="form-label">Tracking Number</label>
                 {isCurfoxEnabled ? (

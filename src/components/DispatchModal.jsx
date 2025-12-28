@@ -89,17 +89,6 @@ const DispatchModal = ({ order, onClose, onSave }) => {
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Dispatch Date *</label>
-            <input
-              type="date"
-              name="dispatchDate"
-              className="form-input"
-              value={formData.dispatchDate}
-              onChange={handleChange}
-              required
-            />
-          </div>
 
           <div className="form-group">
             <label className="form-label">Tracking Number *</label>

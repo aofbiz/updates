@@ -4,7 +4,7 @@
 import { supabase } from './supabase'
 
 // Bump version to invalidate any previous cached compat modes that might be too strict.
-const ORDERS_SCHEMA_CACHE_KEY = 'aof_orders_schema_missing_cols_v3'
+const ORDERS_SCHEMA_CACHE_KEY = 'aof_orders_schema_missing_cols_v4'
 const ORDER_SOURCES_WARNED_KEY = 'aof_warned_missing_order_sources_v1'
 // Debug/verification helper: confirm multi-item orders really persisted
 const ORDERS_MULTIITEM_VERIFY_KEY = 'aof_orders_multiitem_verify_v1'
@@ -53,7 +53,7 @@ const transformOrderToDB = (order) => {
         image: it.image || null
       }))
       : [],
-    delivery_date: order.deliveryDate || null,
+    delivery_date: order.scheduledDeliveryDate || order.deliveryDate || null,
     status: order.status || 'Pending',
     payment_status: order.paymentStatus || 'Pending',
     tracking_number: order.trackingNumber || null,
@@ -118,7 +118,8 @@ const transformOrderFromDB = (order) => {
     quantity: order.quantity || 1,
     unitPrice: order.unit_price || 0,
     deliveryCharge: order.delivery_charge ?? 400,
-    deliveryDate: order.delivery_date || null,
+    scheduledDeliveryDate: order.delivery_date || null,
+    deliveryDate: order.delivery_date || null, // Keeping for backward compatibility temporarily
     orderItems,
     discountType: order.discount_type || null,
     discountValue: order.discount_value || 0,

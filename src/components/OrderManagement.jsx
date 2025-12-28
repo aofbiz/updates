@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, MessageCircle, Edit, Trash2, Eye, Download, ChevronUp, ChevronDown, Paperclip, Star, Repeat, Truck, X, Loader } from 'lucide-react'
+import { Plus, Search, MessageCircle, Edit, Trash2, Eye, Download, ChevronUp, ChevronDown, Paperclip, Star, Repeat, Truck, X, Loader, Calendar } from 'lucide-react'
 import OrderForm from './OrderForm'
 import DispatchModal from './DispatchModal'
 import ViewOrderModal from './ViewOrderModal'
@@ -774,7 +774,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     showConfirm('Confirm Status Change', `Are you sure you want to change order status to "${newStatus}" for ${ordersToUpdate.length} order(s)?`, async () => {
       try {
         const orderIdsToUpdate = new Set(ordersToUpdate.map(o => o.id))
-        const today = new Date().toISOString().split('T')[0]
+        const today = new Date().toISOString()
 
         const updatedOrders = orders.map(order => {
           if (orderIdsToUpdate.has(order.id)) {
@@ -1343,6 +1343,26 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                             fontSize: '0.875rem'
                           }}>
                             #{order.id}
+                            {order.scheduledDeliveryDate && (
+                              (() => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const deliveryDate = new Date(order.scheduledDeliveryDate);
+                                const isOverdue = deliveryDate < today && !['Dispatched', 'returned', 'refund', 'cancelled'].includes(order.status);
+
+                                return (
+                                  <Calendar
+                                    size={14}
+                                    style={{
+                                      marginLeft: '0.4rem',
+                                      color: isOverdue ? 'var(--danger)' : '#ebb434',
+                                      display: 'inline'
+                                    }}
+                                    title={isOverdue ? `Overdue: Scheduled for ${order.scheduledDeliveryDate}` : `Scheduled for ${order.scheduledDeliveryDate}`}
+                                  />
+                                );
+                              })()
+                            )}
                             {Array.isArray(order.orderItems) && order.orderItems.some(it => it.image) && (
                               <Paperclip
                                 size={14}
@@ -1460,7 +1480,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                             </span>
                             {order.status?.toLowerCase() === 'dispatched' && order.dispatchDate ? (
                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                                {order.dispatchDate}
+                                {order.dispatchDate.includes('T') ? order.dispatchDate.split('T')[0] : order.dispatchDate}
                               </div>
                             ) : null}
                           </div>
@@ -1488,24 +1508,38 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                             <option value="Paid">Paid</option>
                           </select>
                         ) : (
-                          <span
-                            onClick={(e) => handleStatusClick(order.id, 'paymentStatus', e)}
-                            style={{
-                              padding: '0.25rem 0.5rem',
-                              borderRadius: 'var(--radius)',
-                              fontSize: '0.75rem',
-                              backgroundColor: getPaymentColor(order.paymentStatus),
-                              color: 'white',
-                              cursor: 'pointer',
-                              display: 'inline-block',
-                              transition: 'opacity 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                            title="Click to edit payment status"
-                          >
-                            {order.paymentStatus}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
+                            <span
+                              onClick={(e) => handleStatusClick(order.id, 'paymentStatus', e)}
+                              style={{
+                                padding: '0.25rem 0.5rem',
+                                borderRadius: 'var(--radius)',
+                                fontSize: '0.75rem',
+                                backgroundColor: getPaymentColor(order.paymentStatus),
+                                color: 'white',
+                                cursor: 'pointer',
+                                display: 'inline-block',
+                                transition: 'opacity 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                              title="Click to edit payment status"
+                            >
+                              {order.paymentStatus}
+                            </span>
+                            {order.paymentMethod && (
+                              <span style={{
+                                fontSize: '0.65rem',
+                                color: 'var(--text-muted)',
+                                fontWeight: 500,
+                                padding: '0px 4px',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '4px'
+                              }}>
+                                {order.paymentMethod === 'Bank Deposit' ? 'Bank' : 'COD'}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td>
@@ -1764,7 +1798,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                         </span>
                         {order.status?.toLowerCase() === 'dispatched' && order.dispatchDate && (
                           <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
-                            {order.dispatchDate}
+                            {order.dispatchDate.includes('T') ? order.dispatchDate.split('T')[0] : order.dispatchDate}
                           </div>
                         )}
                       </div>
@@ -1795,21 +1829,33 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                         <option value="Paid">Paid</option>
                       </select>
                     ) : (
-                      <span
-                        className="badge"
-                        onClick={(e) => { e.stopPropagation(); handleStatusClick(order.id, 'paymentStatus', e); }}
-                        style={{
-                          backgroundColor: getPaymentColor(order.paymentStatus),
-                          color: '#fff',
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '6px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {order.paymentStatus}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span
+                          className="badge"
+                          onClick={(e) => { e.stopPropagation(); handleStatusClick(order.id, 'paymentStatus', e); }}
+                          style={{
+                            backgroundColor: getPaymentColor(order.paymentStatus),
+                            color: '#fff',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {order.paymentStatus}
+                        </span>
+                        {order.paymentMethod && (
+                          <span style={{
+                            fontSize: '0.6rem',
+                            color: 'var(--text-muted)',
+                            fontWeight: 600,
+                            textTransform: 'uppercase'
+                          }}>
+                            {order.paymentMethod === 'Bank Deposit' ? 'Bank' : 'COD'}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
