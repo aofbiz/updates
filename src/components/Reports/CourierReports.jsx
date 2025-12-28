@@ -3,7 +3,7 @@ import {
     BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts'
-import { Truck, DollarSign, AlertTriangle, Clock, RefreshCw, AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
+import { Truck, DollarSign, AlertTriangle, Clock, RefreshCw, AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Filter, PackageCheck, Undo2, FileText } from 'lucide-react'
 import { curfoxService } from '../../utils/curfox'
 import { getSettings, saveOrders } from '../../utils/storage'
 import { formatCurrency } from '../../utils/reportUtils'
@@ -280,6 +280,57 @@ const CourierReports = ({ isMobile, range, internalOrders = [], onUpdateOrders }
         return count > 0 ? (totalTat / count).toFixed(1) : 'N/A'
     }, [trackingData])
 
+    // --- Report 6: Detailed Status Metrics ---
+    const detailedMetrics = useMemo(() => {
+        let pendingDelivery = { count: 0, amount: 0 }
+        let delivered = { count: 0, amount: 0 }
+        let toBeReturned = { count: 0, amount: 0 }
+        let toBeInvoiced = { count: 0, amount: 0 }
+
+        dateFilteredOrders.forEach(o => {
+            const status = (
+                o.order_current_status?.name ||
+                o.status?.name ||
+                (typeof o.status === 'string' ? o.status : null) ||
+                'Unknown'
+            ).toLowerCase()
+
+            const cod = Number(o.cod || o.cod_amount || 0)
+            const collected = Number(o.collected_cod || 0)
+            const deliveryCharge = Number(o.delivery_charge || o.freight_amount || 0)
+
+            // Look up finance status if available
+            const finRecord = financeData.find(f => f.waybill_number === o.waybill_number)
+            const financeStatus = (finRecord?.finance_status || finRecord?.status || o.finance_status || '').toLowerCase()
+
+            // 1. To Be Returned (RTO)
+            if (status.includes('return') || status.includes('rto') || status.includes('fail')) {
+                toBeReturned.count++
+                toBeReturned.amount += (cod > 0 ? cod : 0) // Value at risk
+            }
+            // 2. Delivered
+            else if (status === 'delivered') {
+                delivered.count++
+                delivered.amount += (collected > 0 ? collected : cod)
+
+                // 3. To Be Invoiced (Delivered but NOT Deposited/Approved)
+                // "Deposited" usually means courier has paid us.
+                const isSettled = financeStatus === 'deposited' || financeStatus === 'approved' || financeStatus.includes('paid')
+                if (!isSettled) {
+                    toBeInvoiced.count++
+                    toBeInvoiced.amount += (collected > 0 ? collected : cod)
+                }
+            }
+            // 4. Pending Delivery (In Transit, etc.)
+            else if (status !== 'cancelled') {
+                pendingDelivery.count++
+                pendingDelivery.amount += cod
+            }
+        })
+
+        return { pendingDelivery, delivered, toBeReturned, toBeInvoiced }
+    }, [dateFilteredOrders, financeData])
+
     // --- Reconciliation Logic ---
     useEffect(() => {
         if (!internalOrders || internalOrders.length === 0 || !financeData || financeData.length === 0) {
@@ -551,13 +602,16 @@ const CourierReports = ({ isMobile, range, internalOrders = [], onUpdateOrders }
             </div>
 
             {/* Summary Metrics */}
+            {/* Summary Metrics */}
             <div className="metrics-row">
+                {/* 1. General Stats */}
                 <div className="card metric-card">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
                         <Truck size={16} />
                         <span style={{ fontSize: '0.85rem' }}>Total Shipments</span>
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{dateFilteredOrders.length}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>All time</div>
                 </div>
                 <div className="card metric-card">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
@@ -565,20 +619,56 @@ const CourierReports = ({ isMobile, range, internalOrders = [], onUpdateOrders }
                         <span style={{ fontSize: '0.85rem' }}>Logistics Spend</span>
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--danger)' }}>{formatCurrency(shippingSpendTotal)}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Delivery Charges</div>
                 </div>
+
+                {/* 2. New Detailed Cards */}
                 <div className="card metric-card">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
-                        <DollarSign size={16} />
-                        <span style={{ fontSize: '0.85rem' }}>Total COD Collected</span>
+                        <Clock size={16} color="#f59e0b" />
+                        <span style={{ fontSize: '0.85rem' }}>Pending Delivery</span>
                     </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(codMetrics.totalCollectedActual)}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.25rem' }}>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>{detailedMetrics.pendingDelivery.count}</span>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(detailedMetrics.pendingDelivery.amount)}</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>In Transit / Pickup</div>
                 </div>
+
                 <div className="card metric-card">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
-                        <Clock size={16} />
-                        <span style={{ fontSize: '0.85rem' }}>Avg. Turnaround (TAT)</span>
+                        <PackageCheck size={16} color="#10b981" />
+                        <span style={{ fontSize: '0.85rem' }}>Delivered Orders</span>
                     </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{tatMetrics} <span style={{ fontSize: '0.9rem', fontWeight: 400 }}>Days</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.25rem' }}>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>{detailedMetrics.delivered.count}</span>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--success)' }}>{formatCurrency(detailedMetrics.delivered.amount)}</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Successfully Delivered</div>
+                </div>
+
+                <div className="card metric-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+                        <FileText size={16} color="#8b5cf6" />
+                        <span style={{ fontSize: '0.85rem' }}>To Be Invoiced</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.25rem' }}>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>{detailedMetrics.toBeInvoiced.count}</span>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#8b5cf6' }}>{formatCurrency(detailedMetrics.toBeInvoiced.amount)}</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Delivered but Pending Payout</div>
+                </div>
+
+                <div className="card metric-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+                        <Undo2 size={16} color="#ef4444" />
+                        <span style={{ fontSize: '0.85rem' }}>To Be Returned</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '0.25rem' }}>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>{detailedMetrics.toBeReturned.count}</span>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--danger)' }}>{formatCurrency(detailedMetrics.toBeReturned.amount)}</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>RTO / Failed Delivery</div>
                 </div>
             </div>
 
