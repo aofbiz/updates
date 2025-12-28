@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react'
 import { X, RefreshCw, Truck, Calendar, MapPin, User, CheckCircle } from 'lucide-react'
 import { curfoxService } from '../utils/curfox'
 import { getSettings } from '../utils/storage'
-import { useToasts } from '../context/ToastContext'
 
-const CurfoxTrackingModal = ({ order, onClose }) => {
-    const { addToast } = useToasts()
+const CurfoxTrackingModal = ({ order, onSave, onClose }) => {
     const [trackingData, setTrackingData] = useState(null)
     const [financeData, setFinanceData] = useState(null)
     const [activeTab, setActiveTab] = useState('tracking')
@@ -13,43 +11,44 @@ const CurfoxTrackingModal = ({ order, onClose }) => {
     const [financeLoading, setFinanceLoading] = useState(false)
     const [error, setError] = useState(null)
 
-    const handleSyncFinance = async () => {
-        if (!financeData) return
-
+    const fetchFinance = async () => {
+        if (financeData || financeLoading) return
         try {
             setFinanceLoading(true)
             const settings = await getSettings()
-            const orders = (await import('../utils/storage')).getOrders() // We need current orders array
-            // Actually, better to use the setOrders/onSave pattern if possible, 
-            // but TrackingModal is usually isolated. 
-            // We'll use a custom event to notify OrderManagement to update.
+            const authData = {
+                tenant: settings.curfox.tenant,
+                token: (await curfoxService.login(settings.curfox.email, settings.curfox.password, settings.curfox.tenant))?.token
+            }
+            if (!authData.token) return
+            const data = await curfoxService.getFinanceStatus(order.trackingNumber, authData)
+            setFinanceData(data)
+        } catch (err) {
+            console.error("Finance Fetch Error:", err)
+        } finally {
+            setFinanceLoading(false)
+        }
+    }
 
-            const updatedFields = {
+    const handleSyncFinance = async () => {
+        if (!financeData || !onSave) return
+        try {
+            setFinanceLoading(true)
+            const updatedOrder = {
+                ...order,
                 courierFinanceStatus: financeData.finance_status,
                 courierInvoiceNo: financeData.invoice_no,
                 courierInvoiceRef: financeData.invoice_ref_no
             }
 
-            // If Deposited/Approved, offer to mark as Paid
-            let shouldMarkPaid = false
-            if ((financeData.finance_status === 'Deposited' || financeData.finance_status === 'Approved') && order.paymentStatus !== 'Paid') {
-                if (window.confirm('This order has been Deposited/Approved by Curfox. Mark as "Paid" in the system?')) {
-                    shouldMarkPaid = true
-                    updatedFields.paymentStatus = 'Paid'
-                }
+            // Auto-mark as paid if deposited or approved
+            if (financeData.finance_status === 'Deposited' || financeData.finance_status === 'Approved') {
+                updatedOrder.paymentStatus = 'Paid'
             }
 
-            window.dispatchEvent(new CustomEvent('updateOrderLocally', {
-                detail: {
-                    orderId: order.id,
-                    fields: updatedFields
-                }
-            }))
-
-            addToast('Finance Information Synced', 'success')
+            await onSave(updatedOrder)
         } catch (err) {
             console.error("Sync Finance Error:", err)
-            addToast('Failed to sync finance info', 'error')
         } finally {
             setFinanceLoading(false)
         }
@@ -263,24 +262,37 @@ const CurfoxTrackingModal = ({ order, onClose }) => {
                                         <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                             <p>Financial details are updated once the order is invoiced by the courier.</p>
                                         </div>
+
+                                        <button
+                                            onClick={handleSyncFinance}
+                                            disabled={financeLoading}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                marginTop: '1rem',
+                                                backgroundColor: 'var(--bg-card)',
+                                                border: '1px solid var(--border-color)',
+                                                borderRadius: 'var(--radius)',
+                                                color: 'var(--text-primary)',
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '0.5rem'
+                                            }}
+                                        >
+                                            {financeLoading ? (
+                                                <RefreshCw size={16} className="animate-spin" />
+                                            ) : (
+                                                <CheckCircle size={16} style={{ color: '#10b981' }} />
+                                            )}
+                                            Sync to Order Record
+                                        </button>
                                     </>
                                 ) : (
                                     <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                                         <p>No financial information available yet.</p>
-                                    </div>
-                                )}
-
-                                {financeData && (
-                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
-                                        <button
-                                            className="btn btn-secondary"
-                                            onClick={handleSyncFinance}
-                                            disabled={financeLoading}
-                                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                                        >
-                                            <RefreshCw size={16} className={financeLoading ? 'animate-spin' : ''} />
-                                            Update System Finance Info
-                                        </button>
                                     </div>
                                 )}
                             </div>

@@ -652,6 +652,29 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
                     <div style={{ fontWeight: 600, color: 'var(--accent-primary)', letterSpacing: '0.5px' }}>{safeOrder.trackingNumber}</div>
                   </div>
                 )}
+
+                {safeOrder.courierFinanceStatus && (
+                  <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>Courier Finance Info</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                        <span>Status:</span>
+                        <span style={{
+                          fontWeight: 600,
+                          color: safeOrder.courierFinanceStatus === 'Deposited' || safeOrder.courierFinanceStatus === 'Approved' ? '#10b981' : 'var(--accent-secondary)'
+                        }}>
+                          {safeOrder.courierFinanceStatus}
+                        </span>
+                      </div>
+                      {safeOrder.courierInvoiceNo && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span>Invoice:</span>
+                          <span style={{ fontWeight: 500 }}>{safeOrder.courierInvoiceNo}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
