@@ -42,9 +42,9 @@ export const chartTheme = {
         stroke: "none"
     },
     donut: {
-        innerRadius: "50%",
-        outerRadius: "70%",
-        paddingAngle: 5,
+        innerRadius: "45%",
+        outerRadius: "65%",
+        paddingAngle: 4,
         cornerRadius: 6,
         stroke: "none"
     }
@@ -65,26 +65,33 @@ export const DonutCenterText = ({ cx, cy, label, value, color = 'var(--text-prim
 
 // Shared Leader Line Label for Donut Charts
 export const renderDonutLabel = (props) => {
-    const { cx, cy, midAngle, innerRadius, outerRadius, value, name, fill, percent } = props;
+    const { cx, cy, midAngle, outerRadius, value, name, fill, percent } = props;
+
+    // Skip labels for very small segments to avoid clutter (clustering)
+    if (percent < 0.03) return null;
+
     const RADIAN = Math.PI / 180;
     const sin = Math.sin(-midAngle * RADIAN);
     const cos = Math.cos(-midAngle * RADIAN);
     const sx = cx + (outerRadius + 0) * cos;
     const sy = cy + (outerRadius + 0) * sin;
-    const mx = cx + (outerRadius + 20) * cos;
-    const my = cy + (outerRadius + 20) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 15;
+    const mx = cx + (outerRadius + 25) * cos;
+    const my = cy + (outerRadius + 25) * sin;
+    const ex = mx + (cos >= 0 ? 1 : -1) * 12;
     const ey = my;
     const textAnchor = cos >= 0 ? 'start' : 'end';
+
+    // Truncate long names
+    const displayName = name.length > 14 ? name.substring(0, 12) + '..' : name;
 
     return (
         <g>
             <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={1} opacity={0.6} />
             <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-            <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey} dy={-4} textAnchor={textAnchor} fill={fill} style={{ fontWeight: 700, fontSize: '11px' }}>
-                {name}
+            <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey} dy={-4} textAnchor={textAnchor} fill={fill} style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase' }}>
+                {displayName}
             </text>
-            <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey} dy={10} textAnchor={textAnchor} fill="var(--text-muted)" style={{ fontSize: '10px' }}>
+            <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey} dy={10} textAnchor={textAnchor} fill="var(--text-muted)" style={{ fontSize: '9px' }}>
                 {typeof value === 'number' && value > 1000 ? formatCurrency(value) : value} ({(percent * 100).toFixed(0)}%)
             </text>
         </g>
