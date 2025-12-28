@@ -593,3 +593,89 @@ export const calculateInventoryMetrics = (inventory) => {
 
     return { statusData, lowStockItems, totalValue, stockAlerts }
 }
+
+export const calculateCourierReportsMetrics = (orders, expenses = []) => {
+    // 1. Shipment Overview (Status Distribution)
+    const statusCounts = {}
+    orders.forEach(o => {
+        const s = o.status || 'Other'
+        statusCounts[s] = (statusCounts[s] || 0) + 1
+    })
+    const shipmentOverview = Object.entries(statusCounts)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+
+    // 2. COD Ledger
+    let totalCODExpected = 0
+    let totalCODCollected = 0
+    orders.forEach(o => {
+        // Expected: Dispatched but not necessarily paid internally, or "Pending" payment status
+        // Let's use orders that ARE dispatched or delivered but payment_status is not 'Paid' as "Pending"
+        // And use the courier_finance_status as the trigger for "Collected"
+        const isCollected = o.courierFinanceStatus === 'Deposited' || o.courierFinanceStatus === 'Approved' || o.paymentStatus === 'Paid'
+        const amount = Number(o.totalPrice) || 0
+
+        if (['Dispatched', 'Delivered', 'Packed'].includes(o.status)) {
+            totalCODExpected += amount
+            if (isCollected) {
+                totalCODCollected += amount
+            }
+        }
+    })
+
+    // 3. Shipping Spend
+    const monthlySpend = {}
+    orders.forEach(o => {
+        const date = o.dispatchDate || o.createdDate
+        if (!date) return
+        const monthKey = date.substring(0, 7)
+        if (!monthlySpend[monthKey]) monthlySpend[monthKey] = { date: monthKey, amount: 0 }
+        monthlySpend[monthKey].amount += Number(o.deliveryCharge || 400)
+    })
+    const shippingSpendData = Object.values(monthlySpend).sort((a, b) => a.date.localeCompare(b.date))
+    const totalShippingSpend = shippingSpendData.reduce((sum, d) => sum + d.amount, 0)
+
+    // 4. NDR Analysis (Non-Delivery Report)
+    const totalDispatched = orders.filter(o => ['Dispatched', 'Delivered', 'returned'].includes(o.status)).length
+    const totalReturns = orders.filter(o => o.status === 'returned').length
+    const returnRate = totalDispatched > 0 ? ((totalReturns / totalDispatched) * 100).toFixed(1) : 0
+
+    // Status breakdown for non-delivered
+    const ndrStatusData = [
+        { name: 'Returned', value: totalReturns, fill: '#ef4444' },
+        { name: 'In Transit/Other', value: Math.max(0, totalDispatched - totalReturns), fill: '#3b82f6' }
+    ]
+
+    // 5. TAT Metrics (Turnaround Time)
+    let totalDaysToDispatch = 0
+    let tatCount = 0
+    const tatDistribution = { '0-1 Day': 0, '2-3 Days': 0, '4-5 Days': 0, '6+ Days': 0 }
+
+    orders.forEach(o => {
+        if (o.dispatchDate && o.createdDate) {
+            const start = parseISO(o.createdDate)
+            const end = parseISO(o.dispatchDate)
+            const days = differenceInDays(end, start)
+            if (days >= 0) {
+                totalDaysToDispatch += days
+                tatCount++
+                if (days <= 1) tatDistribution['0-1 Day']++
+                else if (days <= 3) tatDistribution['2-3 Days']++
+                else if (days <= 5) tatDistribution['4-5 Days']++
+                else tatDistribution['6+ Days']++
+            }
+        }
+    })
+
+    const avgTAT = tatCount > 0 ? (totalDaysToDispatch / tatCount).toFixed(1) : '0'
+    const tatChartData = Object.entries(tatDistribution).map(([name, value]) => ({ name, value }))
+
+    return {
+        shipmentOverview,
+        codLedger: { expected: totalCODExpected, collected: totalCODCollected, pending: totalCODExpected - totalCODCollected },
+        totalShippingSpend,
+        shippingSpendData,
+        ndrAnalysis: { returnRate, ndrStatusData },
+        tatMetrics: { avgTAT, tatChartData }
+    }
+}

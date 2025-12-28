@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { FileText, TrendingUp, DollarSign, ShoppingBag, Package, PieChart, Download, Calendar, Printer, ChevronDown, FileSpreadsheet } from 'lucide-react'
 import SalesReports from './SalesReports'
 import ExpenseReports from './ExpenseReports'
 import ProfitabilityReports from './ProfitabilityReports'
 import OrdersReports from './OrdersReports'
 import InventoryReports from './InventoryReports'
+import CourierReports from './CourierReports'
+import { Truck, FileText, TrendingUp, DollarSign, ShoppingBag, Package, PieChart, Download, Calendar, Printer, ChevronDown, FileSpreadsheet } from 'lucide-react'
 import { filterByDateRange, getMonthlyFinancials } from '../../utils/reportUtils'
 import * as XLSX from 'xlsx'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
@@ -140,6 +141,7 @@ const Reports = ({ orders, expenses, inventory }) => {
         { id: 'profitability', label: 'Profitability', icon: PieChart },
         { id: 'orders', label: 'Orders', icon: ShoppingBag },
         { id: 'inventory', label: 'Inventory', icon: Package },
+        { id: 'courier', label: 'Courier', icon: Truck },
     ]
 
     const renderContent = () => {
@@ -157,6 +159,7 @@ const Reports = ({ orders, expenses, inventory }) => {
             case 'profitability': return <ProfitabilityReports {...props} />
             case 'orders': return <OrdersReports {...props} />
             case 'inventory': return <InventoryReports {...props} />
+            case 'courier': return <CourierReports {...props} />
             default: return <SalesReports {...props} />
         }
     }
