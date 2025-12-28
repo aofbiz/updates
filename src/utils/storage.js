@@ -61,7 +61,10 @@ const transformOrderToDB = (order) => {
     created_date: order.createdDate || new Date().toISOString().split('T')[0],
     order_date: order.orderDate || null,
     dispatch_date: order.dispatchDate || null,
-    order_source: order.orderSource || 'Ad'
+    order_source: order.orderSource || 'Ad',
+    courier_finance_status: order.courierFinanceStatus || null,
+    courier_invoice_no: order.courierInvoiceNo || null,
+    courier_invoice_ref: order.courierInvoiceRef || null
   }
 }
 
@@ -135,7 +138,10 @@ const transformOrderFromDB = (order) => {
     orderDate: order.order_date || null,
     dispatchDate: order.dispatch_date || null,
     orderSource: order.order_source || 'Ad',
-    advancePayment: order.advance_payment || 0
+    advancePayment: order.advance_payment || 0,
+    courierFinanceStatus: order.courier_finance_status || null,
+    courierInvoiceNo: order.courier_invoice_no || null,
+    courierInvoiceRef: order.courier_invoice_ref || null
   }
 }
 

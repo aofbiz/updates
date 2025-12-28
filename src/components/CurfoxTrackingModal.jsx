@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { X, RefreshCw, Truck, Calendar, MapPin, User, CheckCircle } from 'lucide-react'
 import { curfoxService } from '../utils/curfox'
 import { getSettings } from '../utils/storage'
+import { useToasts } from '../context/ToastContext'
 
 const CurfoxTrackingModal = ({ order, onClose }) => {
+    const { addToast } = useToasts()
     const [trackingData, setTrackingData] = useState(null)
     const [financeData, setFinanceData] = useState(null)
     const [activeTab, setActiveTab] = useState('tracking')
@@ -11,20 +13,43 @@ const CurfoxTrackingModal = ({ order, onClose }) => {
     const [financeLoading, setFinanceLoading] = useState(false)
     const [error, setError] = useState(null)
 
-    const fetchFinance = async () => {
-        if (financeData || financeLoading) return
+    const handleSyncFinance = async () => {
+        if (!financeData) return
+
         try {
             setFinanceLoading(true)
             const settings = await getSettings()
-            const authData = {
-                tenant: settings.curfox.tenant,
-                token: (await curfoxService.login(settings.curfox.email, settings.curfox.password, settings.curfox.tenant))?.token
+            const orders = (await import('../utils/storage')).getOrders() // We need current orders array
+            // Actually, better to use the setOrders/onSave pattern if possible, 
+            // but TrackingModal is usually isolated. 
+            // We'll use a custom event to notify OrderManagement to update.
+
+            const updatedFields = {
+                courierFinanceStatus: financeData.finance_status,
+                courierInvoiceNo: financeData.invoice_no,
+                courierInvoiceRef: financeData.invoice_ref_no
             }
-            if (!authData.token) return
-            const data = await curfoxService.getFinanceStatus(order.trackingNumber, authData)
-            setFinanceData(data)
+
+            // If Deposited/Approved, offer to mark as Paid
+            let shouldMarkPaid = false
+            if ((financeData.finance_status === 'Deposited' || financeData.finance_status === 'Approved') && order.paymentStatus !== 'Paid') {
+                if (window.confirm('This order has been Deposited/Approved by Curfox. Mark as "Paid" in the system?')) {
+                    shouldMarkPaid = true
+                    updatedFields.paymentStatus = 'Paid'
+                }
+            }
+
+            window.dispatchEvent(new CustomEvent('updateOrderLocally', {
+                detail: {
+                    orderId: order.id,
+                    fields: updatedFields
+                }
+            }))
+
+            addToast('Finance Information Synced', 'success')
         } catch (err) {
-            console.error("Finance Fetch Error:", err)
+            console.error("Sync Finance Error:", err)
+            addToast('Failed to sync finance info', 'error')
         } finally {
             setFinanceLoading(false)
         }
@@ -242,6 +267,20 @@ const CurfoxTrackingModal = ({ order, onClose }) => {
                                 ) : (
                                     <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                                         <p>No financial information available yet.</p>
+                                    </div>
+                                )}
+
+                                {financeData && (
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+                                        <button
+                                            className="btn btn-secondary"
+                                            onClick={handleSyncFinance}
+                                            disabled={financeLoading}
+                                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                        >
+                                            <RefreshCw size={16} className={financeLoading ? 'animate-spin' : ''} />
+                                            Update System Finance Info
+                                        </button>
                                     </div>
                                 )}
                             </div>

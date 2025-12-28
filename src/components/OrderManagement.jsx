@@ -116,7 +116,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     setModalConfig(prev => ({ ...prev, isOpen: false }))
   }
 
-  // Load data on mount
+  // Load data on mount and setup listeners
   useEffect(() => {
     const loadData = async () => {
       const [productsData, settingsData] = await Promise.all([
@@ -128,7 +128,30 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     }
     loadData()
 
-  }, [])
+    // Listener for cross-component order updates (e.g., from TrackingModal finance sync)
+    const handleLocalUpdate = async (e) => {
+      const { orderId, fields } = e.detail
+
+      const orderToUpdate = orders.find(o => o.id === orderId)
+      if (!orderToUpdate) return
+
+      const updatedOrder = { ...orderToUpdate, ...fields }
+      const newOrders = orders.map(o => o.id === orderId ? updatedOrder : o)
+
+      // Update state immediately
+      onUpdateOrders(newOrders)
+
+      // Persist to Supabase
+      try {
+        await saveOrders(newOrders)
+      } catch (err) {
+        console.error('Failed to persist local update:', err)
+      }
+    }
+
+    window.addEventListener('updateOrderLocally', handleLocalUpdate)
+    return () => window.removeEventListener('updateOrderLocally', handleLocalUpdate)
+  }, [orders, onUpdateOrders])
 
 
 
@@ -1395,6 +1418,24 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                               <Paperclip
                                 size={14}
                                 style={{ marginLeft: '0.4rem', color: 'var(--text-muted)', display: 'inline' }}
+                              />
+                            )}
+                            {order.courierInvoiceNo && (
+                              <FileText
+                                size={14}
+                                style={{ marginLeft: '0.4rem', color: '#10b981', display: 'inline' }}
+                                title={`Invoiced: ${order.courierInvoiceNo}`}
+                              />
+                            )}
+                            {order.courierFinanceStatus && (
+                              <DollarSign
+                                size={14}
+                                style={{
+                                  marginLeft: '0.4rem',
+                                  color: order.courierFinanceStatus === 'Deposited' || order.courierFinanceStatus === 'Approved' ? '#10b981' : '#ebb434',
+                                  display: 'inline'
+                                }}
+                                title={`Courier Finance: ${order.courierFinanceStatus}`}
                               />
                             )}
                           </div>
