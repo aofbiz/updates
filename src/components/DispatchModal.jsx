@@ -91,11 +91,10 @@ const DispatchModal = ({ order, onClose, onSave }) => {
 
 
           <div className="form-group">
-            <label className="form-label">Tracking Number *</label>
+            <label className="form-label">Tracking Number</label>
             <TrackingNumberInput
               value={formData.trackingNumber}
               onChange={handleChange}
-              required
             />
           </div>
 

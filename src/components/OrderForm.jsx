@@ -1019,7 +1019,6 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
                   <TrackingNumberInput
                     value={formData.trackingNumber}
                     onChange={handleChange}
-                    required={formData.status === 'Dispatched'}
                   />
                 )}
               </div>

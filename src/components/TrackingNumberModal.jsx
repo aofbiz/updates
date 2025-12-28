@@ -86,11 +86,10 @@ const TrackingNumberModal = ({ order, targetStatus = 'Packed', onClose, onSave }
           </div>
 
           <div className="form-group">
-            <label className="form-label">Tracking Number *</label>
+            <label className="form-label">Tracking Number</label>
             <TrackingNumberInput
               value={trackingNumber}
               onChange={handleChange}
-              required
             />
           </div>
 
