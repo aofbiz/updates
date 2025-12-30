@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
-import { getProducts } from '../utils/storage'
+import { getProducts, getQuotations, calculateNextQuotationNumber, getSettings } from '../utils/storage'
 
 const QuotationForm = ({ quotation, onClose, onSave }) => {
     const [products, setProducts] = useState({ categories: [] })
@@ -9,7 +9,28 @@ const QuotationForm = ({ quotation, onClose, onSave }) => {
     const [discountType, setDiscountType] = useState(quotation?.discountType || 'Rs')
 
     // Quotations ID generation
-    const [quotationId, setQuotationId] = useState(quotation?.id || `Q-${Date.now().toString().slice(-6)}`)
+    const [quotationId, setQuotationId] = useState(quotation?.id || '')
+
+    // Fetch next ID if new quotation
+    useEffect(() => {
+        if (!quotation) {
+            getQuotations().then(qs => {
+                const nextId = calculateNextQuotationNumber(qs)
+                setQuotationId(nextId)
+            })
+        }
+    }, [quotation])
+
+    // Load Default Delivery Charge for new quotations
+    useEffect(() => {
+        if (!quotation) {
+            getSettings().then(settings => {
+                if (settings?.general?.defaultDeliveryCharge) {
+                    setFormData(prev => ({ ...prev, deliveryCharge: settings.general.defaultDeliveryCharge }))
+                }
+            })
+        }
+    }, [quotation])
 
     const [orderItems, setOrderItems] = useState(() => {
         if (Array.isArray(quotation?.orderItems) && quotation.orderItems.length > 0) {
@@ -81,8 +102,8 @@ const QuotationForm = ({ quotation, onClose, onSave }) => {
     }, [discountType, subtotal, formData.discount])
 
     const computedTotal = useMemo(() => {
-        return Math.max(0, subtotal - discountAmount)
-    }, [subtotal, discountAmount])
+        return Math.max(0, subtotal - discountAmount + (Number(formData.deliveryCharge) || 0))
+    }, [subtotal, discountAmount, formData.deliveryCharge])
 
     useEffect(() => {
         setFormData(prev => ({
@@ -177,23 +198,26 @@ const QuotationForm = ({ quotation, onClose, onSave }) => {
 
                     <div className="card" style={{ marginBottom: '1rem', backgroundColor: 'var(--bg-secondary)' }}>
                         <h3 style={{ margin: 0, marginBottom: '1rem', color: 'var(--text-primary)' }}>Customer Details</h3>
+
                         <div className="form-group">
                             <label className="form-label">Customer Name *</label>
                             <input className="form-input" name="customerName" value={formData.customerName} onChange={handleChange} required />
                         </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Address *</label>
+                            <textarea className="form-input" name="address" value={formData.address} onChange={handleChange} rows={2} required />
+                        </div>
+
                         <div className="form-row">
                             <div className="form-group">
-                                <label className="form-label">WhatsApp</label>
-                                <input className="form-input" name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="077..." />
+                                <label className="form-label">WhatsApp Number *</label>
+                                <input className="form-input" name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="e.g., 0771234567" />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Phone</label>
+                                <label className="form-label">Phone Number</label>
                                 <input className="form-input" name="phone" value={formData.phone} onChange={handleChange} placeholder="Optional" />
                             </div>
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Address</label>
-                            <textarea className="form-input" name="address" value={formData.address} onChange={handleChange} rows={2} />
                         </div>
                     </div>
 
@@ -236,7 +260,7 @@ const QuotationForm = ({ quotation, onClose, onSave }) => {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="form-row">
+                                    <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
                                         <div className="form-group">
                                             <label className="form-label">Qty</label>
                                             <input type="number" className="form-input" value={it.quantity} onChange={e => updateItem(it.id, { quantity: e.target.value })} />
@@ -244,6 +268,15 @@ const QuotationForm = ({ quotation, onClose, onSave }) => {
                                         <div className="form-group">
                                             <label className="form-label">UnitPrice</label>
                                             <input type="number" className="form-input" value={it.unitPrice} onChange={e => updateItem(it.id, { unitPrice: e.target.value })} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Total</label>
+                                            <input
+                                                className="form-input"
+                                                value={((Number(it.quantity) || 0) * (Number(it.unitPrice) || 0)).toFixed(2)}
+                                                readOnly
+                                                style={{ backgroundColor: 'var(--bg-card)' }}
+                                            />
                                         </div>
                                     </div>
                                     <div className="form-group">
@@ -259,24 +292,61 @@ const QuotationForm = ({ quotation, onClose, onSave }) => {
                     </div>
 
                     <div className="card" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                        {/* Row 1: Subtotal and Discount */}
                         <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">Subtotal</label>
+                                <input
+                                    className="form-input"
+                                    value={subtotal.toFixed(2)}
+                                    readOnly
+                                    style={{ backgroundColor: 'var(--bg-card)' }}
+                                />
+                            </div>
                             <div className="form-group">
                                 <label className="form-label">Discount</label>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <input type="number" className="form-input" name="discount" value={formData.discount} onChange={handleChange} />
-                                    <select className="form-input" style={{ width: '80px' }} value={discountType} onChange={e => setDiscountType(e.target.value)}>
+                                    <select
+                                        className="form-input"
+                                        style={{ width: '80px' }}
+                                        value={discountType}
+                                        onChange={e => setDiscountType(e.target.value)}
+                                    >
                                         <option value="Rs">Rs</option>
                                         <option value="%">%</option>
                                     </select>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        name="discount"
+                                        value={formData.discount}
+                                        onChange={handleChange}
+                                    />
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Row 2: Delivery Charge and Total Price (Swapped) */}
+                        <div className="form-row">
                             <div className="form-group">
                                 <label className="form-label">Delivery Charge</label>
-                                <input type="number" className="form-input" name="deliveryCharge" value={formData.deliveryCharge} onChange={handleChange} />
+                                <input
+                                    type="number"
+                                    className="form-input"
+                                    name="deliveryCharge"
+                                    value={formData.deliveryCharge}
+                                    onChange={handleChange}
+                                />
                             </div>
-                        </div>
-                        <div style={{ textAlign: 'right', fontSize: '1.2rem', fontWeight: 700, marginTop: '1rem' }}>
-                            Total: Rs. {(computedTotal + (formData.deliveryCharge || 0)).toLocaleString()}
+                            <div className="form-group">
+                                <label className="form-label">Total Price</label>
+                                <input
+                                    className="form-input"
+                                    value={computedTotal.toFixed(2)}
+                                    readOnly
+                                    style={{ backgroundColor: 'var(--bg-card)' }}
+                                />
+                            </div>
                         </div>
                     </div>
 

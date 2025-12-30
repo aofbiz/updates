@@ -1,15 +1,34 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Edit, Trash2, Repeat, Loader, MessageCircle, FileText } from 'lucide-react' // Using available icons
-import { saveQuotations, getQuotations } from '../utils/storage'
+import { Plus, Search, Edit, Trash2, Repeat, Loader, MessageCircle, FileText, Eye } from 'lucide-react' // Using available icons
+import { saveQuotations, getQuotations, deleteQuotation, getProducts, getSettings } from '../utils/storage'
+import { formatWhatsAppNumber, generateWhatsAppMessage } from '../utils/whatsapp'
 import { useToast } from './Toast/ToastContext'
 import QuotationForm from './QuotationForm'
+import ViewQuotationModal from './ViewQuotationModal'
+import ConfirmationModal from './ConfirmationModal'
 
 const QuotationManagement = ({ quotations, onUpdateQuotations, orders, onUpdateOrders }) => {
     const { addToast } = useToast()
     const [showForm, setShowForm] = useState(false)
     const [viewingQuotation, setViewingQuotation] = useState(null)
+    const [viewingDetails, setViewingDetails] = useState(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [isProcessing, setIsProcessing] = useState(false)
+    const [products, setProducts] = useState({ categories: [] })
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'default',
+        onConfirm: null,
+        confirmText: 'Confirm'
+    })
+    const [settings, setSettings] = useState(null)
+
+    useEffect(() => {
+        getProducts().then(setProducts)
+        getSettings().then(setSettings)
+    }, [])
 
     // Filter Logic
     const filteredQuotations = useMemo(() => {
@@ -57,14 +76,12 @@ const QuotationManagement = ({ quotations, onUpdateQuotations, orders, onUpdateO
         }
     }
 
-    const handleDeleteQuotation = async (id) => {
-        if (!confirm('Are you sure you want to delete this quotation?')) return
-
+    const executeDeleteQuotation = async (id) => {
         setIsProcessing(true)
         try {
-            const updatedQuotations = quotations.filter(q => q.id !== id)
-            const success = await saveQuotations(updatedQuotations)
+            const success = await deleteQuotation(id)
             if (success) {
+                const updatedQuotations = quotations.filter(q => q.id !== id)
                 onUpdateQuotations(updatedQuotations)
                 addToast('Quotation deleted successfully', 'success')
             } else {
@@ -78,9 +95,18 @@ const QuotationManagement = ({ quotations, onUpdateQuotations, orders, onUpdateO
         }
     }
 
-    const handleConvertToOrder = async (quotation) => {
-        if (!confirm('Convert this quotation to a new order? This will create a new order with the same details.')) return
+    const handleDeleteQuotation = (id) => {
+        setModalConfig({
+            isOpen: true,
+            title: 'Delete Quotation',
+            message: 'Are you sure you want to delete this quotation? This action cannot be undone.',
+            type: 'danger',
+            confirmText: 'Delete',
+            onConfirm: () => executeDeleteQuotation(id)
+        })
+    }
 
+    const executeConvertToOrder = async (quotation) => {
         setIsProcessing(true)
         try {
             // 1. Create new order object
@@ -143,6 +169,76 @@ const QuotationManagement = ({ quotations, onUpdateQuotations, orders, onUpdateO
         }
     }
 
+    const handleConvertToOrder = (quotation) => {
+        setModalConfig({
+            isOpen: true,
+            title: 'Convert to Order',
+            message: 'Convert this quotation to a new order? This will create a new order with the same details.',
+            type: 'default', // Blue/Info
+            confirmText: 'OK',
+            onConfirm: () => executeConvertToOrder(quotation)
+        })
+    }
+
+    const handleSendWhatsApp = (quotation) => {
+        if (!quotation.whatsapp && !quotation.phone) {
+            addToast('No phone number available for this quotation.', 'error');
+            return;
+        }
+
+        const formattedNumber = formatWhatsAppNumber(quotation.whatsapp || quotation.phone)
+        if (!formattedNumber) {
+            addToast('Invalid phone number format.', 'error')
+            return
+        }
+
+        // Calculate item details string for template context
+        const itemDetailsString = (quotation.orderItems || []).map(it => {
+            const category = products.categories.find(c => c.id === it.categoryId)
+            const catName = category ? category.name : 'Item'
+            const itemName = it.name || it.customItemName || 'N/A'
+            const qty = it.quantity || 1
+            const price = Number(it.unitPrice) || 0
+            return `🔸 ${catName} - ${itemName} (x${qty}): Rs. ${price.toLocaleString()}`
+        }).join('\n')
+
+        // Calculate financials for context
+        const subtotal = (quotation.orderItems || []).reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.unitPrice || 0)), 0)
+        const discount = Number(quotation.discount || quotation.discountValue || 0)
+        let discountAmount = 0
+        if (quotation.discountType === '%') {
+            discountAmount = (subtotal * discount) / 100
+        } else {
+            discountAmount = discount
+        }
+        const deliveryCharge = Number(quotation.deliveryCharge ?? 0)
+        const finalPrice = Math.max(0, subtotal - discountAmount + deliveryCharge)
+
+        const context = {
+            subtotal,
+            discountAmount,
+            deliveryCharge,
+            finalPrice,
+            itemDetailsString
+        }
+
+        // Use template if available, otherwise default
+        let message = ''
+        if (settings?.whatsappTemplates?.quotation) {
+            message = generateWhatsAppMessage(settings.whatsappTemplates.quotation, quotation, context)
+        } else {
+            // Default fallback
+            message = `Hello ${quotation.customerName},\n\nHere is your quotation details:\nQuotation ID: ${quotation.id}\nTotal Price: Rs. ${finalPrice.toLocaleString()}\n\nFor more details, please visit our website or contact us.\n\nThank you!`
+        }
+
+        const encodedMessage = encodeURIComponent(message);
+        const numberForUrl = formattedNumber.replace('+', '')
+        const whatsappUrl = `https://wa.me/${numberForUrl}?text=${encodedMessage}`;
+
+        window.open(whatsappUrl, '_blank');
+        addToast('WhatsApp message initiated.', 'info');
+    };
+
     return (
         <div className="quotation-management">
             <div className="header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -172,76 +268,232 @@ const QuotationManagement = ({ quotations, onUpdateQuotations, orders, onUpdateO
                 </div>
             </div>
 
-            <div className="table-container" style={{ overflowX: 'auto', backgroundColor: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                            <th style={{ padding: '0.75rem 1rem' }}>ID</th>
-                            <th style={{ padding: '0.75rem 1rem' }}>Date</th>
-                            <th style={{ padding: '0.75rem 1rem' }}>Customer</th>
-                            <th style={{ padding: '0.75rem 1rem' }}>Items</th>
-                            <th style={{ padding: '0.75rem 1rem' }}>Total</th>
-                            <th style={{ padding: '0.75rem 1rem' }}>Status</th>
-                            <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredQuotations.length === 0 ? (
-                            <tr>
-                                <td colSpan="7" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                    No quotations found.
-                                </td>
+            {/* Quotations Table */}
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-secondary)' }}>
+                                <th style={{ padding: '0.75rem 1rem' }}>ID & Date</th>
+                                <th style={{ padding: '0.75rem 1rem' }}>Customer</th>
+                                <th style={{ padding: '0.75rem 1rem' }}>Category</th>
+                                <th style={{ padding: '0.75rem 1rem' }}>Item Details</th>
+                                <th style={{ padding: '0.75rem 1rem' }}>Qty</th>
+                                <th style={{ padding: '0.75rem 1rem' }}>Total</th>
+                                <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                                <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
                             </tr>
-                        ) : (
-                            filteredQuotations.map(q => (
-                                <tr key={q.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                    <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>#{q.id}</td>
-                                    <td style={{ padding: '0.75rem 1rem' }}>{q.createdDate}</td>
-                                    <td style={{ padding: '0.75rem 1rem' }}>
-                                        <div>{q.customerName}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{q.phone}</div>
-                                    </td>
-                                    <td style={{ padding: '0.75rem 1rem' }}>
-                                        {/* Simplified item display */}
-                                        {(q.orderItems || []).length} Item(s)
-                                    </td>
-                                    <td style={{ padding: '0.75rem 1rem' }}>Rs. {(Number(q.totalPrice) || 0).toLocaleString()}</td>
-                                    <td style={{ padding: '0.75rem 1rem' }}>
-                                        <span style={{
-                                            padding: '0.2rem 0.5rem',
-                                            borderRadius: '4px',
-                                            fontSize: '0.75rem',
-                                            backgroundColor: q.status === 'Converted' ? 'var(--success-bg)' : 'var(--bg-secondary)',
-                                            color: q.status === 'Converted' ? 'var(--success)' : 'var(--text-secondary)'
-                                        }}>
-                                            {q.status || 'Draft'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                            {q.status !== 'Converted' && (
-                                                <button
-                                                    className="btn-icon"
-                                                    title="Convert to Order"
-                                                    onClick={() => handleConvertToOrder(q)}
-                                                    style={{ color: 'var(--accent-primary)' }}
-                                                >
-                                                    <Repeat size={18} />
-                                                </button>
-                                            )}
-                                            <button className="btn-icon" onClick={() => { setViewingQuotation(q); setShowForm(true); }}>
-                                                <Edit size={18} />
-                                            </button>
-                                            <button className="btn-icon danger" onClick={() => handleDeleteQuotation(q.id)}>
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
+                        </thead>
+                        <tbody>
+                            {filteredQuotations.length === 0 ? (
+                                <tr>
+                                    <td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        No quotations found.
                                     </td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : (
+                                filteredQuotations.map(q => {
+                                    // Item Summary Logic
+                                    const firstItem = q.orderItems?.[0] || {}
+                                    const moreCount = (q.orderItems?.length || 0) - 1
+
+                                    const itemName = firstItem.name || firstItem.customItemName || 'Unknown Item'
+
+                                    // Get Category Name
+                                    const categoryId = firstItem.categoryId
+                                    const category = products.categories.find(c => c.id === categoryId)
+                                    const categoryName = category ? category.name : 'N/A'
+
+                                    return (
+                                        <tr key={q.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s ease' }}>
+                                            <td style={{ padding: '0.75rem 1rem' }}>
+                                                <div style={{ fontWeight: 600, color: 'var(--accent-primary)', fontSize: '0.875rem' }}>
+                                                    #{q.id}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                                    {q.createdDate}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1rem' }}>
+                                                <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{q.customerName}</div>
+                                                {q.whatsapp && (
+                                                    <div style={{ fontSize: '0.75rem', color: '#25D366', marginTop: '0.25rem' }}>
+                                                        {q.whatsapp}
+                                                    </div>
+                                                )}
+                                                {q.phone && !q.whatsapp && (
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                        {q.phone}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1rem' }}>
+                                                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                                                    {categoryName}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1rem' }}>
+                                                <div style={{ fontWeight: 500 }}>
+                                                    {itemName}
+                                                    {moreCount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>+{moreCount} more</span>}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                    Rs. {(Number(firstItem.unitPrice) || 0).toLocaleString()}
+                                                </div>
+                                                {firstItem.notes && (
+                                                    <div style={{
+                                                        fontSize: '0.75rem',
+                                                        color: 'var(--text-muted)',
+                                                        marginTop: '2px',
+                                                        fontStyle: 'italic',
+                                                        maxWidth: '250px',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis'
+                                                    }}>
+                                                        {firstItem.notes}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1rem' }}>
+                                                <span style={{ fontWeight: 600 }}>{firstItem.quantity || 1}</span>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>
+                                                Rs. {(Number(q.totalPrice) || 0).toLocaleString()}
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1rem' }}>
+                                                <span style={{
+                                                    padding: '0.25rem 0.5rem',
+                                                    borderRadius: 'var(--radius)',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 500,
+                                                    backgroundColor: q.status === 'Order Received' ? '#10b981' : 'var(--bg-secondary)', // Green for converted, Gray for Draft
+                                                    color: q.status === 'Order Received' ? 'white' : 'var(--text-secondary)',
+                                                    border: '1px solid var(--border-color)'
+                                                }}>
+                                                    {q.status || 'Draft'}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        className="btn-icon"
+                                                        onClick={() => setViewingDetails(q)}
+                                                        title="View Quotation"
+                                                        style={{
+                                                            backgroundColor: '#3b82f6',
+                                                            color: 'white',
+                                                            padding: '0.4rem',
+                                                            borderRadius: '8px',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            transition: 'transform 0.1s',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                    >
+                                                        <Eye size={16} />
+                                                    </button>
+
+                                                    <button
+                                                        className="btn-icon"
+                                                        title="WhatsApp"
+                                                        onClick={() => handleSendWhatsApp(q)}
+                                                        style={{
+                                                            backgroundColor: '#22c55e',
+                                                            color: 'white',
+                                                            padding: '0.4rem',
+                                                            borderRadius: '8px',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            transition: 'transform 0.1s',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                    >
+                                                        <MessageCircle size={16} />
+                                                    </button>
+
+                                                    {q.status !== 'Order Received' && (
+                                                        <button
+                                                            className="btn-icon"
+                                                            title="Convert to Order"
+                                                            onClick={() => handleConvertToOrder(q)}
+                                                            style={{
+                                                                backgroundColor: '#8b5cf6',
+                                                                color: 'white',
+                                                                padding: '0.4rem',
+                                                                borderRadius: '8px',
+                                                                border: 'none',
+                                                                cursor: 'pointer',
+                                                                transition: 'transform 0.1s',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                        >
+                                                            <Repeat size={16} />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        className="btn-icon"
+                                                        onClick={() => { setViewingQuotation(q); setShowForm(true); }}
+                                                        title="Edit Quotation"
+                                                        style={{
+                                                            backgroundColor: '#27272a',
+                                                            color: 'white',
+                                                            padding: '0.4rem',
+                                                            borderRadius: '8px',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            transition: 'transform 0.1s',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                    <button
+                                                        className="btn-icon danger"
+                                                        onClick={() => handleDeleteQuotation(q.id)}
+                                                        title="Delete Quotation"
+                                                        style={{
+                                                            backgroundColor: '#ef4444',
+                                                            color: 'white',
+                                                            padding: '0.4rem',
+                                                            borderRadius: '8px',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            transition: 'transform 0.1s',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {showForm && (
@@ -251,6 +503,23 @@ const QuotationManagement = ({ quotations, onUpdateQuotations, orders, onUpdateO
                     onSave={handleSaveQuotation}
                 />
             )}
+
+            {viewingDetails && (
+                <ViewQuotationModal
+                    quotation={viewingDetails}
+                    onClose={() => setViewingDetails(null)}
+                />
+            )}
+
+            <ConfirmationModal
+                isOpen={modalConfig.isOpen}
+                onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                type={modalConfig.type}
+                confirmText={modalConfig.confirmText}
+                onConfirm={modalConfig.onConfirm}
+            />
         </div>
     )
 }

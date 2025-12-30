@@ -1423,6 +1423,26 @@ export const calculateNextOrderNumber = (orders = []) => {
   }
 }
 
+export const calculateNextQuotationNumber = (quotations = []) => {
+  if (!quotations || quotations.length === 0) {
+    return '1'
+  }
+
+  const numericIds = quotations
+    .map(q => {
+      const id = parseInt(q.id, 10)
+      return isNaN(id) ? null : id
+    })
+    .filter(id => id !== null && id > 0)
+
+  if (numericIds.length > 0) {
+    const maxId = Math.max(...numericIds)
+    return (maxId + 1).toString()
+  } else {
+    return '1'
+  }
+}
+
 // ===== FILE EXPORT/IMPORT FUNCTIONS =====
 
 // Export all data to a JSON file
@@ -1673,6 +1693,25 @@ export const saveQuotations = async (quotations) => {
     return true
   } catch (error) {
     console.error('Error saving quotations:', error)
+    return false
+  }
+}
+
+export const deleteQuotation = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('quotations')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting quotation:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error deleting quotation:', error)
     return false
   }
 }

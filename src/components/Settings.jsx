@@ -24,6 +24,7 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
     googleDrive: false,
     whatsappTemplates: false,
     curfoxIntegration: false,
+    generalConfig: true,
   })
   const [products, setProducts] = useState({ categories: [] })
   const [trackingNumbers, setTrackingNumbers] = useState([])
@@ -210,6 +211,18 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
       {/* Tab Content */}
       {activeTab === 'general' && (
         <>
+          <CollapsibleSection
+            title="General Configuration"
+            icon={SettingsIcon}
+            isExpanded={expandedSections.generalConfig}
+            onToggle={() => toggleSection('generalConfig')}
+          >
+            <GeneralConfiguration
+              settings={settings}
+              setSettings={setSettings}
+              showToast={addToast}
+            />
+          </CollapsibleSection>
 
           <CollapsibleSection
             title="Tracking Numbers"
@@ -1380,6 +1393,7 @@ const CurfoxSettings = ({ settings, setSettings, showToast }) => {
 const WhatsAppTemplates = ({ settings, setSettings, showAlert, showConfirm, showToast }) => {
   const [viewOrderTemplate, setViewOrderTemplate] = useState(settings?.whatsappTemplates?.viewOrder || '')
   const [quickActionTemplate, setQuickActionTemplate] = useState(settings?.whatsappTemplates?.quickAction || '')
+  const [quotationTemplate, setQuotationTemplate] = useState(settings?.whatsappTemplates?.quotation || '')
   const [isSaving, setIsSaving] = useState(false)
 
   const handleSave = async () => {
@@ -1388,7 +1402,8 @@ const WhatsAppTemplates = ({ settings, setSettings, showAlert, showConfirm, show
       ...settings,
       whatsappTemplates: {
         viewOrder: viewOrderTemplate,
-        quickAction: quickActionTemplate
+        quickAction: quickActionTemplate,
+        quotation: quotationTemplate
       }
     }
     const success = await saveSettings(updatedSettings)
@@ -1417,7 +1432,7 @@ const WhatsAppTemplates = ({ settings, setSettings, showAlert, showConfirm, show
           borderRadius: 'var(--radius)',
           border: '1px solid var(--border-color)'
         }}>
-          {['order_id', 'order_date', 'tracking_number', 'customer_name', 'address', 'phone', 'whatsapp', 'city', 'district', 'item_details', 'subtotal', 'discount', 'total_price', 'delivery_charge', 'cod_amount', 'delivery_date', 'dispatch_date', 'status', 'payment_status', 'notes', 'source'].map(p => (
+          {['order_id', 'quotation_number', 'order_date', 'tracking_number', 'customer_name', 'address', 'phone', 'whatsapp', 'city', 'district', 'item_details', 'subtotal', 'discount', 'total_price', 'delivery_charge', 'cod_amount', 'delivery_date', 'dispatch_date', 'status', 'payment_status', 'notes', 'source'].map(p => (
             <code key={p} style={{
               fontSize: '0.7rem',
               padding: '0.2rem 0.4rem',
@@ -1454,6 +1469,16 @@ const WhatsAppTemplates = ({ settings, setSettings, showAlert, showConfirm, show
             onChange={(e) => setQuickActionTemplate(e.target.value)}
             style={{ height: '250px', fontFamily: 'monospace', fontSize: '0.8125rem', lineHeight: '1.5' }}
             placeholder="Template for 'Send WhatsApp' quick action in table..."
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label" style={{ fontWeight: 600 }}>Quotation Template</label>
+          <textarea
+            className="form-input"
+            value={quotationTemplate}
+            onChange={(e) => setQuotationTemplate(e.target.value)}
+            style={{ height: '250px', fontFamily: 'monospace', fontSize: '0.8125rem', lineHeight: '1.5' }}
+            placeholder="Template for 'Send WhatsApp' in Quotations..."
           />
         </div>
       </div>
@@ -1847,6 +1872,67 @@ const GoogleDriveBackup = ({ settings, setSettings, orders, expenses, inventory,
             )}
           </button>
         )}
+      </div>
+    </div>
+  )
+}
+
+// General Configuration Component
+const GeneralConfiguration = ({ settings, setSettings, showToast }) => {
+  const [defaultDeliveryCharge, setDefaultDeliveryCharge] = useState(settings?.general?.defaultDeliveryCharge ?? 400)
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (settings?.general) {
+      setDefaultDeliveryCharge(settings.general.defaultDeliveryCharge ?? 400)
+    }
+  }, [settings])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    const updatedSettings = {
+      ...settings,
+      general: {
+        ...settings?.general,
+        defaultDeliveryCharge: Number(defaultDeliveryCharge)
+      }
+    }
+
+    const success = await saveSettings(updatedSettings)
+    if (success) {
+      setSettings(updatedSettings)
+      showToast('General settings saved successfully', 'success')
+      // Dispatch event to notify other components (optional but good for real-time)
+      window.dispatchEvent(new Event('settingsUpdated'))
+    } else {
+      showToast('Failed to save settings', 'error')
+    }
+    setIsSaving(false)
+  }
+
+  return (
+    <div>
+      <div className="form-group" style={{ maxWidth: '300px' }}>
+        <label className="form-label">Default Delivery Charge (Rs)</label>
+        <input
+          type="number"
+          className="form-input"
+          value={defaultDeliveryCharge}
+          onChange={(e) => setDefaultDeliveryCharge(e.target.value)}
+          placeholder="400"
+        />
+        <small style={{ color: 'var(--text-muted)' }}>This amount will be applied to new orders and quotations automatically.</small>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+        <button
+          onClick={handleSave}
+          className="btn btn-primary"
+          disabled={isSaving}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          {isSaving ? 'Saving...' : <><Save size={18} /> Save Configuration</>}
+        </button>
       </div>
     </div>
   )

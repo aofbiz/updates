@@ -89,6 +89,12 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
       } else {
         setOrderNumber(order.id)
       }
+
+      // Load specific settings like default delivery charge
+      const settings = await getSettings()
+      if (!order && settings?.general?.defaultDeliveryCharge) {
+        setFormData(prev => ({ ...prev, deliveryCharge: settings.general.defaultDeliveryCharge }))
+      }
     }
 
 
@@ -737,7 +743,7 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
                     </div>
                   </div>
 
-                  <div className="form-row">
+                  <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
                     <div className="form-group">
                       <label className="form-label">Quantity *</label>
                       <input
@@ -760,6 +766,16 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
                         min="0"
                         step="0.01"
                         required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Total</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={((Number(it.quantity) || 0) * (Number(it.unitPrice) || 0)).toFixed(2)}
+                        readOnly
+                        style={{ backgroundColor: 'var(--bg-card)' }}
                       />
                     </div>
                   </div>

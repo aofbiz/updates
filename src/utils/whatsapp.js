@@ -81,6 +81,8 @@ export const generateWhatsAppMessage = (template, order, context = {}) => {
   const lookup = {
     order_id: getVal(['id', 'orderId', 'order_id']),
     orderid: getVal(['id', 'orderId', 'order_id']),
+    quotation_number: getVal(['id', 'quotationId', 'quotation_id']),
+    quotationnumber: getVal(['id', 'quotationId', 'quotation_id']),
     tracking_number: getVal(['trackingNumber', 'tracking_number']),
     trackingnumber: getVal(['trackingNumber', 'tracking_number']),
     customer_name: getVal(['customerName', 'customer_name']),
