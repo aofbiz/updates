@@ -1631,3 +1631,49 @@ export const deleteInventoryLog = async (logId) => {
   }
 }
 
+// ===== QUOTATIONS =====
+
+export const getQuotations = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('quotations')
+      .select('*')
+      .order('created_date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching quotations:', error)
+      return []
+    }
+
+    // Reuse order transformation since structure is similar
+    const transformed = (data || []).map(transformOrderFromDB)
+    console.log(`storage: getQuotations - Fetched ${data?.length} rows.`)
+    return transformed
+  } catch (error) {
+    console.error('Error reading quotations:', error)
+    return []
+  }
+}
+
+export const saveQuotations = async (quotations) => {
+  try {
+    // Transform to DB format
+    // Reuse order transformation
+    const dbQuotations = quotations.map(transformOrderToDB)
+
+    const { error } = await supabase
+      .from('quotations')
+      .upsert(dbQuotations, { onConflict: 'id' })
+
+    if (error) {
+      console.error('Error saving quotations:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error saving quotations:', error)
+    return false
+  }
+}
+

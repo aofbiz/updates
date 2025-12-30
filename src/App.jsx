@@ -7,7 +7,7 @@ import ExpenseTracker from './components/ExpenseTracker'
 import Reports from './components/Reports'
 import Settings from './components/Settings'
 import Login from './components/Login'
-import { getOrders, getExpenses, getInventory, getSettings, getTrackingNumbers, getOrderCounter, getProducts, saveSettings } from './utils/storage'
+import { getOrders, getExpenses, getInventory, getSettings, getTrackingNumbers, getOrderCounter, getProducts, saveSettings, getQuotations } from './utils/storage'
 import { loadGoogleScript, initTokenClient, uploadFileToDrive } from './utils/googleDrive'
 import { supabase } from './utils/supabase'
 import { Loader2 } from 'lucide-react'
@@ -16,6 +16,7 @@ import { ToastProvider } from './components/Toast/ToastContext'
 import ToastContainer from './components/Toast/ToastContainer'
 import AutoBackupHandler from './components/AutoBackupHandler'
 import CurfoxAuthHandler from './components/CurfoxAuthHandler'
+import QuotationManagement from './components/QuotationManagement'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -24,11 +25,12 @@ function App() {
   const [activeView, setActiveView] = useState(() => {
     const savedView = localStorage.getItem('aof_active_view')
     // Validate if saved view is valid, otherwise default to dashboard
-    const validViews = ['dashboard', 'orders', 'inventory', 'expenses', 'reports', 'settings']
+    const validViews = ['dashboard', 'orders', 'inventory', 'expenses', 'reports', 'settings', 'quotations']
     return validViews.includes(savedView) ? savedView : 'dashboard'
   })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [orders, setOrders] = useState([])
+  const [quotations, setQuotations] = useState([])
   const [inventory, setInventory] = useState([])
   const [expenses, setExpenses] = useState([])
   const [products, setProducts] = useState({ categories: [] })
@@ -61,17 +63,19 @@ function App() {
       console.log('App: Starting to load data...')
       setDataLoading(true)
       try {
-        const [ordersData, expensesData, inventoryData, productsData] = await Promise.all([
+        const [ordersData, expensesData, inventoryData, productsData, quotationsData] = await Promise.all([
           getOrders(),
           getExpenses(),
           getInventory(),
-          getProducts()
+          getProducts(),
+          getQuotations()
         ])
         console.log(`App: Data loaded successfully. Orders: ${ordersData?.length}, Expenses: ${expensesData?.length}`)
         setOrders(ordersData)
         setExpenses(expensesData)
         setInventory(inventoryData)
         setProducts(productsData)
+        setQuotations(quotationsData)
       } catch (error) {
         console.error('App: Error loading data:', error)
       } finally {
@@ -124,6 +128,10 @@ function App() {
 
   const updateInventory = (newInventory) => {
     setInventory(newInventory)
+  }
+
+  const updateQuotations = (newQuotations) => {
+    setQuotations(newQuotations)
   }
 
   const handleAddOrder = () => {
@@ -193,6 +201,15 @@ function App() {
             triggerFormOpen={triggerExpenseForm}
             inventory={inventory}
             onUpdateInventory={updateInventory}
+          />
+        )
+      case 'quotations':
+        return (
+          <QuotationManagement
+            quotations={quotations}
+            onUpdateQuotations={updateQuotations}
+            orders={orders}
+            onUpdateOrders={updateOrders}
           />
         )
       case 'reports':

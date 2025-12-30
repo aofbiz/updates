@@ -6,6 +6,7 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen, onAdd
     { id: 'orders', label: 'Orders', icon: ShoppingBag },
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'expenses', label: 'Expenses', icon: DollarSign },
+    { id: 'quotations', label: 'Quotations', icon: FileText },
     { id: 'reports', label: 'Reports', icon: FileText },
   ]
 
