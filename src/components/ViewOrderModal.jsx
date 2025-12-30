@@ -253,7 +253,7 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
           <td style="color: #888; text-align: center;">${idx + 1}</td>
           <td>
             <strong>${catName} - ${itName}</strong>
-            ${notes ? `<div style="margin-top:4px;color:#666;font-size:0.85em;">Notes: ${notes}</div>` : ''}
+            ${notes ? `<div style="margin-top:4px; color: #444; font-size: 0.9em; font-style: italic;">${notes}</div>` : ''}
           </td>
           <td class="text-right">${qty}</td>
           <td class="text-right">Rs. ${price.toFixed(2)}</td>
@@ -517,6 +517,10 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
         <p><strong>Hotline:</strong></p>
         <p style="font-size: 16px; font-weight: 700; color: #FF2E36;">+94 750 350 109</p>
       </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 30px;">
+      <h2 style="margin: 0; font-size: 24px; letter-spacing: 4px; color: #333; font-weight: 700;">INVOICE</h2>
     </div>
 
     <!-- Info Grid -->

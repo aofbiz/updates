@@ -620,23 +620,32 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
         categoryId: order.categoryId,
         itemId: order.itemId,
         customItemName: order.customItemName,
-        quantity: Number(order.quantity) || 1
+        quantity: Number(order.quantity) || 1,
+        notes: order.notes // Fallback for single legacy items
       }]
 
     const totalQty = items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0)
 
     if (items.length > 1) {
       // Map all items to their names
-      const itemNames = items.map(it => {
+      const itemNames = []
+      const itemNotesList = []
+
+      items.forEach(it => {
         const category = products.categories.find(cat => cat.id === it.categoryId)
         const item = category?.items.find(i => i.id === it.itemId)
         const name = it.customItemName || item?.name || 'N/A'
-        return `${name} (x${it.quantity})`
+
+        itemNames.push(`${name} (x${it.quantity})`)
+        if (it.notes && it.notes.trim()) {
+          itemNotesList.push(it.notes.trim())
+        }
       })
 
       return {
         categoryName: 'Multi-Item',
         itemName: itemNames.join(', '),
+        itemNotes: itemNotesList.join(' | '),
         totalQuantity: totalQty,
         isMulti: true
       }
@@ -649,6 +658,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     return {
       categoryName: category?.name || 'N/A',
       itemName: first.customItemName || item?.name || 'N/A',
+      itemNotes: first.notes || '',
       totalQuantity: totalQty,
       isMulti: false
     }
@@ -1463,14 +1473,29 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                         return (
                           <>
                             <td>{names.categoryName}</td>
-                            <td style={{
-                              maxWidth: '250px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              fontSize: '0.85rem'
-                            }} title={names.itemName}>
-                              {names.itemName}
+                            <td style={{ maxWidth: '250px' }}>
+                              <div style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontSize: '0.85rem'
+                              }} title={names.itemName}>
+                                {names.itemName}
+                              </div>
+                              {names.itemNotes && (
+                                <div style={{
+                                  fontSize: '0.75rem',
+                                  color: 'var(--text-muted)',
+                                  marginTop: '2px',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                  lineHeight: '1.2'
+                                }} title={names.itemNotes}>
+                                  {names.itemNotes}
+                                </div>
+                              )}
                             </td>
                             <td>{names.totalQuantity}</td>
                           </>
@@ -1690,7 +1715,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
         ) : (
           paginatedOrders.map(order => {
             // Helper logic for mobile view
-            const { categoryName, itemName, totalQuantity } = getCategoryItemNames(order)
+            const { categoryName, itemName, totalQuantity, itemNotes } = getCategoryItemNames(order)
             const statusColor = getStatusColor(order.status)
             const paymentColor = getPaymentColor(order.paymentStatus)
             const totalPrice = order.totalPrice || order.totalAmount || 0
@@ -1931,6 +1956,11 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                   {/* Item Info */}
                   <div style={{ wordBreak: 'break-word', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                     {categoryName} - {itemName} (x{totalQuantity})
+                    {itemNotes && (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '4px' }}>
+                        {itemNotes}
+                      </div>
+                    )}
                   </div>
 
                   {/* Pricing Info */}
