@@ -47,12 +47,33 @@ export const LicensingProvider = ({ children }) => {
         if (trialStart) {
             const now = Date.now()
             const startStr = trialStart
-            const remaining = TRIAL_DURATION - (now - parseInt(startStr))
-            setTimeLeft(Math.max(0, remaining))
-            return remaining > 0
+            const elapsed = now - parseInt(startStr)
+            const remaining = TRIAL_DURATION - elapsed
+
+            if (remaining <= 0) {
+                // Trial Expired
+                setTimeLeft(0)
+                // We do NOT clear aof_trial_start here so we know they DID have a trial that is now expired
+                // This prevents them from starting a new one.
+                return false
+            } else {
+                // Trial Active
+                setTimeLeft(remaining)
+                return true
+            }
         }
         return false
     }, [])
+
+    // Periodically check trial status while app is running
+    useEffect(() => {
+        const timer = setInterval(() => {
+            if (timeLeft > 0) {
+                updateTrialTime()
+            }
+        }, 60000) // Check every minute
+        return () => clearInterval(timer)
+    }, [timeLeft, updateTrialTime])
 
     /**
      * Initial Load: Check Auth and License
@@ -77,19 +98,31 @@ export const LicensingProvider = ({ children }) => {
                         // User is NOT Pro - check if they are trying to access Pro or just using Free
                         const intendedMode = localStorage.getItem('aof_user_mode') || sessionStorage.getItem('aof_user_mode')
 
+                        // Check for valid trial
+                        const hasActiveTrial = updateTrialTime()
+
                         if (intendedMode === 'pro') {
-                            // Trying to access Pro - REJECT
-                            await logUnauthorizedAttempt(user.email)
-                            await signOutIdentity()
-                            setIdentityUser(null)
-                            setAuthError('ACCOUNT_NOT_AUTHORIZED')
-                            setUserMode(null)
+                            if (hasActiveTrial) {
+                                // Allow Pro access via Trial
+                                setIdentityUser(user)
+                                setLicenseStatus('free') // Still free on server, but locally trial
+                                setAuthError(null)
+                                setUserMode('pro')
+                            } else {
+                                // Trying to access Pro - REJECT
+                                await logUnauthorizedAttempt(user.email)
+                                await signOutIdentity()
+                                setIdentityUser(null)
+                                setAuthError('ACCOUNT_NOT_AUTHORIZED')
+                                setUserMode(null)
+                            }
                         } else {
                             // Using Free mode - ALLOW but collect lead
                             await registerFreeUser(user)
                             setIdentityUser(user)
                             setLicenseStatus('free')
                             setAuthError(null)
+                            setUserMode('free')
                         }
                     }
                 } else {
@@ -123,21 +156,34 @@ export const LicensingProvider = ({ children }) => {
                         const intendedMode = localStorage.getItem('aof_user_mode') || sessionStorage.getItem('aof_user_mode')
                         const authIntent = sessionStorage.getItem('aof_auth_intent')
 
+                        // Check for valid existing trial
+                        const hasActiveTrial = updateTrialTime()
+
                         if (authIntent === 'trial') {
                             await activateTrial(user)
                             setAuthError(null)
                             sessionStorage.removeItem('aof_auth_intent')
+                            // activateTrial sets userMode to 'pro' internally
                         } else if (intendedMode === 'pro') {
-                            await logUnauthorizedAttempt(user.email)
-                            await signOutIdentity()
-                            setIdentityUser(null)
-                            setAuthError('ACCOUNT_NOT_AUTHORIZED')
-                            setUserMode(null)
+                            if (hasActiveTrial) {
+                                // Allow Pro access via valid Trial
+                                setIdentityUser(user)
+                                setLicenseStatus('free')
+                                setAuthError(null)
+                                setUserMode('pro') // FORCE UI update
+                            } else {
+                                await logUnauthorizedAttempt(user.email)
+                                await signOutIdentity()
+                                setIdentityUser(null)
+                                setAuthError('ACCOUNT_NOT_AUTHORIZED')
+                                setUserMode(null)
+                            }
                         } else {
                             await registerFreeUser(user)
                             setIdentityUser(user)
                             setLicenseStatus('free')
                             setAuthError(null)
+                            setUserMode('free') // FORCE UI update
                         }
                     }
                 }
