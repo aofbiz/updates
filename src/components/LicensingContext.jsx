@@ -16,6 +16,8 @@ import {
     registerFreeUser,
     registerTrialUser
 } from '../utils/licenseServer'
+import { App } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 
 const LicensingContext = createContext(null)
 
@@ -102,47 +104,62 @@ export const LicensingProvider = ({ children }) => {
         }
         initLicensing()
 
-        // Electron Deep Link Listener
-        if (window.electronAPI?.onAuthCallback) {
-            window.electronAPI.onAuthCallback(async (url) => {
-                console.log('Main process sent auth callback:', url)
-                try {
-                    const user = await handleAuthCallback(url)
-                    if (user) {
-                        const result = await checkLicenseStatus(user.email)
+        // Unified Deep Link Handler
+        const handleAuthUrl = async (url) => {
+            if (!url) return
+            console.log('Processing auth callback:', url)
+            try {
+                const user = await handleAuthCallback(url)
+                if (user) {
+                    const result = await checkLicenseStatus(user.email)
 
-                        if (result.status === 'pro') {
-                            setIdentityUser(user)
-                            setLicenseStatus('pro')
-                            setUserMode('pro')
+                    if (result.status === 'pro') {
+                        setIdentityUser(user)
+                        setLicenseStatus('pro')
+                        setUserMode('pro')
+                        setAuthError(null)
+                    } else {
+                        const intendedMode = localStorage.getItem('aof_user_mode') || sessionStorage.getItem('aof_user_mode')
+                        const authIntent = sessionStorage.getItem('aof_auth_intent')
+
+                        if (authIntent === 'trial') {
+                            await activateTrial(user)
                             setAuthError(null)
+                            sessionStorage.removeItem('aof_auth_intent')
+                        } else if (intendedMode === 'pro') {
+                            await logUnauthorizedAttempt(user.email)
+                            await signOutIdentity()
+                            setIdentityUser(null)
+                            setAuthError('ACCOUNT_NOT_AUTHORIZED')
+                            setUserMode(null)
                         } else {
-                            const intendedMode = localStorage.getItem('aof_user_mode') || sessionStorage.getItem('aof_user_mode')
-                            const authIntent = sessionStorage.getItem('aof_auth_intent')
-
-                            if (authIntent === 'trial') {
-                                // Explicitly activated trial
-                                await activateTrial(user)
-                                setAuthError(null)
-                                sessionStorage.removeItem('aof_auth_intent')
-                            } else if (intendedMode === 'pro') {
-                                await logUnauthorizedAttempt(user.email)
-                                await signOutIdentity()
-                                setIdentityUser(null)
-                                setAuthError('ACCOUNT_NOT_AUTHORIZED')
-                                setUserMode(null)
-                            } else {
-                                await registerFreeUser(user)
-                                setIdentityUser(user)
-                                setLicenseStatus('free')
-                                setAuthError(null)
-                            }
+                            await registerFreeUser(user)
+                            setIdentityUser(user)
+                            setLicenseStatus('free')
+                            setAuthError(null)
                         }
                     }
-                } catch (err) {
-                    console.error('Deep link auth fail:', err)
                 }
+            } catch (err) {
+                console.error('Deep link auth fail:', err)
+            }
+        }
+
+        // Electron Deep Link Listener
+        if (window.electronAPI?.onAuthCallback) {
+            window.electronAPI.onAuthCallback(handleAuthUrl)
+        }
+
+        // Capacitor Deep Link Listener
+        let appListener = null
+        if (Capacitor.isNativePlatform()) {
+            appListener = App.addListener('appUrlOpen', (data) => {
+                handleAuthUrl(data.url)
             })
+        }
+
+        return () => {
+            if (appListener) appListener.remove()
         }
     }, [updateTrialTime])
 

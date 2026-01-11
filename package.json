@@ -1,7 +1,7 @@
 {
   "name": "aof-ms",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.0.6",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/browser": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
     "@supabase/supabase-js": "^2.90.1",
@@ -49,7 +51,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "public/logo.png"
+      "icon": "build/icon.png"
     },
     "publish": [
       {

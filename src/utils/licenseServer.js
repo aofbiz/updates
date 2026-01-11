@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { Capacitor } from '@capacitor/core'
 
 // --- MASTER LICENSE SERVER CREDENTIALS ---
 // These are for the developer's licensing project, NOT the user's data project.
@@ -24,9 +25,14 @@ export const signInWithGoogle = async () => {
     // If we're in Electron, use the custom protocol
     // If we're in web, use the current origin
     const isElectron = !!window.electronAPI
-    const redirectTo = isElectron
-        ? 'aof-biz://auth-callback'
-        : window.location.origin
+    const isMobile = Capacitor.isNativePlatform()
+
+    let redirectTo = window.location.origin
+    if (isElectron) {
+        redirectTo = 'aof-biz://auth-callback'
+    } else if (isMobile) {
+        redirectTo = 'com.aofbiz.app://auth-callback'
+    }
 
     const { data, error } = await masterClient.auth.signInWithOAuth({
         provider: 'google',

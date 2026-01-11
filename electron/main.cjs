@@ -151,7 +151,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false
     },
-    icon: path.join(__dirname, '../public/logo.svg'),
+    icon: path.join(__dirname, '../public/logo.png'),
     autoHideMenuBar: true,
     titleBarStyle: 'default',
     show: false
