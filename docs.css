@@ -1,0 +1,363 @@
+/* Docs Specific Layout */
+.docs-page {
+    background: #020202;
+}
+
+.badge-docs {
+    font-size: 0.65rem;
+    background: var(--primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-left: 8px;
+}
+
+.nav-search {
+    position: relative;
+    max-width: 400px;
+    width: 100%;
+}
+
+.nav-search i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    width: 16px;
+}
+
+.nav-search input {
+    width: 100%;
+    padding: 0.6rem 1rem 0.6rem 2.8rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: #fff;
+    outline: none;
+}
+
+.nav-links-docs {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.nav-links-docs a {
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Wrapper */
+.docs-wrapper {
+    display: flex;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding-top: var(--nav-height);
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.docs-sidebar {
+    width: 300px;
+    border-right: 1px solid var(--glass-border);
+    padding: 2rem;
+    position: sticky;
+    top: var(--nav-height);
+    height: calc(100vh - var(--nav-height));
+    overflow-y: auto;
+}
+
+.docs-nav .nav-group {
+    margin-bottom: 2.5rem;
+}
+
+.group-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    margin-bottom: 2px;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background: rgba(255, 46, 54, 0.1);
+    color: #fff;
+}
+
+.nav-item i {
+    width: 18px;
+    height: 18px;
+}
+
+/* Collapsible */
+.nav-collapsible {
+    margin-bottom: 0.5rem;
+}
+
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.collapsible-header .chevron {
+    margin-left: auto;
+    width: 14px;
+    transition: transform 0.3s;
+}
+
+.collapsible-content {
+    padding-left: 2.5rem;
+    display: none;
+}
+
+.collapsible-content.open {
+    display: block;
+}
+
+.collapsible-content a {
+    display: block;
+    padding: 0.5rem 0;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.collapsible-content a:hover {
+    color: #fff;
+}
+
+/* Content */
+.docs-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 4rem;
+    padding: 4rem;
+}
+
+.content-inner {
+    max-width: 800px;
+}
+
+.doc-section {
+    display: none;
+}
+
+.doc-section.active {
+    display: block;
+}
+
+.breadcrumb {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+}
+
+.doc-section h1 {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+}
+
+.lead {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+}
+
+/* Steps Grid */
+.steps-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    margin-top: 4rem;
+}
+
+.step-line {
+    display: flex;
+    gap: 2rem;
+}
+
+.step-num {
+    width: 48px;
+    height: 48px;
+    background: var(--primary);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.step-text h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.step-text p {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+}
+
+/* Article Body */
+.article-body h3 {
+    font-size: 1.75rem;
+    margin: 3rem 0 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 0.5rem;
+}
+
+.article-body p {
+    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+.article-body ul {
+    margin-bottom: 2rem;
+    padding-left: 1.5rem;
+}
+
+.article-body li {
+    margin-bottom: 0.75rem;
+    color: var(--text-muted);
+}
+
+.article-body code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    color: var(--primary);
+}
+
+.info-callout {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+    padding: 1.5rem;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    display: flex;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.info-callout p {
+    margin: 0;
+    color: #93c5fd;
+    font-size: 1rem;
+}
+
+/* TOC */
+.docs-toc {
+    padding-top: 2rem;
+    position: sticky;
+    top: var(--nav-height);
+    height: calc(100vh - var(--nav-height));
+}
+
+.toc-inner h4 {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+}
+
+#page-toc {
+    list-style: none;
+}
+
+#page-toc li {
+    margin-bottom: 0.75rem;
+}
+
+#page-toc a {
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+#page-toc a:hover {
+    color: var(--primary);
+}
+
+/* Status Timeline */
+.status-timeline {
+    display: flex;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 1rem;
+    border-radius: 12px;
+    margin: 2rem 0;
+}
+
+.status-item {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* Responsive Docs */
+@media (max-width: 1024px) {
+    .docs-toc {
+        display: none;
+    }
+
+    .docs-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .docs-sidebar {
+        display: none;
+    }
+
+    .docs-wrapper {
+        padding: 0 1rem;
+    }
+
+    .docs-content {
+        padding: 2rem 1rem;
+    }
+
+    .doc-section h1 {
+        font-size: 2.25rem;
+    }
+}
