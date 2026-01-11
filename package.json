@@ -1,7 +1,7 @@
 {
   "name": "aof-ms",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.2",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -48,8 +48,7 @@
       "public/**/*"
     ],
     "win": {
-      "target": "nsis",
-      "icon": "public/logo.svg"
+      "target": "nsis"
     },
     "publish": [
       {
