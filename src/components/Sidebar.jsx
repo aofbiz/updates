@@ -4,13 +4,18 @@ import { useTheme } from './ThemeContext'
 import { useLicensing } from './LicensingContext'
 import { ProFeatureBadge } from './ProFeatureLock'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
+import { getLatestUpdate } from '../services/updateService'
+import pkg from '../../package.json'
 
 const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen, onAddOrder, onAddExpense, onLogout, settings }) => {
   const { effectiveTheme, setTheme, theme } = useTheme()
   const { isProUser, isFreeUser } = useLicensing()
   const isOnline = useOnlineStatus()
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [latestVersion, setLatestVersion] = useState(null)
   const menuRef = useRef(null)
+
+  const currentVersion = pkg.version
 
   const businessName = settings?.businessName || 'AOF Biz - Management App'
   const businessTagline = settings?.businessTagline || 'From Chaos To Clarity'
@@ -47,6 +52,20 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen, onAdd
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
+  }, [])
+
+  useEffect(() => {
+    const fetchVersion = async () => {
+      try {
+        const update = await getLatestUpdate()
+        if (update) {
+          setLatestVersion(update.version)
+        }
+      } catch (err) {
+        console.error('Sidebar: Error checking version:', err)
+      }
+    }
+    fetchVersion()
   }, [])
 
   return (
@@ -147,6 +166,31 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen, onAdd
                   Powered by AOF Biz
                 </p>
               )}
+              <div style={{
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                color: 'var(--accent-primary)',
+                marginTop: '0.2rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                opacity: 0.8
+              }}>
+                <span>v{currentVersion}</span>
+                {latestVersion && latestVersion !== currentVersion && (
+                  <span style={{
+                    backgroundColor: 'var(--accent-primary)',
+                    color: '#fff',
+                    padding: '1px 6px',
+                    borderRadius: '10px',
+                    fontSize: '0.55rem',
+                    animation: 'pulse 2s infinite'
+                  }}>
+                    Update Available: v{latestVersion}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

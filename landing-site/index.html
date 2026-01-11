@@ -57,7 +57,7 @@
 
         <div class="container">
             <div class="hero-content">
-                <span class="badge">v1.2 Now Available</span>
+                <span class="badge" id="version-badge">Syncing Build...</span>
                 <h1>Master Your Frame Business<br>With Precision</h1>
                 <p class="hero-subtitle">
                     The all-in-one platform designed for modern art tracking, order management, and financial clarity.
@@ -247,6 +247,31 @@
     <script>
         // Initialize Lucide
         lucide.createIcons();
+
+        // Supabase Update Sync
+        const SUPABASE_URL = 'https://qrueudowswugtidmsphk.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFydWV1ZG93c3d1Z3RpZG1zcGhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMjcxMTYsImV4cCI6MjA4MzYwMzExNn0.mAASDPbmjEv_KVmeFtYQcagfB90Ea3eAv5U6gY69zds';
+
+        async function getLatestUpdate() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/updates?select=*&order=created_at.desc&limit=1`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                const [update] = await response.json();
+                if (update) {
+                    const badge = document.getElementById('version-badge');
+                    if (badge) badge.innerText = `v${update.version} Now Available`;
+                }
+            } catch (err) {
+                console.error('Update fetch failed:', err);
+                const badge = document.getElementById('version-badge');
+                if (badge) badge.innerText = 'v1.0.13'; // Fallback
+            }
+        }
+        getLatestUpdate();
 
         // Theme Toggle Logic
         const toggleBtn = document.getElementById('theme-toggle');

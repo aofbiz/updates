@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
+import { getLatestUpdate } from '../services/updateService'
+import pkg from '../../package.json'
 
 /**
  * useUpdateManager
@@ -11,10 +13,13 @@ export const useUpdateManager = () => {
     const [progress, setProgress] = useState(0)
     const [updateInfo, setUpdateInfo] = useState(null)
     const [error, setError] = useState(null)
+    const [supabaseUpdate, setSupabaseUpdate] = useState(null)
     const [autoUpdate, setAutoUpdate] = useState(() => {
         const saved = localStorage.getItem('aof_auto_update')
         return saved === null ? true : saved === 'true'
     })
+
+    const currentVersion = pkg.version
 
     const isElectron = !!window.electronAPI
 
@@ -70,20 +75,57 @@ export const useUpdateManager = () => {
      */
     const checkForUpdates = useCallback(async () => {
         setError(null)
-        if (isElectron) {
-            setStatus('checking')
-            try {
-                await window.electronAPI.checkForUpdates()
-            } catch (err) {
-                setError('Failed to check for updates: ' + err.message)
-                setStatus('idle')
+        setStatus('checking')
+
+        try {
+            // First check Supabase for the latest public metadata
+            const latest = await getLatestUpdate()
+            setSupabaseUpdate(latest)
+
+            if (latest && latest.version !== currentVersion) {
+                // There is a newer version on Supabase
+                if (isElectron) {
+                    // On Desktop, trigger the actual binary check
+                    try {
+                        const result = await window.electronAPI.checkForUpdates()
+                        // If result indicates no update available via GH but Supabase says yes,
+                        // we'll still show the available state using Supabase info
+                        if (status === 'none' || status === 'idle') {
+                            setStatus('available')
+                            setUpdateInfo({
+                                version: latest.version,
+                                releaseNotes: latest.release_notes
+                            })
+                        }
+                    } catch (err) {
+                        setStatus('available')
+                        setUpdateInfo({
+                            version: latest.version,
+                            releaseNotes: latest.release_notes
+                        })
+                    }
+                } else {
+                    // On Mobile/Web, just show availability
+                    setStatus('available')
+                    setUpdateInfo({
+                        version: latest.version,
+                        releaseNotes: latest.release_notes
+                    })
+                }
+            } else {
+                // Supabase says we are up to date
+                if (isElectron) {
+                    await window.electronAPI.checkForUpdates()
+                } else {
+                    setTimeout(() => setStatus('none'), 1000)
+                }
             }
-        } else {
-            // Capacitor logic would go here
-            setStatus('checking')
-            setTimeout(() => setStatus('none'), 1500) // Mock
+        } catch (err) {
+            console.error('Update Check Error:', err)
+            setError('Failed to check for updates: ' + err.message)
+            setStatus('idle')
         }
-    }, [isElectron])
+    }, [isElectron, currentVersion])
 
     const startDownload = useCallback(async () => {
         if (isElectron) {
@@ -106,6 +148,8 @@ export const useUpdateManager = () => {
         status,
         progress,
         updateInfo,
+        supabaseUpdate,
+        currentVersion,
         error,
         autoUpdate,
         setAutoUpdate,

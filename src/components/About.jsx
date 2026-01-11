@@ -1,13 +1,21 @@
 import { Info, ShieldCheck, Globe, Mail, Zap, ExternalLink, Award, CheckCircle } from 'lucide-react'
 import { useLicensing } from './LicensingContext'
 import { useTheme } from './ThemeContext'
+import { getLatestUpdate } from '../services/updateService'
+import pkg from '../../package.json'
+import { useState, useEffect } from 'react'
 
 const About = () => {
     const { isProUser, isTrialActive, timeLeft } = useLicensing()
     const { effectiveTheme } = useTheme()
+    const [latestUpdate, setLatestUpdate] = useState(null)
 
-    const APP_VERSION = 'v1.0.9'
+    const APP_VERSION = pkg.version
     const RELEASE_DATE = 'January 2026'
+
+    useEffect(() => {
+        getLatestUpdate().then(setLatestUpdate).catch(console.error)
+    }, [])
 
     const openExternal = (url) => {
         if (window.electronAPI) {
@@ -38,6 +46,12 @@ const About = () => {
                         <Award size={14} />
                         <span>Build {APP_VERSION}</span>
                     </div>
+                    {latestUpdate && latestUpdate.version !== APP_VERSION && (
+                        <div className="version-badge" style={{ marginLeft: '8px', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)' }}>
+                            <Zap size={10} />
+                            <span>Latest: v{latestUpdate.version}</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

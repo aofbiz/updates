@@ -56,14 +56,19 @@
                     <i data-lucide="monitor"></i>
                     <h3>Windows</h3>
                     <p>Optimized for Windows 10 & 11</p>
-                    <a href="#" class="btn btn-primary" style="margin-top: 1.5rem;">Download .exe (v1.2)</a>
-                    <p style="font-size: 0.8rem; margin-top: 1rem; color: var(--text-muted);">Size: ~65MB</p>
+                    <a href="#" id="exe-download-btn" class="btn btn-primary" style="margin-top: 1.5rem;">Download
+                        .exe</a>
+                    <p style="font-size: 0.8rem; margin-top: 1rem; color: var(--text-muted);" id="exe-version">Version:
+                        --</p>
                 </div>
                 <div class="download-card">
                     <i data-lucide="smartphone"></i>
                     <h3>Mobile App</h3>
                     <p>Coming soon to Android & iOS</p>
-                    <button class="btn btn-outline" disabled style="margin-top: 1.5rem;">Notify Me</button>
+                    <a href="#" id="apk-download-btn" class="btn btn-primary"
+                        style="margin-top: 1.5rem; display: none;">Download .apk</a>
+                    <button id="android-notify-btn" class="btn btn-outline" disabled style="margin-top: 1.5rem;">Notify
+                        Me</button>
                 </div>
             </div>
         </div>
@@ -111,22 +116,11 @@
     <section id="updates" class="features">
         <div class="container" style="max-width: 800px;">
             <div class="section-header">
-                <h2>What's New in v1.2</h2>
+                <h2 id="rel-notes-title">What's New</h2>
             </div>
             <div class="card" style="padding: 2rem;">
-                <ul class="about-content" style="margin: 0;">
-                    <li style="color: inherit;"><span class="badge"
-                            style="margin: 0; padding: 2px 8px; font-size: 0.7rem;">Fixed</span> APK Authentication loop
-                        on mobile devices</li>
-                    <li style="color: inherit;"><span class="badge"
-                            style="margin: 0; padding: 2px 8px; font-size: 0.7rem; background: #3b82f6; color: #fff;">New</span>
-                        Dedicated "All Features" navigation menu</li>
-                    <li style="color: inherit;"><span class="badge"
-                            style="margin: 0; padding: 2px 8px; font-size: 0.7rem;">Fixed</span> UI Overlay issues on
-                        Android notification bars</li>
-                    <li style="color: inherit;"><span class="badge"
-                            style="margin: 0; padding: 2px 8px; font-size: 0.7rem; background: #10b981; color: #fff;">Improved</span>
-                        Theme switching performance</li>
+                <ul class="about-content" id="rel-notes-list" style="margin: 0;">
+                    <li style="color: inherit;">Fetching latest release details...</li>
                 </ul>
             </div>
         </div>
@@ -171,6 +165,52 @@
 
     <script>
         lucide.createIcons();
+
+        // Supabase Update Sync
+        const SUPABASE_URL = 'https://qrueudowswugtidmsphk.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFydWV1ZG93c3d1Z3RpZG1zcGhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMjcxMTYsImV4cCI6MjA4MzYwMzExNn0.mAASDPbmjEv_KVmeFtYQcagfB90Ea3eAv5U6gY69zds';
+
+        async function syncDownloads() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/updates?select=*&order=created_at.desc&limit=1`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                const [update] = await response.json();
+                if (update) {
+                    // Update Buttons
+                    if (update.exe_link) {
+                        document.getElementById('exe-download-btn').href = update.exe_link;
+                        document.getElementById('exe-version').innerText = `Latest Version: v${update.version}`;
+                    }
+                    if (update.apk_link) {
+                        const apkBtn = document.getElementById('apk-download-btn');
+                        apkBtn.href = update.apk_link;
+                        apkBtn.style.display = 'inline-flex';
+                        document.getElementById('android-notify-btn').style.display = 'none';
+                    }
+
+                    // Update Release Notes
+                    document.getElementById('rel-notes-title').innerText = `What's New in v${update.version}`;
+                    const list = document.getElementById('rel-notes-list');
+                    list.innerHTML = '';
+                    if (update.release_notes) {
+                        update.release_notes.split('\n').filter(l => l.trim()).forEach(line => {
+                            const li = document.createElement('li');
+                            li.style.color = 'inherit';
+                            li.innerText = line;
+                            list.appendChild(li);
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Download sync failed:', err);
+            }
+        }
+        syncDownloads();
+
         const toggleBtn = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
         toggleBtn.addEventListener('click', () => {
