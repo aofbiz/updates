@@ -4,99 +4,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AOF Biz | Enterprise Business Management Dashboard</title>
+    <title>AOF Biz - Professional Business Management</title>
     <meta name="description"
-        content="The most powerful and intuitive framing business management dashboard. Manage orders, inventory, and finances with peak efficiency.">
+        content="Streamline your frame business operations with AOF Biz. Professional order management, inventory tracking, and financial insights.">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap"
         rel="stylesheet">
 
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- GSAP for Animations -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-
+    <!-- Styles -->
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="premium-dark">
-    <!-- Progress Bar -->
-    <div class="scroll-progress"></div>
+<body>
 
-    <nav class="premium-nav">
-        <div class="nav-container">
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
             <a href="#" class="logo">
-                <div class="logo-icon">
-                    <img src="assets/icon-192.png" alt="AOF Biz Logo">
-                </div>
-                <span>AOF Biz</span>
+                <i data-lucide="layout-grid" color="#FF2E36"></i>
+                AOF <span>Biz</span>
             </a>
-            <ul class="nav-links">
-                <li><a href="#features">Features</a></li>
-                <li><a href="#pricing">Pricing</a></li>
-                <li><a href="#docs">Help & Docs</a></li>
-                <li><a href="#downloads">Downloads</a></li>
-            </ul>
-            <div class="nav-cta">
-                <a href="#downloads" class="btn btn-primary btn-glow">Get Pro Free</a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#about">About</a>
+                <a href="#download">Download</a>
             </div>
-            <button class="mobile-menu-toggle">
-                <i data-lucide="menu"></i>
-            </button>
+            <button class="btn btn-primary btn-sm">Get Started</button>
         </div>
     </nav>
 
-    <header class="hero-premium">
-        <div class="hero-bg-shapes">
-            <div class="shape shape-1"></div>
-            <div class="shape shape-2"></div>
-        </div>
-        <div class="hero-container">
-            <div class="hero-text">
-                <div class="badge-new">New Version 1.0.9 Available</div>
-                <h1 class="hero-title">Scale Your <span class="text-gradient">Framing Business</span> Without Limits.
-                </h1>
-                <p class="hero-description">The all-in-one command center for modern retailers. Track orders, optimize
-                    stock, and skyrocket your profitability with enterprise-grade tools.</p>
-                <div class="hero-actions">
-                    <a href="#downloads" class="btn btn-primary btn-xl btn-glow">Download Desktop</a>
-                    <a href="#features" class="btn btn-ghost btn-xl">Watch Demo <i data-lucide="play-circle"></i></a>
-                </div>
-                <div class="hero-stats">
-                    <div class="stat-item">
-                        <span class="stat-num">Upto 50%</span>
-                        <span class="stat-label">Faster Checkout</span>
-                    </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <span class="stat-num">Cloud</span>
-                        <span class="stat-label">Native Sync</span>
-                    </div>
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="bg-blob blob-1"></div>
+        <div class="bg-blob blob-2"></div>
+
+        <div class="container">
+            <div class="hero-content">
+                <span class="badge">v1.0 Now Available</span>
+                <h1>Master Your Frame Business<br>With Precision</h1>
+                <p class="hero-subtitle">
+                    The all-in-one platform designed for modern art tracking, order management, and financial clarity.
+                    Built for professionals.
+                </p>
+                <div class="hero-buttons">
+                    <button class="btn btn-primary">
+                        <i data-lucide="download"></i> Download App
+                    </button>
+                    <button class="btn btn-outline">
+                        <i data-lucide="play-circle"></i> Watch Demo
+                    </button>
                 </div>
             </div>
+
             <div class="hero-image">
-                <div class="mockup-parallax">
-                    <div class="mockup-frame">
-                        <img src="dashboard-mockup.png" alt="AOF Biz Professional Dashboard" class="main-mockup">
-                        <div class="floating-bubble bubble-1 glass-card">
-                            <i data-lucide="trending-up" class="icon-red"></i>
-                            <div>
-                                <span>Revenue</span>
-                                <strong>+24.5%</strong>
+                <!-- Using a placeholder SVGs until screenshots are available, or a div that mimics the app UI -->
+                <div
+                    style="width: 100%; height: 400px; background: #0F0F0F; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                    <!-- Abstract App UI Mockup -->
+                    <div
+                        style="width: 200px; height: 100%; border-right: 1px solid #333; position: absolute; left: 0; padding: 20px;">
+                        <div
+                            style="width: 30px; height: 30px; background: #FF2E36; margin-bottom: 20px; border-radius: 6px;">
+                        </div>
+                        <div
+                            style="height: 10px; width: 60%; background: #333; margin-bottom: 10px; border-radius: 2px;">
+                        </div>
+                        <div
+                            style="height: 10px; width: 80%; background: #333; margin-bottom: 10px; border-radius: 2px;">
+                        </div>
+                        <div
+                            style="height: 10px; width: 50%; background: #333; margin-bottom: 10px; border-radius: 2px;">
+                        </div>
+                    </div>
+                    <div style="margin-left: 200px; width: calc(100% - 200px); padding: 20px;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <div
+                                style="flex: 1; height: 100px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+                            </div>
+                            <div
+                                style="flex: 1; height: 100px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+                            </div>
+                            <div
+                                style="flex: 1; height: 100px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
                             </div>
                         </div>
-                        <div class="floating-bubble bubble-2 glass-card">
-                            <i data-lucide="shopping-cart" class="icon-red"></i>
-                            <div>
-                                <span>Recent</span>
-                                <strong>Order #1024</strong>
-                            </div>
+                        <div style="height: 200px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
                         </div>
                     </div>
                 </div>
@@ -104,204 +103,129 @@
         </div>
     </header>
 
-    <section id="features" class="section-premium">
+    <!-- Features Section -->
+    <section id="features" class="features">
         <div class="container">
-            <div class="section-intro center">
-                <h2 class="section-title">Engineered for <span class="text-gradient">Performance</span></h2>
-                <p class="section-subtitle">Stop juggling spreadsheets. AOF Biz centralizes every aspect of your
-                    operations into a single, cohesive ecosystem.</p>
+            <div class="section-header">
+                <h2>Everything You Need</h2>
+                <p>Powerful tools integrated into one seamless interface to keep your business running smoothly.</p>
             </div>
-            <div class="premium-features-grid">
-                <div class="feature-card-v2">
-                    <div class="f-icon-box"><i data-lucide="zap"></i></div>
-                    <h3>Intelligent Orders</h3>
-                    <p>Single-page ordering system with automated price calculations and customer history recall. Save
-                        minutes on every sale.</p>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="icon-box">
+                        <i data-lucide="shopping-cart"></i>
+                    </div>
+                    <h3>Order Management</h3>
+                    <p>Track every order from inception to delivery. Manage statuses, deadlines, and customer details
+                        effortlessly.</p>
                 </div>
-                <div class="feature-card-v2">
-                    <div class="f-icon-box"><i data-lucide="package-search"></i></div>
-                    <h3>Smart Inventory</h3>
-                    <p>Active stock tracking that auto-deducts. Set reorder points and get low-stock notifications
-                        before you run out.</p>
+
+                <div class="card">
+                    <div class="icon-box">
+                        <i data-lucide="package"></i>
+                    </div>
+                    <h3>Inventory Control</h3>
+                    <p>Keep precise counts of your materials. Real-time updates prevent stockouts and over-ordering.</p>
                 </div>
-                <div class="feature-card-v2">
-                    <div class="f-icon-box"><i data-lucide="pie-chart"></i></div>
-                    <h3>Financial DNA</h3>
-                    <p>Deep dive into your profits. Track one-off and recurring expenses to see your true net earnings
-                        in real-time.</p>
+
+                <div class="card">
+                    <div class="icon-box">
+                        <i data-lucide="bar-chart-3"></i>
+                    </div>
+                    <h3>Financial Insights</h3>
+                    <p>Visualize your income and expenses. Generate reports that help you make data-driven decisions.
+                    </p>
                 </div>
-                <div class="feature-card-v2">
-                    <div class="f-icon-box"><i data-lucide="cloud-lightning"></i></div>
-                    <h3>Hybrid Cloud</h3>
-                    <p>Work offline with local storage and sync to the cloud when online. Your data is always available
-                        on any device.</p>
+
+                <div class="card">
+                    <div class="icon-box">
+                        <i data-lucide="users"></i>
+                    </div>
+                    <h3>Customer CRM</h3>
+                    <p>Maintain detailed customer profiles and history. Build stronger relationships with your clients.
+                    </p>
                 </div>
-                <div class="feature-card-v2">
-                    <div class="f-icon-box"><i data-lucide="message-square"></i></div>
-                    <h3>WhatsApp Sync</h3>
-                    <p>Generate professional PDF invoices and send them instantly to customers with one click. No more
-                        handwritten bills.</p>
+
+                <div class="card">
+                    <div class="icon-box">
+                        <i data-lucide="shield-check"></i>
+                    </div>
+                    <h3>Secure Data</h3>
+                    <p>Your business data is protected with enterprise-grade security and local backup options.</p>
                 </div>
-                <div class="feature-card-v2">
-                    <div class="f-icon-box"><i data-lucide="shield-check"></i></div>
-                    <h3>Dual-Vault Backup</h3>
-                    <p>Automatic Google Drive backups and manual JSON exports. Your business data is more secure than
-                        ever before.</p>
+
+                <div class="card">
+                    <div class="icon-box">
+                        <i data-lucide="smartphone"></i>
+                    </div>
+                    <h3>Mobile Ready</h3>
+                    <p>Access your dashboard from anywhere. Fully responsive design for tablets and mobile devices.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="docs" class="section-premium bg-darker">
+    <!-- About Section -->
+    <section id="about" class="about">
         <div class="container">
-            <div class="docs-split">
-                <div class="docs-text">
-                    <h2 class="section-title">Knowledge <span class="text-gradient">Base</span></h2>
-                    <p class="section-subtitle">Everything you need to master AOF Biz. From basic setup to advanced
-                        financial reporting.</p>
-                    <div class="docs-categories">
-                        <div class="doc-cat-item">
-                            <i data-lucide="book-open"></i>
-                            <div>
-                                <h4>Academy</h4>
-                                <p>Step-by-step guides for beginners.</p>
-                            </div>
-                        </div>
-                        <div class="doc-cat-item">
-                            <i data-lucide="layers"></i>
-                            <div>
-                                <h4>Deep Dives</h4>
-                                <p>Advanced settings and courier integrations.</p>
-                            </div>
-                        </div>
-                        <div class="doc-cat-item">
-                            <i data-lucide="refresh-cw"></i>
-                            <div>
-                                <h4>Changelog</h4>
-                                <p>Stay updated with the latest versions.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <a href="docs.html" class="btn btn-ghost">Full Documentation <i data-lucide="arrow-right"></i></a>
-                </div>
-                <div class="docs-preview glass-card">
-                    <div class="preview-header">
-                        <i data-lucide="search"></i>
-                        <span>Searching "How to sync..."</span>
-                    </div>
-                    <div class="preview-content">
-                        <div class="preview-line"></div>
-                        <div class="preview-line short"></div>
-                        <div class="preview-box">
-                            <div class="box-inner"></div>
-                        </div>
-                        <div class="preview-line"></div>
+            <div class="about-grid">
+                <div class="about-image">
+                    <!-- Abstract Placeholder -->
+                    <div
+                        style="width: 100%; height: 350px; background: linear-gradient(135deg, #1a1a1a 0%, #050505 100%); border-radius: 12px; border: 1px solid #333; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="layers" size="64" color="#333"></i>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
 
-    <section id="pricing" class="section-premium">
-        <div class="container">
-            <div class="section-intro center">
-                <h2 class="section-title">Built for Every <span class="text-gradient">Stage</span></h2>
-                <p class="section-subtitle">Scale your plans as your business grows.</p>
-            </div>
-            <div class="premium-pricing-grid">
-                <div class="pricing-plan glass-card">
-                    <div class="p-header">
-                        <h3>Starter</h3>
-                        <div class="p-price">Free</div>
-                        <p>Perfect for solo entrepreneurs.</p>
-                    </div>
-                    <ul class="p-features">
-                        <li><i data-lucide="check-circle-2"></i> 50 Orders Per Month</li>
-                        <li><i data-lucide="check-circle-2"></i> Local Management</li>
-                        <li><i data-lucide="check-circle-2"></i> Basic Inventory</li>
-                        <li class="disabled"><i data-lucide="x-circle"></i> Cloud Sync</li>
-                        <li class="disabled"><i data-lucide="x-circle"></i> Multi-Device Support</li>
+                <div class="about-content">
+                    <h2>Designed for Efficiency</h2>
+                    <p>AOF Biz was born from the need to simplify the complex workflows of the custom framing industry.
+                        We understand the nuances of your work.</p>
+
+                    <ul>
+                        <li><i data-lucide="check-circle-2"></i> Streamlined workflows for faster processing</li>
+                        <li><i data-lucide="check-circle-2"></i> Intuitive interface requiring zero training</li>
+                        <li><i data-lucide="check-circle-2"></i> Constant updates and feature improvements</li>
                     </ul>
-                    <a href="#downloads" class="btn btn-outline-v2">Get Started</a>
-                </div>
-                <div class="pricing-plan premium-plan">
-                    <div class="popular-tag">RECOMENDED</div>
-                    <div class="p-header">
-                        <h3>Business Pro</h3>
-                        <div class="p-price">$19<span>/mo</span></div>
-                        <p>For growing framing businesses.</p>
-                    </div>
-                    <ul class="p-features">
-                        <li><i data-lucide="check-circle-2"></i> Unlimited Orders</li>
-                        <li><i data-lucide="check-circle-2"></i> Cloud Native Sync</li>
-                        <li><i data-lucide="check-circle-2"></i> Real-time Multi-Device</li>
-                        <li><i data-lucide="check-circle-2"></i> WhatsApp Invoicing</li>
-                        <li><i data-lucide="check-circle-2"></i> Priority Support</li>
-                    </ul>
-                    <a href="#downloads" class="btn btn-primary btn-glow">Go Pro Now</a>
+
+                    <button class="btn btn-outline" style="margin-top: 2rem;">Learn More About Us</button>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="downloads" class="section-premium bg-red-gradient">
+    <!-- Footer -->
+    <footer class="footer">
         <div class="container">
-            <div class="download-card">
-                <h2 class="download-title">Get Started Today</h2>
-                <p class="download-subtitle">Download the latest release and transform your business workflow.</p>
-                <div class="download-options">
-                    <a href="https://github.com/aofbiz/updates/releases/latest" id="btn-download-win" class="dl-btn">
-                        <div class="dl-icon"><i data-lucide="monitor"></i></div>
-                        <div class="dl-text">
-                            <span>Download for</span>
-                            <strong>Windows Desktop</strong>
-                        </div>
-                    </a>
-                    <a href="https://github.com/aofbiz/updates/releases/latest" id="btn-download-android"
-                        class="dl-btn">
-                        <div class="dl-icon"><i data-lucide="smartphone"></i></div>
-                        <div class="dl-text">
-                            <span>Download for</span>
-                            <strong>Android Mobile</strong>
-                        </div>
-                    </a>
-                </div>
-                <div class="dl-info">Latest Stable Release: <a href="https://github.com/aofbiz/updates/releases/latest"
-                        id="release-info-link" target="_blank"
-                        style="color: inherit; text-decoration: underline;">Checking version...</a></div>
-            </div>
-        </div>
-    </section>
-
-    <footer class="premium-footer">
-        <div class="container">
-            <div class="footer-grid">
+            <div class="footer-content">
                 <div class="footer-brand">
-                    <div class="logo">
-                        <div class="logo-icon">
-                            <img src="assets/icon-192.png" alt="AOF Biz">
-                        </div>
-                        <span>AOF Biz</span>
-                    </div>
-                    <p>Professional management solutions for the modern framing industry.</p>
+                    <a href="#" class="logo">
+                        <i data-lucide="layout-grid" color="#FF2E36"></i>
+                        AOF <span>Biz</span>
+                    </a>
+                    <p>The ultimate solution for managing your framing business. Professional, reliable, and secure.</p>
                 </div>
-                <div class="footer-nav">
+
+                <div class="footer-col">
                     <h4>Product</h4>
                     <ul>
-                        <li><a href="#features">Features</a></li>
-                        <li><a href="#pricing">Pricing</a></li>
-                        <li><a href="#downloads">Downloads</a></li>
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">Updates</a></li>
                     </ul>
                 </div>
-                <div class="footer-nav">
+
+                <div class="footer-col">
                     <h4>Support</h4>
                     <ul>
-                        <li><a href="#docs">Documentation</a></li>
-                        <li><a href="#docs">Academy</a></li>
+                        <li><a href="#">Documentation</a></li>
                         <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">FAQ</a></li>
                     </ul>
                 </div>
-                <div class="footer-nav">
+
+                <div class="footer-col">
                     <h4>Legal</h4>
                     <ul>
                         <li><a href="#">Privacy Policy</a></li>
@@ -309,18 +233,14 @@
                     </ul>
                 </div>
             </div>
+
             <div class="footer-bottom">
-                <p>&copy; 2026 Art Of Frames. All rights reserved.</p>
-                <div class="socials">
-                    <a href="#"><i data-lucide="instagram"></i></a>
-                    <a href="#"><i data-lucide="facebook"></i></a>
-                    <a href="#"><i data-lucide="globe"></i></a>
-                </div>
+                <p>&copy; 2026 AOF Biz. All rights reserved.</p>
             </div>
         </div>
     </footer>
 
-    <script src="main.js"></script>
+    <!-- Initialize Lucide Icons -->
     <script>
         lucide.createIcons();
     </script>
