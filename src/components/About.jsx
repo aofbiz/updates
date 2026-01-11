@@ -1,4 +1,4 @@
-import { Info, ShieldCheck, Heart, Globe, Github, Mail, Zap, ExternalLink, Award, Users, CheckCircle } from 'lucide-react'
+import { Info, ShieldCheck, Globe, Mail, Zap, ExternalLink, Award, CheckCircle } from 'lucide-react'
 import { useLicensing } from './LicensingContext'
 import { useTheme } from './ThemeContext'
 
@@ -77,49 +77,6 @@ const About = () => {
                     </div>
                 </div>
 
-                {/* Mission Section */}
-                <div className="about-card">
-                    <div className="card-header">
-                        <Users size={20} className="icon-info" />
-                        <h3>Our Mission</h3>
-                    </div>
-                    <p className="card-text">
-                        AOF Biz was built for the visionaries—the artisans and workshop owners who balance creativity with commerce.
-                        We believe that administrative complexity shouldn't stifle your growth. Our mission is to provide
-                        clarity through data, giving you the time back to focus on your masterpiece.
-                    </p>
-                </div>
-
-                {/* Core Pillars */}
-                <div className="feature-rows">
-                    <div className="feature-row">
-                        <div className="feature-icon-box">
-                            <Heart size={20} />
-                        </div>
-                        <div className="feature-text">
-                            <h4>Artisan Driven</h4>
-                            <p>Tailored specifically for creative workshop workflows.</p>
-                        </div>
-                    </div>
-                    <div className="feature-row">
-                        <div className="feature-icon-box" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                            <Globe size={20} />
-                        </div>
-                        <div className="feature-text">
-                            <h4>Always Synced</h4>
-                            <p>Access your business data across mobile and desktop.</p>
-                        </div>
-                    </div>
-                    <div className="feature-row">
-                        <div className="feature-icon-box" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                            <ShieldCheck size={20} />
-                        </div>
-                        <div className="feature-text">
-                            <h4>Data Security</h4>
-                            <p>Enterprise-grade encryption for your sensitive records.</p>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Social & Contact */}
                 <div className="about-card connect-card">
@@ -131,11 +88,6 @@ const About = () => {
                         <button onClick={() => openExternal('https://loojabrandings.com')} className="social-link">
                             <Globe size={20} />
                             <span>Website</span>
-                            <ExternalLink size={14} className="link-arrow" />
-                        </button>
-                        <button onClick={() => openExternal('https://github.com/loojabrandings')} className="social-link">
-                            <Github size={20} />
-                            <span>GitHub</span>
                             <ExternalLink size={14} className="link-arrow" />
                         </button>
                         <button onClick={() => openExternal('mailto:loojabrandings@gmail.com')} className="social-link">
@@ -277,42 +229,6 @@ const About = () => {
                     font-size: 0.8rem;
                     opacity: 0.7;
                     margin: 0;
-                }
-
-                .feature-rows {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-
-                .feature-row {
-                    display: flex;
-                    align-items: flex-start;
-                    gap: 1rem;
-                    padding: 1rem;
-                }
-
-                .feature-icon-box {
-                    min-width: 40px;
-                    height: 40px;
-                    background: rgba(var(--accent-rgb), 0.1);
-                    color: var(--accent-primary);
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .feature-text h4 {
-                    margin: 0 0 2px 0;
-                    font-size: 0.95rem;
-                    font-weight: 700;
-                }
-
-                .feature-text p {
-                    margin: 0;
-                    font-size: 0.85rem;
-                    color: var(--text-muted);
                 }
 
                 .social-links {

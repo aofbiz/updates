@@ -24,7 +24,6 @@ import { SyncProvider } from './components/SyncContext'
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts'
 import KeyboardShortcutsModal from './components/Common/KeyboardShortcutsModal'
 import ErrorBoundary from './components/ErrorBoundary'
-import HelpDocs from './components/HelpDocs'
 import TrialCountdownBar from './components/Common/TrialCountdownBar'
 import { useToast } from './components/Toast/ToastContext'
 import { useUpdateManager } from './hooks/useUpdateManager'
@@ -44,7 +43,7 @@ function AppContent() {
   const [dataLoading, setDataLoading] = useState(false)
   const [activeView, setActiveView] = useState(() => {
     const savedView = localStorage.getItem('aof_active_view')
-    const validViews = ['dashboard', 'orders', 'inventory', 'expenses', 'quotations', 'reports', 'settings', 'about']
+    const validViews = ['dashboard', 'orders', 'inventory', 'expenses', 'quotations', 'reports', 'settings', 'about', 'contact', 'profile']
     return validViews.includes(savedView) ? savedView : 'dashboard'
   })
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -240,7 +239,7 @@ function AppContent() {
         setActiveView('contact')
         break
       case 'help':
-        setActiveView('help')
+        window.open('https://aofbiz.github.io/updates/docs.html', '_blank')
         break
       case 'about':
         setActiveView('about')
@@ -355,8 +354,6 @@ function AppContent() {
         )
       case 'contact':
         return <Contact />
-      case 'help':
-        return <HelpDocs />
       case 'profile':
         return <Profile onUpdateSettings={updateSettings} />
       case 'about':
