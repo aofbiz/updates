@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Features - AOF Biz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="index.html" class="logo">
+                <i data-lucide="layout-grid" color="#FF2E36"></i>
+                AOF <span>Biz</span>
+            </a>
+            <div class="nav-links">
+                <a href="features.html" class="active">Features</a>
+                <a href="index.html#about">About</a>
+                <a href="download.html">Download</a>
+                <a href="contact.html">Contact</a>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle Theme">
+                    <i data-lucide="sun" class="sun"></i>
+                    <i data-lucide="moon" class="moon"></i>
+                </button>
+            </div>
+            <a href="download.html" class="btn btn-primary btn-sm">Get Started</a>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <h1>Comprehensive Features</h1>
+            <p>Explore the tools we've built to help your framing business scale.</p>
+        </div>
+    </header>
+
+    <section class="features">
+        <div class="container">
+            <!-- Order Management -->
+            <div class="feature-row">
+                <div class="feature-text">
+                    <div class="icon-box"><i data-lucide="shopping-cart"></i></div>
+                    <h3>Advanced Order Tracking</h3>
+                    <p>Manage the entire lifecycle of an order. From the initial quote to the final delivery, keep track
+                        of every detail, including frame types, glass choices, and matting layers.</p>
+                    <ul class="about-content">
+                        <li style="color: inherit;"><i data-lucide="check" size="18"></i> Custom status workflows</li>
+                        <li style="color: inherit;"><i data-lucide="check" size="18"></i> Automated deadline reminders
+                        </li>
+                        <li style="color: inherit;"><i data-lucide="check" size="18"></i> Detailed customer history</li>
+                    </ul>
+                </div>
+                <div class="about-image">
+                    <div
+                        style="height: 300px; background: var(--bg-card); border-radius: 12px; border: var(--glass-border);">
+                        <i data-lucide="list-checks" size="48" style="opacity: 0.2;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory -->
+            <div class="feature-row">
+                <div class="feature-text">
+                    <div class="icon-box"><i data-lucide="package"></i></div>
+                    <h3>Efficient Inventory Management</h3>
+                    <p>Stop guessing your stock levels. Our inventory system tracks every inch of molding and every
+                        sheet of glass used in your orders.</p>
+                    <ul class="about-content">
+                        <li style="color: inherit;"><i data-lucide="check" size="18"></i> Real-time stock alerts</li>
+                        <li style="color: inherit;"><i data-lucide="check" size="18"></i> Batch material updates</li>
+                        <li style="color: inherit;"><i data-lucide="check" size="18"></i> Waste management tracking</li>
+                    </ul>
+                </div>
+                <div class="about-image">
+                    <div
+                        style="height: 300px; background: var(--bg-card); border-radius: 12px; border: var(--glass-border);">
+                        <i data-lucide="boxes" size="48" style="opacity: 0.2;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Finance -->
+            <div class="feature-row">
+                <div class="feature-text">
+                    <div class="icon-box"><i data-lucide="bar-chart-3"></i></div>
+                    <h3>Financial Clarity</h3>
+                    <p>Understand your business health with beautiful, easy-to-read financial dashboards. Monitor
+                        revenue trends and manage expenses with ease.</p>
+                    <ul class="about-content">
+                        <li style="color: inherit;"><i data-lucide="check" size="18"></i> Profitability reports per
+                            order</li>
+                        <li style="color: inherit;"><i data-lucide="check" size="18"></i> Expense categorization</li>
+                        <li style="color: inherit;"><i data-lucide="check" size="18"></i> Quarterly tax summaries</li>
+                    </ul>
+                </div>
+                <div class="about-image">
+                    <div
+                        style="height: 300px; background: var(--bg-card); border-radius: 12px; border: var(--glass-border);">
+                        <i data-lucide="line-chart" size="48" style="opacity: 0.2;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" style="background: rgba(var(--accent-rgb), 0.02);">
+        <div class="container">
+            <div class="section-header">
+                <h2>And Much More...</h2>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <i data-lucide="file-text" color="#FF2E36"></i>
+                    <h4>Quotation Engine</h4>
+                    <p>Generate professional PDF quotes for your clients in seconds.</p>
+                </div>
+                <div class="card">
+                    <i data-lucide="database" color="#FF2E36"></i>
+                    <h4>Local Backup</h4>
+                    <p>Keep your data safe with scheduled local and automated cloud backups.</p>
+                </div>
+                <div class="card">
+                    <i data-lucide="user-plus" color="#FF2E36"></i>
+                    <h4>Customer CRM</h4>
+                    <p>Build a detailed database of your loyal clients and their design preferences.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="index.html" class="logo">
+                        <i data-lucide="layout-grid" color="#FF2E36"></i>
+                        AOF <span>Biz</span>
+                    </a>
+                    <p>Designed for professionals who value precision and style.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="features.html">All Features</a></li>
+                        <li><a href="download.html">Download</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="contact.html">Contact Us</a></li>
+                        <li><a href="index.html#about">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="contact.html">Help Center</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 AOF Biz. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        const toggleBtn = document.getElementById('theme-toggle');
+        const htmlElement = document.documentElement;
+        toggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            htmlElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    </script>
+</body>
+
+</html>

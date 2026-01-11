@@ -20,6 +20,11 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
+    <script>
+        // Check for saved theme preference or use default dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
 </head>
 
 <body>
@@ -27,16 +32,21 @@
     <!-- Navbar -->
     <nav class="navbar">
         <div class="container">
-            <a href="#" class="logo">
+            <a href="index.html" class="logo">
                 <i data-lucide="layout-grid" color="#FF2E36"></i>
                 AOF <span>Biz</span>
             </a>
             <div class="nav-links">
-                <a href="#features">Features</a>
-                <a href="#about">About</a>
-                <a href="#download">Download</a>
+                <a href="features.html">Features</a>
+                <a href="index.html#about">About</a>
+                <a href="download.html">Download</a>
+                <a href="contact.html">Contact</a>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle Theme">
+                    <i data-lucide="sun" class="sun"></i>
+                    <i data-lucide="moon" class="moon"></i>
+                </button>
             </div>
-            <button class="btn btn-primary btn-sm">Get Started</button>
+            <a href="download.html" class="btn btn-primary btn-sm">Get Started</a>
         </div>
     </nav>
 
@@ -47,55 +57,73 @@
 
         <div class="container">
             <div class="hero-content">
-                <span class="badge">v1.0 Now Available</span>
+                <span class="badge">v1.2 Now Available</span>
                 <h1>Master Your Frame Business<br>With Precision</h1>
                 <p class="hero-subtitle">
                     The all-in-one platform designed for modern art tracking, order management, and financial clarity.
-                    Built for professionals.
+                    Built for professionals who value efficiency.
                 </p>
                 <div class="hero-buttons">
-                    <button class="btn btn-primary">
+                    <a href="download.html" class="btn btn-primary">
                         <i data-lucide="download"></i> Download App
-                    </button>
-                    <button class="btn btn-outline">
-                        <i data-lucide="play-circle"></i> Watch Demo
-                    </button>
+                    </a>
+                    <a href="features.html" class="btn btn-outline">
+                        <i data-lucide="zap"></i> See All Features
+                    </a>
                 </div>
             </div>
 
             <div class="hero-image">
-                <!-- Using a placeholder SVGs until screenshots are available, or a div that mimics the app UI -->
                 <div
-                    style="width: 100%; height: 400px; background: #0F0F0F; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
-                    <!-- Abstract App UI Mockup -->
+                    style="width: 100%; height: 450px; background: #0F0F0F; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                    <!-- Mockup Content -->
                     <div
-                        style="width: 200px; height: 100%; border-right: 1px solid #333; position: absolute; left: 0; padding: 20px;">
+                        style="width: 200px; height: 100%; border-right: 1px solid #333; position: absolute; left: 0; padding: 20px; background: rgba(0,0,0,0.3);">
                         <div
                             style="width: 30px; height: 30px; background: #FF2E36; margin-bottom: 20px; border-radius: 6px;">
                         </div>
                         <div
-                            style="height: 10px; width: 60%; background: #333; margin-bottom: 10px; border-radius: 2px;">
+                            style="height: 10px; width: 60%; background: #333; margin-bottom: 15px; border-radius: 2px;">
                         </div>
                         <div
-                            style="height: 10px; width: 80%; background: #333; margin-bottom: 10px; border-radius: 2px;">
+                            style="height: 10px; width: 80%; background: #333; margin-bottom: 15px; border-radius: 2px;">
                         </div>
                         <div
-                            style="height: 10px; width: 50%; background: #333; margin-bottom: 10px; border-radius: 2px;">
+                            style="height: 10px; width: 50%; background: #333; margin-bottom: 15px; border-radius: 2px;">
                         </div>
                     </div>
-                    <div style="margin-left: 200px; width: calc(100% - 200px); padding: 20px;">
-                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <div style="margin-left: 200px; width: calc(100% - 200px); padding: 30px;">
+                        <div style="display: flex; gap: 15px; margin-bottom: 30px;">
                             <div
-                                style="flex: 1; height: 100px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+                                style="flex: 1; height: 120px; background: #1a1a1a; border-radius: 12px; border: 1px solid #333; padding: 15px;">
+                                <div
+                                    style="width: 30px; height: 30px; background: rgba(255,46,54,0.1); border-radius: 6px;">
+                                </div>
                             </div>
                             <div
-                                style="flex: 1; height: 100px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+                                style="flex: 1; height: 120px; background: #1a1a1a; border-radius: 12px; border: 1px solid #333; padding: 15px;">
+                                <div
+                                    style="width: 30px; height: 30px; background: rgba(59,130,246,0.1); border-radius: 6px;">
+                                </div>
                             </div>
                             <div
-                                style="flex: 1; height: 100px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+                                style="flex: 1; height: 120px; background: #1a1a1a; border-radius: 12px; border: 1px solid #333; padding: 15px;">
+                                <div
+                                    style="width: 30px; height: 30px; background: rgba(16,185,129,0.1); border-radius: 6px;">
+                                </div>
                             </div>
                         </div>
-                        <div style="height: 200px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+                        <div
+                            style="height: 220px; background: #1a1a1a; border-radius: 12px; border: 1px solid #333; padding: 20px;">
+                            <div
+                                style="height: 10px; width: 40%; background: #333; margin-bottom: 20px; border-radius: 2px;">
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <div style="height: 1px; background: #333; width: 100%;"></div>
+                                <div style="height: 1px; background: #333; width: 100%;"></div>
+                                <div style="height: 1px; background: #333; width: 100%;"></div>
+                                <div style="height: 1px; background: #333; width: 100%;"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -103,93 +131,73 @@
         </div>
     </header>
 
-    <!-- Features Section -->
+    <!-- Quick Features -->
     <section id="features" class="features">
         <div class="container">
             <div class="section-header">
-                <h2>Everything You Need</h2>
-                <p>Powerful tools integrated into one seamless interface to keep your business running smoothly.</p>
+                <h2>Powerful Dashboard</h2>
+                <p>Designed to provide full control over your business metrics and operational workflows.</p>
             </div>
 
             <div class="grid">
                 <div class="card">
-                    <div class="icon-box">
-                        <i data-lucide="shopping-cart"></i>
-                    </div>
-                    <h3>Order Management</h3>
-                    <p>Track every order from inception to delivery. Manage statuses, deadlines, and customer details
-                        effortlessly.</p>
+                    <div class="icon-box"><i data-lucide="shopping-cart"></i></div>
+                    <h3>Smart Orders</h3>
+                    <p>Track statuses, deadlines, and customer specifics in one unified view.</p>
                 </div>
-
                 <div class="card">
-                    <div class="icon-box">
-                        <i data-lucide="package"></i>
-                    </div>
-                    <h3>Inventory Control</h3>
-                    <p>Keep precise counts of your materials. Real-time updates prevent stockouts and over-ordering.</p>
+                    <div class="icon-box"><i data-lucide="package"></i></div>
+                    <h3>Inventory Sync</h3>
+                    <p>Real-time tracking of materials to prevent stockouts and waste.</p>
                 </div>
-
                 <div class="card">
-                    <div class="icon-box">
-                        <i data-lucide="bar-chart-3"></i>
-                    </div>
-                    <h3>Financial Insights</h3>
-                    <p>Visualize your income and expenses. Generate reports that help you make data-driven decisions.
-                    </p>
+                    <div class="icon-box"><i data-lucide="bar-chart-3"></i></div>
+                    <h3>Financial Reports</h3>
+                    <p>Comprehensive insights into revenue, expenses, and profitability.</p>
                 </div>
+            </div>
 
-                <div class="card">
-                    <div class="icon-box">
-                        <i data-lucide="users"></i>
-                    </div>
-                    <h3>Customer CRM</h3>
-                    <p>Maintain detailed customer profiles and history. Build stronger relationships with your clients.
-                    </p>
+            <div style="text-align: center; margin-top: 4rem;">
+                <a href="features.html" class="btn btn-outline">Explore All Features</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Info Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-grid">
+                <div class="about-image">
+                    <div><i data-lucide="shield-check" size="64" color="#FF2E36" style="opacity: 0.5;"></i></div>
                 </div>
-
-                <div class="card">
-                    <div class="icon-box">
-                        <i data-lucide="shield-check"></i>
-                    </div>
-                    <h3>Secure Data</h3>
-                    <p>Your business data is protected with enterprise-grade security and local backup options.</p>
-                </div>
-
-                <div class="card">
-                    <div class="icon-box">
-                        <i data-lucide="smartphone"></i>
-                    </div>
-                    <h3>Mobile Ready</h3>
-                    <p>Access your dashboard from anywhere. Fully responsive design for tablets and mobile devices.</p>
+                <div class="about-content">
+                    <h2>Professional Data Management</h2>
+                    <p>Your business data is the core of your success. AOF Biz provides robust tools to ensure
+                        everything is organized, backed up, and accessible when you need it.</p>
+                    <ul>
+                        <li><i data-lucide="check-circle-2"></i> Local and Cloud Backup Options</li>
+                        <li><i data-lucide="check-circle-2"></i> Role-based Access & Security</li>
+                        <li><i data-lucide="check-circle-2"></i> Automated Quotation Generation</li>
+                    </ul>
+                    <a href="contact.html" class="btn btn-outline" style="margin-top: 1rem;">Get a Custom Quote</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- About Section -->
-    <section id="about" class="about">
+    <!-- Download CTA -->
+    <section class="features"
+        style="background: rgba(var(--accent-rgb), 0.03); border-top: var(--glass-border); border-bottom: var(--glass-border);">
         <div class="container">
-            <div class="about-grid">
-                <div class="about-image">
-                    <!-- Abstract Placeholder -->
-                    <div
-                        style="width: 100%; height: 350px; background: linear-gradient(135deg, #1a1a1a 0%, #050505 100%); border-radius: 12px; border: 1px solid #333; display: flex; align-items: center; justify-content: center;">
-                        <i data-lucide="layers" size="64" color="#333"></i>
+            <div class="section-header" style="margin-bottom: 2rem;">
+                <h2>Start Your Free Trial</h2>
+                <p>Experience the efficiency of professional management today. Download now for Windows or Mac.</p>
+                <div class="download-grid" style="justify-content: center;">
+                    <div class="download-card" style="padding: 1.5rem;">
+                        <i data-lucide="monitor"></i>
+                        <h4>Windows</h4>
+                        <a href="download.html" class="btn btn-primary btn-sm" style="margin-top: 1rem;">Setup v1.2</a>
                     </div>
-                </div>
-
-                <div class="about-content">
-                    <h2>Designed for Efficiency</h2>
-                    <p>AOF Biz was born from the need to simplify the complex workflows of the custom framing industry.
-                        We understand the nuances of your work.</p>
-
-                    <ul>
-                        <li><i data-lucide="check-circle-2"></i> Streamlined workflows for faster processing</li>
-                        <li><i data-lucide="check-circle-2"></i> Intuitive interface requiring zero training</li>
-                        <li><i data-lucide="check-circle-2"></i> Constant updates and feature improvements</li>
-                    </ul>
-
-                    <button class="btn btn-outline" style="margin-top: 2rem;">Learn More About Us</button>
                 </div>
             </div>
         </div>
@@ -200,49 +208,57 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-brand">
-                    <a href="#" class="logo">
+                    <a href="index.html" class="logo">
                         <i data-lucide="layout-grid" color="#FF2E36"></i>
                         AOF <span>Biz</span>
                     </a>
-                    <p>The ultimate solution for managing your framing business. Professional, reliable, and secure.</p>
+                    <p>Revolutionizing frame business management with cutting-edge tools and intuitive design.</p>
                 </div>
-
                 <div class="footer-col">
                     <h4>Product</h4>
                     <ul>
-                        <li><a href="#">Features</a></li>
-                        <li><a href="#">Pricing</a></li>
-                        <li><a href="#">Updates</a></li>
+                        <li><a href="features.html">All Features</a></li>
+                        <li><a href="download.html">Download</a></li>
+                        <li><a href="download.html#pricing">Pricing</a></li>
                     </ul>
                 </div>
-
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="contact.html">Contact Us</a></li>
+                        <li><a href="index.html#about">About</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
                 <div class="footer-col">
                     <h4>Support</h4>
                     <ul>
-                        <li><a href="#">Documentation</a></li>
-                        <li><a href="#">Contact Us</a></li>
-                        <li><a href="#">FAQ</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-col">
-                    <h4>Legal</h4>
-                    <ul>
-                        <li><a href="#">Privacy Policy</a></li>
-                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="contact.html">Help Center</a></li>
+                        <li><a href="download.html#updates">Release Notes</a></li>
                     </ul>
                 </div>
             </div>
-
             <div class="footer-bottom">
-                <p>&copy; 2026 AOF Biz. All rights reserved.</p>
+                <p>&copy; 2026 AOF Biz. All rights reserved. Crafted for Professionals.</p>
             </div>
         </div>
     </footer>
 
-    <!-- Initialize Lucide Icons -->
     <script>
+        // Initialize Lucide
         lucide.createIcons();
+
+        // Theme Toggle Logic
+        const toggleBtn = document.getElementById('theme-toggle');
+        const htmlElement = document.documentElement;
+
+        toggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            htmlElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
     </script>
 </body>
 
