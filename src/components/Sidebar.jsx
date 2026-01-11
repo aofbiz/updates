@@ -365,7 +365,7 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen, onAdd
                   </button>
 
                   {/* Help / Documentation */}
-                  <button onClick={() => { window.open('https://aofbiz.github.io/updates/docs.html', '_blank'); setShowProfileMenu(false); }} style={menuItemStyle}>
+                  <button onClick={() => { window.open('https://aofbiz.github.io/docs.html', '_blank'); setShowProfileMenu(false); }} style={menuItemStyle}>
                     <LifeBuoy size={18} />
                     Help & Docs
                   </button>

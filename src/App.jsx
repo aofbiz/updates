@@ -239,7 +239,7 @@ function AppContent() {
         setActiveView('contact')
         break
       case 'help':
-        window.open('https://aofbiz.github.io/updates/docs.html', '_blank')
+        window.open('https://aofbiz.github.io/docs.html', '_blank')
         break
       case 'about':
         setActiveView('about')
