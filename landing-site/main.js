@@ -154,6 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 infoLink.href = data.html_url; // Link to the GitHub release page
             }
 
+            // Update Hero Badge
+            const heroBadge = document.querySelector('.badge-new');
+            if (heroBadge) {
+                heroBadge.textContent = `New Version ${version} Available`;
+            }
+
             // Find Assets
             const winAsset = data.assets.find(a => a.name.endsWith('.exe'));
             const androidAsset = data.assets.find(a => a.name.endsWith('.apk'));
