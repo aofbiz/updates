@@ -108,6 +108,7 @@ export const LicensingProvider = ({ children }) => {
         const handleAuthUrl = async (url) => {
             if (!url) return
             console.log('Processing auth callback:', url)
+            setIsLoading(true)
             try {
                 const user = await handleAuthCallback(url)
                 if (user) {
@@ -142,6 +143,10 @@ export const LicensingProvider = ({ children }) => {
                 }
             } catch (err) {
                 console.error('Deep link auth fail:', err)
+                setAuthError('Login failed during authentication callback.')
+            } finally {
+                // Small delay to ensure all state updates are processed before clearing loader
+                setTimeout(() => setIsLoading(false), 500)
             }
         }
 

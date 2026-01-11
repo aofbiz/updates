@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { LayoutDashboard, ShoppingBag, Package, DollarSign, Settings, Menu, X, Plus, FileText, BarChart3, Crown, Sun, Moon, LogOut, User, ChevronRight, HelpCircle, Phone, LifeBuoy } from 'lucide-react'
+import { LayoutDashboard, ShoppingBag, Package, DollarSign, Settings, Menu, X, Plus, FileText, BarChart3, Crown, Sun, Moon, LogOut, User, ChevronRight, HelpCircle, Phone, LifeBuoy, Info } from 'lucide-react'
 import { useTheme } from './ThemeContext'
 import { useLicensing } from './LicensingContext'
 import { ProFeatureBadge } from './ProFeatureLock'
@@ -85,7 +85,7 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen, onAdd
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderRight: '1px solid var(--border-color)',
-        padding: '2rem 0 0 0',
+        padding: 'calc(1.5rem + var(--safe-area-top)) 0 0 0',
         zIndex: 100,
         transition: 'transform 0.3s ease',
         display: 'flex',
@@ -415,6 +415,7 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen, onAdd
             tabIndex={0}
             style={{
               padding: '1rem 1.5rem',
+              paddingBottom: 'calc(1rem + var(--safe-area-bottom))',
               backgroundColor: showProfileMenu ? 'var(--bg-secondary)' : 'transparent',
               borderTop: '1px solid var(--border-color)',
               cursor: 'pointer',

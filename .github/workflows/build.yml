@@ -23,10 +23,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Build Web App
-        run: npm run build
-
-      - name: Build Electron EXE
+      - name: Build & Publish Electron EXE
         run: npm run electron:build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
