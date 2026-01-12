@@ -2429,7 +2429,7 @@ const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, 
               <ShieldCheck size={18} color="var(--success)" /> Cloud Backup Automation
             </h4>
 
-            <div style={{ padding: '1rem', backgroundColor: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div style={{ padding: '1rem', backgroundColor: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <label className="switch">
                   <input type="checkbox" checked={isAutoBackupEnabled} onChange={e => setIsAutoBackupEnabled(e.target.checked)} />
@@ -2499,7 +2499,7 @@ const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, 
           </button>
         </div>
 
-        <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+        <div style={{ maxHeight: '250px', overflowY: 'auto', overflowX: 'auto' }}>
           {isLoadingFiles ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
               <RefreshCw size={24} className="spin" style={{ marginBottom: '1rem', opacity: 0.5 }} />
@@ -2569,13 +2569,13 @@ const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, 
 
       {/* Connection Management Footer */}
       <div style={{
-        paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+        paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: 'var(--success)' }}></div>
           <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Active Connection</span>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', width: '100%', justifyContent: 'flex-end', marginTop: 10 }}>
           <button
             className="btn btn-ghost btn-sm"
             onClick={handleDisconnect}
