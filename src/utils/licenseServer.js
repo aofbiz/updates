@@ -39,10 +39,10 @@ export const signInWithGoogle = async () => {
         options: {
             redirectTo: redirectTo,
             skipBrowserRedirect: isElectron, // Prevent main window from navigating
+            scopes: 'https://www.googleapis.com/auth/drive.file',
             queryParams: {
                 access_type: 'offline',
                 prompt: 'consent',
-                scope: 'openid email profile https://www.googleapis.com/auth/drive.file'
             },
         },
     })
