@@ -24,19 +24,35 @@ export const loadGoogleScript = () => {
     })
 }
 
-// Initialize the Token Client
-// Returns the client instance
+// Initialize the Token Client or handle Electron Auth
 export const initTokenClient = (clientId, callback) => {
+    // If in Electron, we use the library-less redirect flow because Google blocks GSI in Electron
+    if (window.electronAPI) {
+        return {
+            requestAccessToken: () => {
+                const redirectUri = 'aof-biz://auth-callback';
+                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                    `client_id=${clientId}&` +
+                    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                    `response_type=token&` +
+                    `scope=${encodeURIComponent(SCOPES)}&` +
+                    `prompt=consent`;
+
+                window.electronAPI.openExternal(authUrl);
+            }
+        };
+    }
+
     if (!window.google) {
-        throw new Error('Google script not loaded')
+        throw new Error('Google script not loaded');
     }
 
     return window.google.accounts.oauth2.initTokenClient({
         client_id: clientId,
         scope: SCOPES,
         callback: callback,
-    })
-}
+    });
+};
 
 /**
 * Uploads a file to Google Drive

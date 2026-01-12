@@ -2029,7 +2029,23 @@ const GoogleDriveBackup = ({ settings, setSettings, orders, expenses, inventory,
     }
 
     loadGoogleScript().catch(err => console.error("Failed to load Google Script", err))
-  }, [settings])
+
+    // Handle deep link callback for Google Drive Auth (Desktop Only)
+    if (window.electronAPI) {
+      const handleDriveAuth = (url) => {
+        if (!url) return;
+        const params = new URLSearchParams(url.split('#')[1] || url.split('?')[1]);
+        const token = params.get('access_token');
+        if (token) {
+          setAccessToken(token);
+          setIsConnected(true);
+          showToast('Connected to Google Drive!', 'success');
+        }
+      };
+
+      window.electronAPI.onAuthCallback(handleDriveAuth);
+    }
+  }, [settings, showToast])
 
   const handleSaveSettings = async () => {
     const updatedSettings = {
