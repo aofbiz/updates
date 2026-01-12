@@ -55,11 +55,19 @@
             <p>The all-in-one management tool for your framing business. Download, install, and get organized in
                 minutes.</p>
 
-            <div style="margin-top: 3rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem;">
-                <a href="https://github.com/aofbiz/aofbiz.github.io/releases/latest/download/AOF.Biz.Setup.exe"
-                    class="btn btn-primary btn-lg" style="min-width: 250px; justify-content: center;">
-                    <i data-lucide="download"></i> Download for Windows
-                </a>
+            <div style="margin-top: 3rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                <div class="download-buttons"
+                    style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+                    <a id="windows-download-btn"
+                        href="https://github.com/aofbiz/aofbiz.github.io/releases/latest/download/AOF.Biz.Setup.exe"
+                        class="btn btn-primary btn-lg" style="min-width: 250px; justify-content: center;">
+                        <i data-lucide="download"></i> Download for Windows
+                    </a>
+                    <a id="mobile-download-btn" href="#" class="btn btn-secondary btn-lg"
+                        style="min-width: 250px; justify-content: center; display: none;">
+                        <i data-lucide="smartphone"></i> Download for Android
+                    </a>
+                </div>
                 <p style="font-size: 0.9rem; color: var(--text-muted);">
                     Requires Windows 10 or 11 (64-bit)
                 </p>
@@ -181,6 +189,69 @@
             htmlElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
         });
+
+        // Fetch latest version and download links
+        async function fetchDownloadLinks() {
+            // Configuration matching index.html
+            const SUPABASE_PROJECT_URL = 'https://tvuiezseozqUflhMvMce.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2dWllenNlb3pxVWZsaE12TWN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkyNTU5MDksImV4cCI6MjA1NDgzMTkwOX0.qXQ26l6SlaJ7-1_p5Q28e4e6y6a3-5c7_d8f9e0a1b2';
+
+            try {
+                // Fetch latest Windows version
+                try {
+                    const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/updates?select=version,url&os=eq.windows&order=created_at.desc&limit=1`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.length > 0) {
+                            const windowsBtn = document.getElementById('windows-download-btn');
+                            if (windowsBtn) {
+                                windowsBtn.href = data[0].url;
+                                windowsBtn.innerHTML = `<i data-lucide="download"></i> Download for Windows <span style="font-size: 0.8em; opacity: 0.8; margin-left:8px;">(v${data[0].version})</span>`;
+                                lucide.createIcons();
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Windows fetch failed", e);
+                }
+
+                // Fetch latest Android version
+                try {
+                    const mobileResponse = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/updates?select=version,url&os=eq.android&order=created_at.desc&limit=1`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+
+                    if (mobileResponse.ok) {
+                        const mobileData = await mobileResponse.json();
+                        if (mobileData && mobileData.length > 0) {
+                            const mobileBtn = document.getElementById('mobile-download-btn');
+                            if (mobileBtn) {
+                                mobileBtn.href = mobileData[0].url;
+                                mobileBtn.innerHTML = `<i data-lucide="smartphone"></i> Download for Android <span style="font-size: 0.8em; opacity: 0.8; margin-left:8px;">(v${mobileData[0].version})</span>`;
+                                mobileBtn.style.display = 'inline-flex';
+                                lucide.createIcons();
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Android fetch failed", e);
+                }
+
+            } catch (error) {
+                console.warn('Failed to fetch latest versions:', error);
+            }
+        }
+
+        fetchDownloadLinks();
     </script>
 </body>
 
