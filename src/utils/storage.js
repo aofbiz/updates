@@ -296,11 +296,13 @@ Tracking number: {{tracking_number}}
 export const saveSettings = async (settings) => {
   try {
     const s = { ...settings } // ensure plain obj
-    await db.settings.put({
+    const record = {
       id: 'settings',
       data: s,
       updatedAt: new Date().toISOString()
-    })
+    }
+    await db.settings.put(record)
+    autoSyncRecord('settings', record)
     return true
   } catch (error) {
     console.error('Error saving settings:', error)
@@ -322,11 +324,13 @@ export const getOrderCounter = async () => {
 
 export const saveOrderCounter = async (counter) => {
   try {
-    await db.orderCounter.put({
+    const record = {
       id: 'counter',
       value: counter,
       updatedAt: new Date().toISOString()
-    })
+    }
+    await db.orderCounter.put(record)
+    autoSyncRecord('orderCounter', record)
     return true
   } catch (error) {
     console.error('Error saving order counter:', error)
@@ -370,6 +374,11 @@ export const saveInventory = async (inventory) => {
 
     // Store directly in Dexie. No need for Supabase-specific transformations.
     await db.inventory.bulkPut(inventory)
+
+    // Auto-sync
+    for (const item of inventory) {
+      autoSyncRecord('inventory', item)
+    }
     return true
   } catch (error) {
     console.error('Error saving inventory:', error)
@@ -380,6 +389,7 @@ export const saveInventory = async (inventory) => {
 export const deleteInventoryItem = async (itemId) => {
   try {
     await db.inventory.delete(itemId)
+    autoSyncDelete('inventory', itemId)
     return true
   } catch (error) {
     console.error('Error deleting inventory item:', error)
@@ -406,11 +416,13 @@ export const getInventoryCategories = async () => {
 
 export const saveInventoryCategories = async (inventoryCategories) => {
   try {
-    await db.products.put({
+    const record = {
       id: 'inventory_categories',
       data: inventoryCategories,
       updatedAt: new Date().toISOString()
-    })
+    }
+    await db.products.put(record)
+    autoSyncRecord('products', record)
     return true
   } catch (error) {
     console.error('Error saving inventory categories:', error)
@@ -446,11 +458,13 @@ export const getExpenseCategories = async () => {
 
 export const saveExpenseCategories = async (expenseCategories) => {
   try {
-    await db.products.put({
+    const record = {
       id: 'expense_categories',
       data: expenseCategories,
       updatedAt: new Date().toISOString()
-    })
+    }
+    await db.products.put(record)
+    autoSyncRecord('products', record)
     return true
   } catch (error) {
     console.error('Error saving expense categories:', error)
@@ -477,7 +491,11 @@ export const saveOrderSources = async (sources) => {
   try {
     if (!sources || sources.length === 0) {
       // Clear all order sources if an empty array is passed
+      const existing = await db.orderSources.toCollection().primaryKeys()
       await db.orderSources.clear()
+      for (const id of existing) {
+        autoSyncDelete('orderSources', id)
+      }
       return true
     }
 
@@ -497,6 +515,11 @@ export const saveOrderSources = async (sources) => {
     }))
 
     await db.orderSources.bulkPut(dbRows)
+
+    // Auto-sync
+    for (const row of dbRows) {
+      autoSyncRecord('orderSources', row)
+    }
     return true
   } catch (error) {
     console.error('Error saving order sources:', error)
@@ -559,6 +582,11 @@ export const saveTrackingNumbers = async (trackingNumbers) => {
     }))
 
     await db.trackingNumbers.bulkPut(dbFormat)
+
+    // Auto-sync
+    for (const tn of dbFormat) {
+      autoSyncRecord('trackingNumbers', tn)
+    }
     return true
   } catch (error) {
     console.error('Error saving tracking numbers:', error)
@@ -586,11 +614,13 @@ export const getProducts = async () => {
 
 export const saveProducts = async (products) => {
   try {
-    await db.products.put({
+    const record = {
       id: 'products',
       data: products,
       updatedAt: new Date().toISOString()
-    })
+    }
+    await db.products.put(record)
+    autoSyncRecord('products', record)
     return true
   } catch (error) {
     console.error('Error saving products:', error)
@@ -650,10 +680,13 @@ export const markTrackingNumberAsUsed = async (trackingNumber, trackingNumbers =
     // Update in Dexie
     const tnToUpdate = await db.trackingNumbers.get(trackingNumber)
     if (tnToUpdate) {
-      await db.trackingNumbers.update(trackingNumber, {
+      const updated = {
+        ...tnToUpdate,
         status: 'used',
         updatedAt: new Date().toISOString()
-      })
+      }
+      await db.trackingNumbers.put(updated)
+      autoSyncRecord('trackingNumbers', updated)
     }
 
     // Return updated local array
@@ -874,7 +907,12 @@ export const addInventoryLog = async (logData) => {
       notes: logData.notes || ''
     }
 
-    await db.inventoryLogs.add(dbLog)
+    const record = {
+      ...dbLog,
+      updatedAt: dbLog.date
+    }
+    await db.inventoryLogs.add(record)
+    autoSyncRecord('inventoryLogs', record)
     return true
   } catch (error) {
     console.error('Error adding inventory log:', error)
@@ -885,6 +923,7 @@ export const addInventoryLog = async (logData) => {
 export const deleteInventoryLog = async (logId) => {
   try {
     await db.inventoryLogs.delete(logId)
+    autoSyncDelete('inventoryLogs', logId)
     return true
   } catch (error) {
     console.error('Error deleting inventory log:', error)
@@ -917,6 +956,10 @@ export const saveQuotations = async (quotations) => {
     // Delete quotations that are no longer in the array
     if (quotationsToDelete.length > 0) {
       await db.quotations.bulkDelete(quotationsToDelete)
+      // Auto-sync deletions
+      for (const id of quotationsToDelete) {
+        autoSyncDelete('quotations', id)
+      }
     }
 
     if (!quotations || quotations.length === 0) {
@@ -925,6 +968,11 @@ export const saveQuotations = async (quotations) => {
 
     // Store directly in Dexie
     await db.quotations.bulkPut(quotations)
+
+    // Auto-sync
+    for (const q of quotations) {
+      autoSyncRecord('quotations', q)
+    }
     return true
   } catch (error) {
     console.error('Error saving quotations:', error)
@@ -935,6 +983,7 @@ export const saveQuotations = async (quotations) => {
 export const deleteQuotation = async (id) => {
   try {
     await db.quotations.delete(id)
+    autoSyncDelete('quotations', id)
     return true
   } catch (error) {
     console.error('Error deleting quotation:', error)

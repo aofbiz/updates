@@ -9,7 +9,7 @@ import { db } from '../db'
 import { getSupabase, isSupabaseConfigured } from './supabaseClient'
 
 // Tables that should be synced
-const SYNC_TABLES = ['orders', 'expenses', 'inventory', 'settings', 'trackingNumbers', 'orderSources', 'products']
+const SYNC_TABLES = ['orders', 'expenses', 'inventory', 'settings', 'trackingNumbers', 'orderSources', 'products', 'orderCounter', 'inventoryLogs', 'quotations']
 
 // Map local table names to Supabase table names
 const TABLE_MAP = {
@@ -19,7 +19,10 @@ const TABLE_MAP = {
     settings: 'settings',
     trackingNumbers: 'tracking_numbers',
     orderSources: 'order_sources',
-    products: 'products'
+    products: 'products',
+    orderCounter: 'order_counter',
+    inventoryLogs: 'inventory_logs',
+    quotations: 'quotations'
 }
 
 /**
@@ -274,14 +277,16 @@ const getLocalData = async (tableName) => {
                 return await db.trackingNumbers.toArray()
             case 'orderSources':
                 return await db.orderSources.toArray()
-            case 'settings': {
-                const settings = await db.settings.get('settings')
-                return settings ? [{ id: 'settings', ...settings }] : []
-            }
-            case 'products': {
-                const products = await db.products.get('products')
-                return products ? [{ id: 'products', ...products }] : []
-            }
+            case 'quotations':
+                return await db.quotations.toArray()
+            case 'inventoryLogs':
+                return await db.inventoryLogs.toArray()
+            case 'settings':
+                return await db.settings.toArray()
+            case 'products':
+                return await db.products.toArray()
+            case 'orderCounter':
+                return await db.orderCounter.toArray()
             default:
                 return []
         }
