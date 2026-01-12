@@ -574,6 +574,111 @@ textarea.form-control {
     font-size: 0.9rem;
 }
 
+/* Pricing Section */
+.pricing-section {
+    padding: 6rem 0;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+}
+
+.pricing-header {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto 4rem;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.pricing-card {
+    background: var(--bg-card);
+    border: var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.pricing-card.pro {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.1);
+    transform: scale(1.02);
+}
+
+.pricing-card.pro:hover {
+    transform: scale(1.04);
+}
+
+.popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-primary);
+    color: white;
+    padding: 0.25rem 1rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.plan-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.price-tag {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+
+.price-period {
+    font-size: 1rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.plan-features {
+    margin: 2rem 0;
+    flex: 1;
+}
+
+.plan-features li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.plan-features li.disabled {
+    color: var(--text-muted);
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+.plan-features i {
+    flex-shrink: 0;
+}
+
 /* Responsive */
 @media (max-width: 992px) {
 
@@ -599,6 +704,10 @@ textarea.form-control {
 
     .footer-content {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .pricing-card.pro {
+        transform: none;
     }
 }
 
