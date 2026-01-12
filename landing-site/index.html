@@ -37,6 +37,7 @@
                 AOF <span>Biz</span>
             </a>
             <div class="nav-links">
+                <a href="index.html">Home</a>
                 <a href="features.html">Features</a>
                 <a href="index.html#about">About</a>
                 <a href="download.html">Download</a>
@@ -57,6 +58,13 @@
 
         <div class="container">
             <div class="hero-content">
+                <div
+                    style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 46, 54, 0.1); border: 1px solid rgba(255, 46, 54, 0.2); padding: 4px 12px; border-radius: 20px; margin-bottom: 24px;">
+                    <span
+                        style="width: 8px; height: 8px; background: #FF2E36; border-radius: 50%; display: block;"></span>
+                    <span id="version-badge-text" style="color: #FF2E36; font-size: 0.85rem; font-weight: 600;">v1.0.30
+                        Available</span>
+                </div>
                 <h1>Master Your Frame Business<br>With Precision</h1>
                 <p class="hero-subtitle">
                     The all-in-one platform designed for modern art tracking, order management, and financial clarity.
@@ -178,29 +186,11 @@
                         <li><i data-lucide="check-circle-2"></i> Role-based Access & Security</li>
                         <li><i data-lucide="check-circle-2"></i> Automated Quotation Generation</li>
                     </ul>
-                    <a href="contact.html" class="btn btn-outline" style="margin-top: 1rem;">Get a Custom Quote</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Download CTA -->
-    <section class="features"
-        style="background: rgba(var(--accent-rgb), 0.03); border-top: var(--glass-border); border-bottom: var(--glass-border);">
-        <div class="container">
-            <div class="section-header" style="margin-bottom: 2rem;">
-                <h2>Start Your Free Trial</h2>
-                <p>Experience the efficiency of professional management today. Download now for Windows or Mac.</p>
-                <div class="download-grid" style="justify-content: center;">
-                    <div class="download-card" style="padding: 1.5rem;">
-                        <i data-lucide="monitor"></i>
-                        <h4>Windows</h4>
-                        <a href="download.html" class="btn btn-primary btn-sm" style="margin-top: 1rem;">Setup v1.2</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <!-- Footer -->
     <footer class="footer">
@@ -258,6 +248,40 @@
             htmlElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
         });
+
+        // ----------------------------------------------------
+        // FETCH LATEST VERSION FROM SUPABASE
+        // ----------------------------------------------------
+        const SUPABASE_PROJECT_URL = 'https://tvuiezseozqUflhMvMce.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2dWllenNlb3pxVWZsaE12TWN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkyNTU5MDksImV4cCI6MjA1NDgzMTkwOX0.qXQ26l6SlaJ7-1_p5Q28e4e6y6a3-5c7_d8f9e0a1b2';
+
+        async function fetchLatestVersion() {
+            try {
+                // We use the REST API manually to avoid importing the sizeable supabase-js client
+                const response = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/updates?select=version&order=created_at.desc&limit=1`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    const latestVersion = data[0].version;
+                    const badge = document.getElementById('version-badge-text');
+                    if (badge) {
+                        badge.textContent = `${latestVersion} Available`;
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to fetch latest version:', error);
+                // Fallback text is already in HTML
+            }
+        }
+
+        fetchLatestVersion();
     </script>
 </body>
 
