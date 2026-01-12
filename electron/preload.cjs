@@ -69,9 +69,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     /**
      * Start downloading the available update.
+     * @param {string} url - The URL of the executable/installer.
+     * @param {string} checksum - Optional SHA-256 checksum for verification.
      */
-    startDownload: () => {
-        return ipcRenderer.invoke('start-download')
+    startDownload: (url, checksum) => {
+        return ipcRenderer.invoke('start-download', url, checksum)
     },
 
     /**

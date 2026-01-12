@@ -27,11 +27,18 @@ import CollapsibleSection from './Settings/CollapsibleSection'
 import CloudSyncSetup from './Settings/CloudSyncSetup'
 import UpdatesSection from './Settings/UpdatesSection'
 
-const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, onUpdateInventory, onLogout, updateManager }) => {
+const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, onUpdateInventory, onLogout }) => {
   const { addToast } = useToast()
   const { userMode, setUserMode, resetSelection, isProUser, isFreeUser } = useLicensing()
   const { theme, setTheme, fontFamily, setFontFamily, fontSize, setFontSize, effectiveTheme, paletteId, setPalette } = useTheme()
-  const [activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('aof_settings_active_tab') || 'general'
+  })
+
+  // Persistence for active tab
+  useEffect(() => {
+    localStorage.setItem('aof_settings_active_tab', activeTab)
+  }, [activeTab])
   const [settings, setSettings] = useState({})
   const [expandedSections, setExpandedSections] = useState({
     trackingNumbers: false,
@@ -151,7 +158,7 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
           { id: 'expenses', label: 'Expenses', pro: true },
           { id: 'inventory', label: 'Inventory', pro: true },
           { id: 'premium', label: 'Premium', pro: true },
-          { id: 'updates', label: 'Updates' },
+          { id: 'updates', label: 'Updates', pro: false },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -209,8 +216,9 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
         </div>
       )}
 
+
       {activeTab === 'updates' && (
-        <UpdatesSection updateManager={updateManager} />
+        <UpdatesSection />
       )}
 
       {activeTab === 'general' && (

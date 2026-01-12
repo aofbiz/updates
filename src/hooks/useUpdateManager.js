@@ -1,160 +1,115 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { getLatestUpdate } from '../services/updateService'
 import pkg from '../../package.json'
 
-/**
- * useUpdateManager
- * 
- * High-level hook to manage software updates across platforms.
- * Bridges Electron IPC and Capacitor logic.
- */
 export const useUpdateManager = () => {
-    const [status, setStatus] = useState('idle') // 'idle', 'checking', 'available', 'downloading', 'ready', 'none'
-    const [progress, setProgress] = useState(0)
+    const [status, setStatus] = useState('idle') // idle, checking, available, downloading, ready, up-to-date, error
     const [updateInfo, setUpdateInfo] = useState(null)
+    const [progress, setProgress] = useState(0)
     const [error, setError] = useState(null)
-    const [supabaseUpdate, setSupabaseUpdate] = useState(null)
-    const [autoUpdate, setAutoUpdate] = useState(() => {
-        const saved = localStorage.getItem('aof_auto_update')
-        return saved === null ? true : saved === 'true'
-    })
 
     const currentVersion = pkg.version
 
-    const isElectron = !!window.electronAPI
+    const compareVersions = (latest, current) => {
+        if (!latest || !current) return 0
+        const parse = (v) => v.replace(/^v/, '').split('.').map(Number)
+        const l = parse(latest)
+        const c = parse(current)
 
-    // Persist autoUpdate setting
-    useEffect(() => {
-        localStorage.setItem('aof_auto_update', autoUpdate)
-    }, [autoUpdate])
-
-    /**
-     * Handle Update Status from Electron
-     */
-    useEffect(() => {
-        if (isElectron && window.electronAPI.onUpdateStatus) {
-            window.electronAPI.onUpdateStatus((data) => {
-                const { type, info, message, error: updateError, percent } = data
-
-                switch (type) {
-                    case 'checking':
-                        setStatus('checking')
-                        break
-                    case 'available':
-                        setStatus('available')
-                        setUpdateInfo(info)
-                        // If auto-update is on, start download immediately
-                        if (autoUpdate) {
-                            window.electronAPI.startDownload()
-                        }
-                        break
-                    case 'not-available':
-                        setStatus('none')
-                        break
-                    case 'downloading':
-                        setStatus('downloading')
-                        setProgress(percent || 0)
-                        break
-                    case 'downloaded':
-                        setStatus('ready')
-                        setProgress(100)
-                        break
-                    case 'error':
-                        setStatus('idle')
-                        setError(updateError || message)
-                        break
-                    default:
-                        break
-                }
-            })
+        // Pad with zeros if version lengths differ
+        const length = Math.max(l.length, c.length)
+        for (let i = 0; i < length; i++) {
+            const lVal = l[i] || 0
+            const cVal = c[i] || 0
+            if (lVal > cVal) return 1
+            if (lVal < cVal) return -1
         }
-    }, [isElectron, autoUpdate])
+        return 0
+    }
 
-    /**
-     * Actions
-     */
-    const checkForUpdates = useCallback(async () => {
+    const checkForUpdates = useCallback(async (isSilent = false) => {
+        if (!isSilent) setStatus('checking')
         setError(null)
-        setStatus('checking')
 
         try {
-            // First check Supabase for the latest public metadata
-            const latest = await getLatestUpdate()
-            setSupabaseUpdate(latest)
+            // Add a small delay for non-silent check to feel more interactive
+            if (!isSilent) await new Promise(r => setTimeout(r, 800))
 
-            if (latest && latest.version !== currentVersion) {
-                // There is a newer version on Supabase
-                if (isElectron) {
-                    // On Desktop, trigger the actual binary check
-                    try {
-                        const result = await window.electronAPI.checkForUpdates()
-                        // If result indicates no update available via GH but Supabase says yes,
-                        // we'll still show the available state using Supabase info
-                        if (status === 'none' || status === 'idle') {
-                            setStatus('available')
-                            setUpdateInfo({
-                                version: latest.version,
-                                releaseNotes: latest.release_notes
-                            })
-                        }
-                    } catch (err) {
-                        setStatus('available')
-                        setUpdateInfo({
-                            version: latest.version,
-                            releaseNotes: latest.release_notes
-                        })
-                    }
-                } else {
-                    // On Mobile/Web, just show availability
-                    setStatus('available')
-                    setUpdateInfo({
-                        version: latest.version,
-                        releaseNotes: latest.release_notes
-                    })
-                }
+            const latest = await getLatestUpdate()
+            if (!latest) {
+                if (!isSilent) setStatus('up-to-date')
+                return
+            }
+
+            if (compareVersions(latest.version, currentVersion) > 1 || compareVersions(latest.version, currentVersion) === 1) {
+                setUpdateInfo(latest)
+                setStatus('available')
             } else {
-                // Supabase says we are up to date
-                if (isElectron) {
-                    await window.electronAPI.checkForUpdates()
-                } else {
-                    setTimeout(() => setStatus('none'), 1000)
-                }
+                if (!isSilent) setStatus('up-to-date')
             }
         } catch (err) {
-            console.error('Update Check Error:', err)
-            setError('Failed to check for updates: ' + err.message)
-            setStatus('idle')
+            console.error('UpdateManager: Check failed:', err)
+            setError('Failed to check for updates.')
+            setStatus('error')
         }
-    }, [isElectron, currentVersion])
+    }, [currentVersion])
 
-    const startDownload = useCallback(async () => {
-        if (isElectron) {
-            await window.electronAPI.startDownload()
+    const startDownload = useCallback(async (platform = null) => {
+        if (!updateInfo) return
+
+        // Determine which link to use
+        const useApk = platform === 'apk' || (!platform && !window.electronAPI)
+        const downloadUrl = useApk ? updateInfo.apk_link : updateInfo.exe_link
+
+        if (!downloadUrl) {
+            setError(`${useApk ? 'APK' : 'EXE'} download link missing.`)
+            setStatus('error')
+            return
         }
-    }, [isElectron])
 
-    const installUpdate = useCallback(async () => {
-        if (isElectron) {
-            await window.electronAPI.installUpdate()
+        // If it's an APK or we are not in Electron, open in browser
+        if (useApk || !window.electronAPI) {
+            window.open(downloadUrl, '_blank')
+            if (useApk && window.electronAPI) {
+                // If we are in Electron but downloading APK, just keep status as available
+                return
+            }
+            setStatus('ready')
+        } else {
+            // Electron EXE flow
+            setStatus('downloading')
+            setProgress(0)
+            try {
+                window.electronAPI.onUpdateStatus(({ type, percent, error: dlError }) => {
+                    if (type === 'downloading') setProgress(percent)
+                    if (type === 'downloaded') setStatus('ready')
+                    if (type === 'error') {
+                        setError(dlError || 'Download failed.')
+                        setStatus('error')
+                    }
+                })
+                await window.electronAPI.startDownload(downloadUrl, updateInfo.checksum)
+            } catch (err) {
+                setStatus('error')
+                setError('Failed to initiate download.')
+            }
         }
-    }, [isElectron])
+    }, [updateInfo])
 
-    // Auto-check on launch (once)
-    useEffect(() => {
-        checkForUpdates()
+    const installUpdate = useCallback(() => {
+        if (window.electronAPI) {
+            window.electronAPI.installUpdate()
+        }
     }, [])
 
     return {
         status,
-        progress,
         updateInfo,
-        supabaseUpdate,
-        currentVersion,
+        progress,
         error,
-        autoUpdate,
-        setAutoUpdate,
         checkForUpdates,
         startDownload,
-        installUpdate
+        installUpdate,
+        currentVersion
     }
 }

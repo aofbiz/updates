@@ -1,39 +1,26 @@
-const GITHUB_RELEASES_URL = 'https://api.github.com/repos/aofbiz/updates/releases/latest'
+import { masterClient } from '../utils/licenseServer'
 
 /**
- * Fetch the latest release from GitHub Releases API
+ * Fetches the latest update metadata from the Supabase master table.
+ * @returns {Promise<Object|null>} The latest update row or null.
  */
 export const getLatestUpdate = async () => {
     try {
-        const response = await fetch(GITHUB_RELEASES_URL, {
-            headers: {
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        })
+        const { data, error } = await masterClient
+            .from('updates')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
 
-        if (!response.ok) {
-            if (response.status === 404) {
-                // No releases found
-                return null
-            }
-            throw new Error(`GitHub API error: ${response.status}`)
+        if (error) {
+            if (error.code === 'PGRST116') return null // No updates found
+            throw error
         }
 
-        const release = await response.json()
-
-        // Parse asset links
-        const exeAsset = release.assets?.find(a => a.name.endsWith('.exe'))
-        const apkAsset = release.assets?.find(a => a.name.endsWith('.apk'))
-
-        return {
-            version: release.tag_name?.replace(/^v/, ''), // Remove 'v' prefix
-            release_notes: release.body || '',
-            exe_link: exeAsset?.browser_download_url || null,
-            apk_link: apkAsset?.browser_download_url || null,
-            published_at: release.published_at
-        }
-    } catch (error) {
-        console.error('Error fetching latest update from GitHub:', error)
+        return data
+    } catch (err) {
+        console.error('UpdateService: Failed to fetch latest update:', err)
         return null
     }
 }

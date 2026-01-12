@@ -57,14 +57,13 @@
 
         <div class="container">
             <div class="hero-content">
-                <span class="badge" id="version-badge">Syncing Build...</span>
                 <h1>Master Your Frame Business<br>With Precision</h1>
                 <p class="hero-subtitle">
                     The all-in-one platform designed for modern art tracking, order management, and financial clarity.
                     Built for professionals who value efficiency.
                 </p>
                 <div class="hero-buttons">
-                    <a href="download.html" class="btn btn-primary">
+                    <a href="#" class="btn btn-primary" id="download-trigger">
                         <i data-lucide="download"></i> Download App
                     </a>
                     <a href="features.html" class="btn btn-outline">
@@ -247,28 +246,6 @@
     <script>
         // Initialize Lucide
         lucide.createIcons();
-
-        // GitHub Update Sync
-        const GITHUB_API_URL = 'https://api.github.com/repos/aofbiz/updates/releases/latest';
-
-        async function getLatestUpdate() {
-            try {
-                const response = await fetch(GITHUB_API_URL);
-                if (!response.ok) throw new Error('GitHub API failed');
-                const release = await response.json();
-
-                if (release.tag_name) {
-                    const version = release.tag_name.replace('v', '');
-                    const badge = document.getElementById('version-badge');
-                    if (badge) badge.innerText = `v${version} Now Available`;
-                }
-            } catch (err) {
-                console.error('Update fetch failed:', err);
-                const badge = document.getElementById('version-badge');
-                if (badge) badge.innerText = 'v1.0.14'; // Fallback
-            }
-        }
-        getLatestUpdate();
 
         // Theme Toggle Logic
         const toggleBtn = document.getElementById('theme-toggle');

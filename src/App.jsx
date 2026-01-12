@@ -37,6 +37,18 @@ function AppContent() {
   const updateManager = useUpdateManager()
   const [showUpdateToast, setShowUpdateToast] = useState(true)
 
+  // Handle view change from update notification
+  const handleGoToUpdate = () => {
+    localStorage.setItem('aof_settings_active_tab', 'updates')
+    setActiveView('settings')
+    setShowUpdateToast(false)
+  }
+
+  // Background update check on load
+  useEffect(() => {
+    updateManager.checkForUpdates(true)
+  }, [])
+
   // Local "session" for compatibility with components expecting it
   const dummySession = { user: { id: 'local-user', email: 'local@app' } }
 
@@ -349,7 +361,6 @@ function AppContent() {
             onDataImported={handleDataImported}
             onUpdateInventory={setInventory}
             onLogout={resetSelection}
-            updateManager={updateManager}
           />
         )
       case 'contact':
@@ -429,13 +440,6 @@ function AppContent() {
       {showShortcuts && (
         <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}
-      {updateManager.status === 'ready' && showUpdateToast && (
-        <UpdateNotification
-          info={updateManager.updateInfo}
-          onInstall={updateManager.installUpdate}
-          onClose={() => setShowUpdateToast(false)}
-        />
-      )}
 
       <Sidebar
         activeView={activeView}
@@ -478,6 +482,14 @@ function AppContent() {
             zIndex: 99
           }}
           onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {updateManager.status === 'available' && showUpdateToast && (
+        <UpdateNotification
+          info={updateManager.updateInfo}
+          onGoToUpdate={handleGoToUpdate}
+          onClose={() => setShowUpdateToast(false)}
         />
       )}
     </div>

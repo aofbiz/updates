@@ -57,6 +57,7 @@ a:focus-visible,
   --radius-lg: 12px;
   --glass-blur: blur(12px);
   --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+
   /* Modal Styles */
   --modal-bg: #0f0f0f;
   --modal-overlay: rgba(0, 0, 0, 0.75);
@@ -74,7 +75,6 @@ a:focus-visible,
   --font-family-system: system-ui, -apple-system, sans-serif;
 
   --font-family: var(--font-family-modern);
-  /* Default */
 
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -93,6 +93,15 @@ a:focus-visible,
   --font-weight-extrabold: 800;
   --font-weight-black: 900;
 }
+
+@media (max-width: 768px) {
+  :root {
+    --safe-area-top: calc(env(safe-area-inset-top, 0px) + 40px);
+    --safe-area-bottom: calc(env(safe-area-inset-bottom, 0px) + 25px);
+  }
+}
+
+
 
 [data-font="modern"] {
   --font-family: var(--font-family-modern);

@@ -9,8 +9,8 @@ const ToastContainer = () => {
         <div
             style={{
                 position: 'fixed',
-                top: '1rem',
-                right: '1rem',
+                top: 'calc(1rem + var(--safe-area-top))',
+                right: 'calc(1rem + var(--safe-area-right))',
                 zIndex: 99999,
                 display: 'flex',
                 flexDirection: 'column',

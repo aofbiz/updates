@@ -259,8 +259,13 @@ ipcMain.handle('open-external', async (event, url) => {
   }
 })
 
-// App lifecycle
+const fs = require('fs')
+const https = require('https')
+const crypto = require('crypto')
+const os = require('os')
+const { spawn } = require('child_process')
 
+// App lifecycle
 app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {
@@ -281,26 +286,15 @@ app.on('open-url', (event, url) => {
   if (mainWindow) {
     mainWindow.webContents.send('auth-callback', url)
   } else {
-    // If window not ready yet, store URL or wait
     app.once('ready', () => {
       if (mainWindow) mainWindow.webContents.send('auth-callback', url)
     })
   }
 })
 
-// --- SOFTWARE UPDATE SYSTEM (Electron) ---
+// --- SOFTWARE UPDATE SYSTEM (Custom) ---
 
-let autoUpdater;
-try {
-  autoUpdater = require('electron-updater').autoUpdater;
-  autoUpdater.autoDownload = false; // We handle download via UI manually or auto-update flag
-  autoUpdater.allowPrerelease = false;
-
-  // Logging
-  autoUpdater.logger = console;
-} catch (e) {
-  console.warn('electron-updater not found. Update features disabled.');
-}
+let downloadedFilePath = null;
 
 function sendUpdateStatus(type, data = {}) {
   if (mainWindow && mainWindow.webContents) {
@@ -308,33 +302,90 @@ function sendUpdateStatus(type, data = {}) {
   }
 }
 
-if (autoUpdater) {
-  autoUpdater.on('checking-for-update', () => sendUpdateStatus('checking'));
-  autoUpdater.on('update-available', (info) => sendUpdateStatus('available', { info }));
-  autoUpdater.on('update-not-available', (info) => sendUpdateStatus('not-available', { info }));
-  autoUpdater.on('error', (err) => sendUpdateStatus('error', { error: err.message }));
-  autoUpdater.on('download-progress', (progressObj) => {
-    sendUpdateStatus('downloading', { percent: progressObj.percent });
+function verifyChecksum(filePath, expectedChecksum) {
+  return new Promise((resolve) => {
+    if (!expectedChecksum) return resolve(true);
+
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+
+    stream.on('data', (data) => hash.update(data));
+    stream.on('end', () => {
+      const actualChecksum = hash.digest('hex');
+      resolve(actualChecksum.toLowerCase() === expectedChecksum.toLowerCase());
+    });
+    stream.on('error', () => resolve(false));
   });
-  autoUpdater.on('update-downloaded', (info) => sendUpdateStatus('downloaded', { info }));
 }
 
-// IPC Handlers for Updates
-ipcMain.handle('check-for-updates', async () => {
-  if (!autoUpdater) return { error: 'Updater not initialized' };
-  try {
-    return await autoUpdater.checkForUpdates();
-  } catch (err) {
-    return { error: err.message };
-  }
-});
+ipcMain.handle('start-download', async (event, url, checksum) => {
+  const tempDir = os.tmpdir();
+  const fileName = `aof-biz-update-${Date.now()}.exe`;
+  const filePath = path.join(tempDir, fileName);
+  downloadedFilePath = filePath;
 
-ipcMain.handle('start-download', async () => {
-  if (!autoUpdater) return { error: 'Updater not initialized' };
-  return await autoUpdater.downloadUpdate();
+  const downloadFile = (downloadUrl) => {
+    return new Promise((resolve, reject) => {
+      https.get(downloadUrl, (response) => {
+        // Handle Redirects
+        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          return resolve(downloadFile(response.headers.location));
+        }
+
+        if (response.statusCode !== 200) {
+          return reject(new Error(`Failed to download: ${response.statusCode}`));
+        }
+
+        const totalSize = parseInt(response.headers['content-length'], 10);
+        let downloadedSize = 0;
+        const file = fs.createWriteStream(filePath);
+
+        response.on('data', (chunk) => {
+          downloadedSize += chunk.length;
+          const percent = (downloadedSize / totalSize) * 100;
+          sendUpdateStatus('downloading', { percent });
+        });
+
+        response.pipe(file);
+
+        file.on('finish', async () => {
+          file.close();
+
+          if (checksum) {
+            const isValid = await verifyChecksum(filePath, checksum);
+            if (!isValid) {
+              fs.unlinkSync(filePath);
+              sendUpdateStatus('error', { error: 'Checksum verification failed. The file may be corrupted.' });
+              return resolve({ success: false, error: 'Checksum failed' });
+            }
+          }
+
+          sendUpdateStatus('downloaded');
+          resolve({ success: true, path: filePath });
+        });
+      }).on('error', (err) => {
+        fs.unlink(filePath, () => { });
+        sendUpdateStatus('error', { error: err.message });
+        reject(err);
+      });
+    });
+  };
+
+  return downloadFile(url);
 });
 
 ipcMain.handle('install-update', () => {
-  if (!autoUpdater) return;
-  autoUpdater.quitAndInstall();
+  if (!downloadedFilePath || !fs.existsSync(downloadedFilePath)) {
+    console.error('Installation failed: File not found');
+    return;
+  }
+
+  // Spawn the installer and quit the app
+  const installer = spawn(downloadedFilePath, ['/S'], { // /S for silent if supported, but usually just launching is fine
+    detached: true,
+    stdio: 'ignore'
+  });
+
+  installer.unref();
+  app.quit();
 });

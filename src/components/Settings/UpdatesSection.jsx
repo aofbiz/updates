@@ -1,353 +1,317 @@
-import React, { useState } from 'react'
-import { RefreshCw, Download, CheckCircle2, AlertCircle, Info, Zap, ShieldCheck, Smartphone, Monitor } from 'lucide-react'
+import React, { useEffect } from 'react'
+import { CheckCircle, Download, AlertTriangle, RefreshCw, Info, Settings, ShieldCheck, Zap, Smartphone, Monitor } from 'lucide-react'
+import { useUpdateManager } from '../../hooks/useUpdateManager'
 
-const UpdatesSection = ({ updateManager }) => {
+const UpdatesSection = () => {
     const {
         status,
-        progress,
         updateInfo,
-        supabaseUpdate,
-        currentVersion,
+        progress,
         error,
-        autoUpdate,
-        setAutoUpdate,
         checkForUpdates,
         startDownload,
-        installUpdate
-    } = updateManager
+        installUpdate,
+        currentVersion
+    } = useUpdateManager()
 
-    const [isChecking, setIsChecking] = useState(false)
-
-    const handleManualCheck = async () => {
-        setIsChecking(true)
-        await checkForUpdates()
-        setIsChecking(false)
-    }
-
-    const openExternal = (url) => {
-        if (window.electronAPI) {
-            window.electronAPI.openExternal(url)
-        } else {
-            window.open(url, '_blank')
+    useEffect(() => {
+        // Only auto-check if we are in 'idle' state (first load of this section)
+        if (status === 'idle') {
+            checkForUpdates(true)
         }
-    }
+    }, [status, checkForUpdates])
 
-    const renderStatus = () => {
-        switch (status) {
-            case 'checking':
-                return (
-                    <div className="update-status-card checking">
-                        <RefreshCw size={24} className="animate-spin" />
-                        <div>
-                            <h4>Scanning for updates...</h4>
-                            <p>Connecting to Supabase & GitHub to verify the latest build.</p>
-                        </div>
-                    </div>
-                )
-            case 'available':
-                return (
-                    <div className="update-status-card available">
-                        <div style={{ display: 'flex', gap: '1.25rem', width: '100%' }}>
-                            <Zap size={24} color="var(--accent-primary)" />
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <div>
-                                        <h4>Version {updateInfo?.version} is available</h4>
-                                        <p>A new release with fresh features and improvements is ready.</p>
-                                    </div>
-                                    <span className="badge" style={{ backgroundColor: 'var(--accent-primary)', color: '#fff' }}>IMPORTANT</span>
-                                </div>
-
-                                {updateInfo?.releaseNotes && (
-                                    <div className="release-notes-box">
-                                        <strong>Change Log:</strong>
-                                        <div className="notes-content">
-                                            {updateInfo.releaseNotes.split('\n').map((line, i) => (
-                                                <p key={i}>{line}</p>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                                    {window.electronAPI ? (
-                                        <button className="btn btn-primary" onClick={startDownload}>
-                                            <Download size={18} />
-                                            Download and Install
-                                        </button>
-                                    ) : (
-                                        <>
-                                            {supabaseUpdate?.apk_link && (
-                                                <button className="btn btn-primary" onClick={() => openExternal(supabaseUpdate.apk_link)}>
-                                                    <Smartphone size={18} />
-                                                    Download APK
-                                                </button>
-                                            )}
-                                        </>
-                                    )}
-                                    {supabaseUpdate?.exe_link && !window.electronAPI && (
-                                        <button className="btn btn-outline" onClick={() => openExternal(supabaseUpdate.exe_link)}>
-                                            <Monitor size={18} />
-                                            Get for PC
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )
-            case 'downloading':
-                return (
-                    <div className="update-status-card downloading">
-                        <Download size={24} className="animate-bounce" />
-                        <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <h4>Downloading Build...</h4>
-                                <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{Math.round(progress)}%</span>
-                            </div>
-                            <div className="update-progress-bar">
-                                <div className="update-progress-fill" style={{ width: `${progress}%` }}></div>
-                            </div>
-                            <p>You can continue using the app. We'll notify you when it's ready.</p>
-                        </div>
-                    </div>
-                )
-            case 'ready':
-                return (
-                    <div className="update-status-card ready">
-                        <CheckCircle2 size={24} color="var(--success)" />
-                        <div style={{ flex: 1 }}>
-                            <h4>Update Downloaded!</h4>
-                            <p>The new version is staged and ready. Restart the application to complete the installation.</p>
-                        </div>
-                        <button className="btn btn-primary" onClick={installUpdate}>
-                            <RefreshCw size={18} />
-                            Restart App
-                        </button>
-                    </div>
-                )
-            case 'none':
-                return (
-                    <div className="update-status-card up-to-date">
-                        <CheckCircle2 size={24} color="var(--success)" />
-                        <div>
-                            <h4>The system is up to date</h4>
-                            <p>You are running the latest version of AOF Biz (v{currentVersion}).</p>
-                        </div>
-                    </div>
-                )
-            case 'idle':
-            default:
-                if (error) {
-                    return (
-                        <div className="update-status-card error">
-                            <AlertCircle size={24} color="var(--danger)" />
-                            <div>
-                                <h4>Connection Issue</h4>
-                                <p>{error}</p>
-                            </div>
-                            <button className="btn btn-outline btn-sm" onClick={handleManualCheck} style={{ marginLeft: 'auto' }}>Retry</button>
-                        </div>
-                    )
-                }
-                return (
-                    <div className="update-status-card up-to-date" style={{ opacity: 0.7 }}>
-                        <Info size={24} />
-                        <div>
-                            <h4>Check for updates</h4>
-                            <p>Last checked: Just now</p>
-                        </div>
-                    </div>
-                )
+    const handleAction = (platform = null) => {
+        if (status === 'available') {
+            startDownload(platform)
+        } else if (status === 'ready') {
+            installUpdate()
+        } else {
+            checkForUpdates()
         }
     }
 
     return (
-        <div className="updates-container animate-fade-in">
-            <div className="updates-header">
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <h3>Software Updates</h3>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', border: '1px solid var(--border-color)', padding: '2px 8px', borderRadius: '4px' }}>
-                            Current: v{currentVersion}
-                        </span>
-                    </div>
-                    <p>Manage your application lifecycle and security patches.</p>
+        <div className="updates-container animate-fade-in" style={{
+            background: 'var(--bg-card)',
+            borderRadius: '1.25rem',
+            border: '1px solid var(--border-color)',
+            overflow: 'hidden'
+        }}>
+            {/* Header */}
+            <div className="updates-header" style={{
+                padding: '2rem',
+                borderBottom: '1px solid var(--border-color)',
+                background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.05) 0%, transparent 100%)',
+                textAlign: 'center'
+            }}>
+                <div style={{
+                    width: '64px',
+                    height: '64px',
+                    margin: '0 auto 1.5rem',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid var(--border-color)'
+                }}>
+                    <RefreshCw
+                        size={32}
+                        className={status === 'checking' || status === 'downloading' ? 'animate-spin' : ''}
+                        style={{ color: 'var(--accent-primary)' }}
+                    />
                 </div>
-                <button
-                    className="btn btn-secondary"
-                    onClick={handleManualCheck}
-                    disabled={status === 'checking' || status === 'downloading' || isChecking}
-                >
-                    <RefreshCw size={18} className={isChecking ? 'animate-spin' : ''} />
-                    Check for Updates
-                </button>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Software Updates</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                    Current Version: <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>v{currentVersion}</span>
+                </p>
             </div>
 
-            <div className="updates-content">
-                {renderStatus()}
-
-                <div className="updates-settings-grid">
-                    <div className="update-config-card">
-                        <div className="config-header">
-                            < Zap size={20} color="var(--accent-primary)" />
-                            <span>Update Preferences</span>
-                        </div>
-                        <label className="config-item">
-                            <div className="config-info">
-                                <strong>Background Download</strong>
-                                <p>Automatically fetch updates when they become available.</p>
-                            </div>
-                            <div className="toggle-switch">
-                                <input
-                                    type="checkbox"
-                                    checked={autoUpdate}
-                                    onChange={(e) => setAutoUpdate(e.target.checked)}
-                                />
-                                <span className="toggle-slider"></span>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div className="update-config-card">
-                        <div className="config-header">
-                            <ShieldCheck size={20} color="var(--success)" />
-                            <span>Integrity Check</span>
-                        </div>
-                        <div className="config-item">
-                            <div className="config-info">
-                                <strong>Trusted Source</strong>
-                                <p>Signed releases delivered via Supabase & GitHub SSL.</p>
-                            </div>
-                            <div style={{ color: 'var(--success)' }}><CheckCircle2 size={18} /></div>
+            {/* Content Area */}
+            <div className="updates-content" style={{ padding: '2rem' }}>
+                {status === 'error' && (
+                    <div className="status-banner error" style={{
+                        background: 'rgba(255, 46, 54, 0.05)',
+                        border: '1px solid rgba(255, 46, 54, 0.2)',
+                        padding: '1.5rem',
+                        borderRadius: '1rem',
+                        marginBottom: '1.5rem',
+                        display: 'flex',
+                        gap: '1rem',
+                        alignItems: 'center',
+                        color: 'var(--accent-primary)'
+                    }}>
+                        <AlertTriangle size={24} />
+                        <div>
+                            <p style={{ fontWeight: 700, margin: 0 }}>Update Check Failed</p>
+                            <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>{error || 'Something went wrong while checking for updates.'}</p>
                         </div>
                     </div>
+                )}
+
+                {status === 'up-to-date' && (
+                    <div className="status-banner success" style={{
+                        background: 'rgba(16, 185, 129, 0.05)',
+                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        padding: '1.5rem',
+                        borderRadius: '1rem',
+                        marginBottom: '1.5rem',
+                        display: 'flex',
+                        gap: '1rem',
+                        alignItems: 'center',
+                        color: '#10b981'
+                    }}>
+                        <CheckCircle size={24} />
+                        <div>
+                            <p style={{ fontWeight: 700, margin: 0 }}>AOF Biz is up to date</p>
+                            <p style={{ fontSize: '0.8rem', opacity: 0.8, margin: 0 }}>You are running the latest version: v{currentVersion}</p>
+                        </div>
+                    </div>
+                )}
+
+                {status === 'available' && updateInfo && (
+                    <div className="update-info-card" style={{
+                        border: '1px solid var(--accent-primary)',
+                        padding: '1.5rem',
+                        borderRadius: '1rem',
+                        marginBottom: '1.5rem',
+                        background: 'rgba(var(--accent-rgb), 0.02)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{
+                                    padding: '8px',
+                                    borderRadius: '8px',
+                                    background: 'var(--accent-primary)',
+                                    color: '#fff'
+                                }}>
+                                    <Zap size={18} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>New Version Available</h3>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Found version v{updateInfo.version}</p>
+                                </div>
+                            </div>
+                            <span style={{
+                                background: 'var(--bg-secondary)',
+                                padding: '4px 12px',
+                                borderRadius: '100px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                color: 'var(--text-secondary)',
+                                border: '1px solid var(--border-color)'
+                            }}>
+                                New
+                            </span>
+                        </div>
+
+                        {updateInfo.release_notes && (
+                            <div className="release-notes" style={{
+                                marginTop: '1rem',
+                                padding: '1rem',
+                                background: 'var(--bg-secondary)',
+                                borderRadius: '0.75rem',
+                                border: '1px solid var(--border-color)'
+                            }}>
+                                <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                                    <Info size={14} /> Release Notes
+                                </h4>
+                                <div style={{ fontSize: '0.85rem', lineHeight: '1.6', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
+                                    {updateInfo.release_notes}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {(status === 'downloading' || status === 'ready') && (
+                    <div className="download-status" style={{
+                        padding: '1.5rem',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: '1rem',
+                        border: '1px solid var(--border-color)',
+                        marginBottom: '1.5rem'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                                {status === 'downloading' ? 'Downloading Update...' : 'Ready to Install'}
+                            </span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                                {Math.round(progress)}%
+                            </span>
+                        </div>
+                        <div style={{
+                            height: '10px',
+                            background: 'var(--border-color)',
+                            borderRadius: '5px',
+                            overflow: 'hidden',
+                            position: 'relative'
+                        }}>
+                            <div style={{
+                                height: '100%',
+                                background: 'var(--accent-primary)',
+                                width: `${progress}%`,
+                                transition: 'width 0.3s ease',
+                                boxShadow: '0 0 10px rgba(var(--accent-rgb), 0.5)'
+                            }}></div>
+                        </div>
+                        {status === 'ready' && (
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <ShieldCheck size={14} style={{ color: '#10b981' }} />
+                                Verification complete. Click below to install and restart.
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {/* Main Action Buttons */}
+                <div className="update-actions" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {status === 'available' ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <button
+                                onClick={() => handleAction('apk')}
+                                className="btn btn-secondary"
+                                style={{
+                                    padding: '1rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 700
+                                }}
+                            >
+                                <Smartphone size={24} />
+                                Update Mobile (APK)
+                            </button>
+                            <button
+                                onClick={() => handleAction('exe')}
+                                className="btn btn-primary"
+                                style={{
+                                    padding: '1rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 700
+                                }}
+                            >
+                                <Monitor size={24} />
+                                Update Desktop (EXE)
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => handleAction()}
+                            disabled={status === 'checking' || status === 'downloading'}
+                            className="btn btn-primary"
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.75rem',
+                                fontSize: '1rem',
+                                fontWeight: 700,
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                filter: (status === 'checking' || status === 'downloading') ? 'grayscale(0.5) opacity(0.7)' : 'none'
+                            }}
+                        >
+                            {status === 'checking' ? (
+                                <>
+                                    <RefreshCw size={20} className="animate-spin" />
+                                    Checking for updates...
+                                </>
+                            ) : status === 'downloading' ? (
+                                <>
+                                    <RefreshCw size={20} className="animate-spin" />
+                                    Downloading Desktop Update...
+                                </>
+                            ) : status === 'ready' ? (
+                                <>
+                                    <Zap size={20} />
+                                    Install & Restart Now
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw size={20} />
+                                    Check for Updates
+                                </>
+                            )}
+                        </button>
+                    )}
+                </div>
+
+                <div className="footer-notes" style={{
+                    marginTop: '1.5rem',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                }}>
+                    <p>All your data and settings are protected during the update process.</p>
+                    <p>Update source: AOF Biz Master Server</p>
                 </div>
             </div>
 
             <style>{`
-                .updates-container {
-                    padding: 1rem 0;
+                .animate-fade-in {
+                    animation: fadeIn 0.4s ease-out;
                 }
-                .updates-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 2rem;
-                    padding-bottom: 1.5rem;
-                    border-bottom: 1px solid var(--border-color);
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
-                .updates-header h3 { font-size: 1.25rem; font-weight: 800; margin: 0; }
-                .updates-header p { color: var(--text-muted); font-size: 0.9rem; margin: 0.25rem 0 0 0; }
-
-                .update-status-card {
-                    background: var(--bg-card);
-                    border: 1px solid var(--border-color);
-                    border-radius: 20px;
-                    padding: 2rem;
-                    display: flex;
-                    align-items: center;
-                    gap: 1.5rem;
-                    margin-bottom: 2rem;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                @keyframes pulse {
+                    0% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.4); }
+                    70% { box-shadow: 0 0 0 10px rgba(var(--accent-rgb), 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0); }
                 }
-                .update-status-card.ready { border-color: var(--success); background: rgba(var(--success-rgb), 0.05); }
-                .update-status-card.available { border-color: var(--accent-primary); background: rgba(var(--accent-rgb), 0.03); }
-                .update-status-card.error { border-color: var(--danger); background: rgba(var(--danger-rgb), 0.05); }
-                
-                .update-status-card h4 { margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-primary); }
-                .update-status-card p { margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.9rem; }
-
-                .release-notes-box {
-                    margin-top: 1.5rem;
-                    padding: 1.25rem;
-                    border-radius: 12px;
-                    background: rgba(0,0,0,0.3);
-                    border: 1px solid var(--border-color);
-                }
-                .release-notes-box strong { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
-                .notes-content { margin-top: 0.75rem; max-height: 200px; overflow-y: auto; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; }
-
-                .update-progress-bar {
-                    width: 100%;
-                    height: 10px;
-                    background: var(--bg-secondary);
-                    border-radius: 10px;
-                    margin: 1rem 0;
-                    overflow: hidden;
-                    border: 1px solid var(--border-color);
-                }
-                .update-progress-fill {
-                    height: 100%;
-                    background: linear-gradient(90deg, var(--accent-primary), #ff6b6b);
-                    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-
-                .updates-settings-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-                    gap: 1.5rem;
-                }
-
-                .update-config-card {
-                    background: var(--bg-secondary);
-                    border: 1px solid var(--border-color);
-                    border-radius: 16px;
-                    padding: 1.5rem;
-                }
-
-                .config-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    margin-bottom: 1.5rem;
-                    padding-bottom: 0.75rem;
-                    border-bottom: 1px solid var(--border-color);
-                    font-weight: 700;
-                    font-size: 0.8rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.8px;
-                    color: var(--text-muted);
-                }
-
-                .config-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 1rem;
-                }
-
-                .config-info strong { font-size: 0.95rem; display: block; margin-bottom: 0.35rem; color: var(--text-primary); }
-                .config-info p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
-
-                .toggle-switch {
-                    position: relative;
-                    display: inline-block;
-                    width: 44px;
-                    height: 24px;
-                    flex-shrink: 0;
-                }
-                .toggle-switch input { opacity: 0; width: 0; height: 0; }
-                .toggle-slider {
-                    position: absolute;
-                    cursor: pointer;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background-color: #333;
-                    transition: .4s;
-                    border-radius: 24px;
-                    border: 1px solid var(--border-color);
-                }
-                .toggle-slider:before {
-                    position: absolute;
-                    content: "";
-                    height: 16px; width: 16px;
-                    left: 3px; bottom: 3px;
-                    background-color: white;
-                    transition: .4s;
-                    border-radius: 50%;
-                }
-                input:checked + .toggle-slider { background-color: var(--accent-primary); border-color: var(--accent-primary); }
-                input:checked + .toggle-slider:before { transform: translateX(20px); }
             `}</style>
         </div>
     )

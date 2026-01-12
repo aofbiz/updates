@@ -54,7 +54,7 @@ const TrialCountdownBar = () => {
     return (
         <div style={{
             position: 'sticky',
-            top: 0,
+            top: 'var(--safe-area-top)',
             zIndex: 1000,
             width: '100%',
             backgroundColor: 'var(--bg-card)',
