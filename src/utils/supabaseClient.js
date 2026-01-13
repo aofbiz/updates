@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { db } from '../db'
 
 let supabaseInstance = null
+let initPromise = null
 
 /**
  * Get or create the Supabase client instance.
@@ -17,31 +18,41 @@ let supabaseInstance = null
 export const getSupabase = async () => {
     if (supabaseInstance) return supabaseInstance
 
-    try {
-        const settings = await db.settings.get('settings')
-        const supabaseConfig = settings?.data?.supabase
+    // If an initialization is already in progress, wait for it
+    if (initPromise) return initPromise
 
-        if (!supabaseConfig?.url || !supabaseConfig?.anonKey) {
-            return null
-        }
+    initPromise = (async () => {
+        try {
+            const settings = await db.settings.get('settings')
+            const supabaseConfig = settings?.data?.supabase
 
-        supabaseInstance = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
-            auth: {
-                persistSession: true,
-                autoRefreshToken: true,
-            },
-            realtime: {
-                params: {
-                    eventsPerSecond: 10
-                }
+            if (!supabaseConfig?.url || !supabaseConfig?.anonKey) {
+                initPromise = null
+                return null
             }
-        })
 
-        return supabaseInstance
-    } catch (error) {
-        console.error('Error initializing Supabase client:', error)
-        return null
-    }
+            supabaseInstance = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                },
+                realtime: {
+                    params: {
+                        eventsPerSecond: 10
+                    }
+                }
+            })
+
+            return supabaseInstance
+        } catch (error) {
+            console.error('Error initializing Supabase client:', error)
+            return null
+        } finally {
+            initPromise = null
+        }
+    })()
+
+    return initPromise
 }
 
 /**
@@ -228,6 +239,20 @@ export const getCurrentUser = async () => {
         console.error('Error getting current user:', error)
         return null
     }
+}
+
+/**
+ * Get a consistent user ID for syncing.
+ * Returns the authenticated user's ID if logged in,
+ * otherwise returns 'anon-user' if the hub is configured.
+ */
+export const getSyncUserId = async () => {
+    const user = await getCurrentUser()
+    if (user) return user.id
+
+    // If not logged in, only return 'anon-user' if we actually have credentials
+    const configured = await isSupabaseConfigured()
+    return configured ? 'anon-user' : null
 }
 
 /**

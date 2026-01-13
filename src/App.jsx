@@ -542,10 +542,11 @@ function AppContent() {
         />
       )}
 
-      {updateManager.status === 'available' && updateManager.updateInfo?.is_mandatory && updateManager.isBlocked && (
+      {(updateManager.status === 'available' || updateManager.status === 'downloading' || updateManager.status === 'ready') && updateManager.updateInfo?.is_mandatory && updateManager.isBlocked && (
         <MandatoryUpdateModal
           info={updateManager.updateInfo}
           onUpdate={(platform) => updateManager.startDownload(platform)}
+          onCancel={() => updateManager.status === 'downloading' ? updateManager.cancelDownload() : null}
           progress={updateManager.progress}
           downloadStats={updateManager.downloadStats}
         />

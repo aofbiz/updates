@@ -1,6 +1,19 @@
 import React, { useEffect } from 'react'
 import { CheckCircle, Download, AlertTriangle, RefreshCw, Info, Settings, ShieldCheck, Zap, Smartphone, Monitor } from 'lucide-react'
 import { useUpdateManager } from '../../hooks/useUpdateManager'
+import { Capacitor } from '@capacitor/core'
+
+const WindowsIcon = ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M0 3.449L9.75 2.1L9.751 11.309L0 11.359V3.449ZM0 12.649L9.751 12.684V21.899L0 20.551V12.649ZM10.912 1.939L24 0V11.232L10.912 11.282V1.939ZM10.912 12.723L24 12.758V24L10.912 22.06V12.723Z" />
+    </svg>
+)
+
+const AndroidIcon = ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.523 15.3414C17.523 15.1114 17.336 14.9254 17.107 14.9254C16.878 14.9254 16.692 15.1114 16.692 15.3414C16.692 15.5704 16.878 15.7574 17.107 15.7574C17.336 15.7574 17.523 15.5704 17.523 15.3414ZM6.893 15.3414C6.893 15.1114 6.706 14.9254 6.478 14.9254C6.249 14.9254 6.063 15.1114 6.063 15.3414C6.063 15.5704 6.249 15.7574 6.478 15.7574C6.706 15.7574 6.893 15.5704 6.893 15.3414ZM18.067 11.4554L19.982 8.1384C20.071 7.9854 20.021 7.7894 19.867 7.7004C19.714 7.6114 19.518 7.6624 19.429 7.8154L17.487 11.1814C15.936 10.4784 14.185 10.0844 12.316 10.0844C10.447 10.0844 8.696 10.4784 7.144 11.1814L5.203 7.8154C5.114 7.6624 4.918 7.6114 4.764 7.7004C4.61 7.7894 4.56 7.9854 4.649 8.1384L6.564 11.4554C3.899 12.9224 2.107 15.6594 2 18.8474H22.632C22.525 15.6594 20.732 12.9224 18.067 11.4554Z" />
+    </svg>
+)
 
 const UpdatesSection = () => {
     const {
@@ -11,20 +24,60 @@ const UpdatesSection = () => {
         error,
         checkForUpdates,
         startDownload,
+        cancelDownload,
         installUpdate,
         currentVersion
     } = useUpdateManager()
 
+    const renderMarkup = (text) => {
+        if (!text) return null
+
+        let html = text
+            // Headers
+            .replace(/^### (.*$)/gim, '<h4 style="margin: 1.5rem 0 0.5rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">$1</h4>')
+            .replace(/^## (.*$)/gim, '<h3 style="margin: 1.5rem 0 0.5rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">$1</h3>')
+            .replace(/^# (.*$)/gim, '<h2 style="margin: 2rem 0 1rem; color: var(--text-primary);">$1</h2>')
+            // Bold
+            .replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--text-primary);">$1</strong>')
+            // Italic
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            // Bullet points
+            .replace(/^\s*[-*+]\s+(.*)$/gim, '<li style="margin-left: 1.25rem; margin-bottom: 0.25rem;">$1</li>')
+            // New lines for points that are not bullets
+            .replace(/\n(?!<li)/g, '<br />')
+
+        // Wrap lists in <ul> for better styling
+        if (html.includes('<li')) {
+            // Very basic list wrapping - could be improved but sufficient for most release notes
+            // We'll just leave it as is if it's too complex to wrap perfectly without a real parser
+        }
+
+        return <div dangerouslySetInnerHTML={{ __html: html }} className="markup-content" />
+    }
+    const isMobile = Capacitor.getPlatform() !== 'web'
+
     const formatBytes = (bytes) => {
-        if (!bytes) return '0 B'
-        const k = 1024
-        const sizes = ['B', 'KB', 'MB', 'GB']
-        const i = Math.floor(Math.log(bytes) / Math.log(k))
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+        if (!bytes) return ''
+        const s = String(bytes).trim()
+
+        // If it already has a unit (e.g. "45 MB"), just return it
+        if (/[a-zA-Z]/.test(s)) return s
+
+        const b = parseFloat(s)
+        if (isNaN(b) || b <= 0) return ''
+
+        // If the number is small (e.g. < 10000), assume user entered MB directly
+        if (b < 10000) return `${b} MB`
+
+        // If it's a huge number, treat it as bytes and convert to MB
+        const mb = (b / (1024 * 1024)).toFixed(1)
+        return `${mb} MB`
     }
 
     const formatSpeed = (bytesPerSec) => {
-        return formatBytes(bytesPerSec) + '/s'
+        if (!bytesPerSec) return '0 MB/s'
+        const mb = (bytesPerSec / (1024 * 1024)).toFixed(1)
+        return `${mb} MB/s`
     }
 
     useEffect(() => {
@@ -164,9 +217,31 @@ const UpdatesSection = () => {
                                 border: '1px solid var(--border-color)',
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                    <span style={{ fontWeight: 800, fontSize: '1rem' }}>
-                                        {status === 'downloading' ? 'Downloading Update...' : 'Update Downloaded'}
-                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <span style={{ fontWeight: 800, fontSize: '1rem' }}>
+                                            {status === 'downloading' ? 'Downloading Update...' : 'Update Downloaded'}
+                                        </span>
+                                        {status === 'downloading' && (
+                                            <button
+                                                onClick={cancelDownload}
+                                                style={{
+                                                    background: 'rgba(255, 46, 54, 0.1)',
+                                                    border: '1px solid rgba(255, 46, 54, 0.2)',
+                                                    color: 'rgba(255, 46, 54, 1)',
+                                                    padding: '2px 10px',
+                                                    borderRadius: '6px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseOver={(e) => e.target.style.background = 'rgba(255, 46, 54, 0.2)'}
+                                                onMouseOut={(e) => e.target.style.background = 'rgba(255, 46, 54, 0.1)'}
+                                            >
+                                                Cancel
+                                            </button>
+                                        )}
+                                    </div>
                                     <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
                                         {Math.round(progress)}%
                                     </span>
@@ -197,40 +272,62 @@ const UpdatesSection = () => {
                         )}
 
                         {/* Action Buttons (Full Width) */}
-                        <div className="action-buttons-stack" style={{ display: 'grid', gridTemplateColumns: status === 'available' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                        <div className="action-buttons-stack" style={{
+                            display: 'grid',
+                            gridTemplateColumns: (status === 'available' && !isMobile) ? '1fr 1fr' : '1fr',
+                            gap: '1rem'
+                        }}>
                             {status === 'available' ? (
                                 <>
-                                    <button
-                                        onClick={() => handleAction('exe')}
-                                        className="btn btn-primary"
-                                        style={{
-                                            padding: '1.25rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '0.75rem',
-                                            fontWeight: 800,
-                                            fontSize: '1rem'
-                                        }}
-                                    >
-                                        <Monitor size={22} />
-                                        Update Desktop (EXE)
-                                    </button>
+                                    {!isMobile && (
+                                        <button
+                                            onClick={() => handleAction('exe')}
+                                            className="btn btn-primary"
+                                            style={{
+                                                padding: '1.25rem',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '0.4rem',
+                                                fontWeight: 800,
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <WindowsIcon size={20} />
+                                                Windows (EXE)
+                                            </div>
+                                            {updateInfo.exe_size && (
+                                                <span style={{ fontSize: '0.75rem', opacity: 0.8, fontWeight: 600 }}>
+                                                    {formatBytes(updateInfo.exe_size)}
+                                                </span>
+                                            )}
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => handleAction('apk')}
                                         className="btn btn-secondary"
                                         style={{
                                             padding: '1.25rem',
                                             display: 'flex',
+                                            flexDirection: 'column',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            gap: '0.75rem',
+                                            gap: '0.4rem',
                                             fontWeight: 800,
                                             fontSize: '1rem'
                                         }}
                                     >
-                                        <Smartphone size={22} />
-                                        Update Mobile (APK)
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <AndroidIcon size={20} />
+                                            Android (APK)
+                                        </div>
+                                        {updateInfo.apk_size && (
+                                            <span style={{ fontSize: '0.75rem', opacity: 0.8, fontWeight: 600 }}>
+                                                {formatBytes(updateInfo.apk_size)}
+                                            </span>
+                                        )}
                                     </button>
                                 </>
                             ) : (
@@ -288,12 +385,11 @@ const UpdatesSection = () => {
                                         fontSize: '0.95rem',
                                         lineHeight: '1.8',
                                         color: 'var(--text-secondary)',
-                                        whiteSpace: 'pre-line',
                                         maxHeight: '350px',
                                         overflowY: 'auto',
                                         paddingRight: '0.5rem'
                                     }}>
-                                        {updateInfo.release_notes}
+                                        {renderMarkup(updateInfo.release_notes)}
                                     </div>
                                 ) : (
                                     <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>No release notes available for this release.</p>

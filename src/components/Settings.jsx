@@ -8,7 +8,7 @@ import {
 import CustomDropdown from './Common/CustomDropdown'
 import Pagination from './Common/Pagination'
 import { uploadBackup, listBackups, downloadBackup, deleteBackup, ensureBucketExists } from '../utils/supabaseBackup'
-import { saveSupabaseCredentials, testSupabaseConnection, clearSupabaseCredentials } from '../utils/supabaseClient'
+import { saveSupabaseCredentials, testSupabaseConnection, clearSupabaseCredentials, getSyncUserId } from '../utils/supabaseClient'
 import { fullSync, getLastSyncTime } from '../utils/syncEngine'
 import { curfoxService } from '../utils/curfox'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
@@ -2248,7 +2248,13 @@ const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, 
   const handleManualSync = async () => {
     setIsSyncing(true)
     try {
-      const result = await fullSync('anon-user')
+      const syncId = await getSyncUserId()
+      if (!syncId) {
+        showToast('Supabase not configured', 'error')
+        return
+      }
+
+      const result = await fullSync(syncId)
       if (result.success) {
         const syncTime = await getLastSyncTime()
         setLastSynced(syncTime)
@@ -2319,6 +2325,22 @@ const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, 
         setIsRestoring(false)
       }
     }, 'warning', 'Restore Now')
+  }
+
+  const handleDeleteBackup = (file) => {
+    showConfirm('Delete Snapshot', `Permanently delete ${file.name} from Cloud?`, async () => {
+      try {
+        const success = await deleteBackup(file.name)
+        if (success) {
+          showToast('Snapshot deleted', 'success')
+          fetchBackups()
+        } else {
+          showToast('Delete failed', 'error')
+        }
+      } catch (e) {
+        showToast('Error deleting snapshot', 'error')
+      }
+    }, 'danger', 'Delete')
   }
 
   const handleCopySQL = async () => {
@@ -2582,9 +2604,9 @@ const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, 
                       </div>
                     </td>
                     <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                      {file.created_at ? new Date(file.created_at).toLocaleDateString() : 'Unknown'}
+                      {file.createdTime ? new Date(file.createdTime).toLocaleDateString() : 'Unknown'}
                       <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', opacity: 0.7 }}>
-                        {file.created_at ? new Date(file.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        {file.createdTime ? new Date(file.createdTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                     </td>
                     <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>

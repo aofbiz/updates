@@ -865,15 +865,15 @@ export const importAllData = async (file) => {
 // Clear all data
 export const clearAllData = async () => {
   try {
-    // Attempt to wipe cloud data first if logged in
+    // Attempt to wipe cloud data first if configured
     try {
-      const { getCurrentUser } = await import('./supabaseClient')
+      const { getSyncUserId } = await import('./supabaseClient')
       const { wipeCloudData } = await import('./syncEngine')
 
-      const user = await getCurrentUser()
-      if (user) {
-        console.log('Clearing all data from cloud for user:', user.id)
-        await wipeCloudData(user.id)
+      const syncId = await getSyncUserId()
+      if (syncId) {
+        console.log('Clearing all data from cloud for sync ID:', syncId)
+        await wipeCloudData(syncId)
       }
     } catch (cloudError) {
       console.error('Failed to wipe cloud data (continuing with local clear):', cloudError)

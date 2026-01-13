@@ -76,6 +76,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return ipcRenderer.invoke('start-download', url, checksum)
     },
 
+    cancelDownload: () => {
+        return ipcRenderer.invoke('cancel-download')
+    },
+
     /**
      * Quit the app and install the downloaded update.
      */

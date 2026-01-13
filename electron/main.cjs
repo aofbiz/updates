@@ -301,6 +301,9 @@ function sendUpdateStatus(type, data = {}) {
   }
 }
 
+let currentDownloadRequest = null;
+let currentDownloadFileStream = null;
+
 function verifyChecksum(filePath, expectedChecksum) {
   return new Promise((resolve) => {
     if (!expectedChecksum) return resolve(true);
@@ -317,6 +320,26 @@ function verifyChecksum(filePath, expectedChecksum) {
   });
 }
 
+ipcMain.handle('cancel-download', () => {
+  if (currentDownloadRequest) {
+    currentDownloadRequest.abort();
+    currentDownloadRequest = null;
+  }
+  if (currentDownloadFileStream) {
+    currentDownloadFileStream.close();
+    currentDownloadFileStream = null;
+  }
+  if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
+    try {
+      fs.unlinkSync(downloadedFilePath);
+    } catch (e) {
+      console.error('Failed to delete partially downloaded file:', e);
+    }
+  }
+  sendUpdateStatus('available');
+  return { success: true };
+});
+
 ipcMain.handle('start-download', async (event, url, checksum) => {
   const tempDir = os.tmpdir();
   const fileName = `aof-biz-update-${Date.now()}.exe`;
@@ -325,7 +348,7 @@ ipcMain.handle('start-download', async (event, url, checksum) => {
 
   const downloadFile = (downloadUrl) => {
     return new Promise((resolve, reject) => {
-      https.get(downloadUrl, (response) => {
+      currentDownloadRequest = https.get(downloadUrl, (response) => {
         // Handle Redirects
         if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
           return resolve(downloadFile(response.headers.location));
@@ -337,7 +360,7 @@ ipcMain.handle('start-download', async (event, url, checksum) => {
 
         const totalSize = parseInt(response.headers['content-length'], 10);
         let downloadedSize = 0;
-        const file = fs.createWriteStream(filePath);
+        currentDownloadFileStream = fs.createWriteStream(filePath);
 
         let startTime = Date.now();
         let lastUpdate = 0;
@@ -362,15 +385,17 @@ ipcMain.handle('start-download', async (event, url, checksum) => {
           }
         });
 
-        response.pipe(file);
+        response.pipe(currentDownloadFileStream);
 
-        file.on('finish', async () => {
-          file.close();
+        currentDownloadFileStream.on('finish', async () => {
+          currentDownloadFileStream.close();
+          currentDownloadFileStream = null;
+          currentDownloadRequest = null;
 
           if (checksum) {
             const isValid = await verifyChecksum(filePath, checksum);
             if (!isValid) {
-              fs.unlinkSync(filePath);
+              if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
               sendUpdateStatus('error', { error: 'Checksum verification failed. The file may be corrupted.' });
               return resolve({ success: false, error: 'Checksum failed' });
             }
@@ -379,8 +404,15 @@ ipcMain.handle('start-download', async (event, url, checksum) => {
           sendUpdateStatus('downloaded');
           resolve({ success: true, path: filePath });
         });
-      }).on('error', (err) => {
-        fs.unlink(filePath, () => { });
+      });
+
+      currentDownloadRequest.on('error', (err) => {
+        if (currentDownloadFileStream) {
+          currentDownloadFileStream.close();
+          currentDownloadFileStream = null;
+        }
+        currentDownloadRequest = null;
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         sendUpdateStatus('error', { error: err.message });
         reject(err);
       });

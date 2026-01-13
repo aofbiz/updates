@@ -72,9 +72,14 @@ export const SyncProvider = ({ children }) => {
         let unsubscribeRealtime = null
 
         const setupRealtime = async () => {
-            if (user && isConfigured) {
-                console.log('SyncContext: Initializing Realtime Subscription...')
-                unsubscribeRealtime = await subscribeToRealtimeChanges(user.id)
+            if (isConfigured) {
+                const { getSyncUserId } = await import('../utils/supabaseClient')
+                const syncId = await getSyncUserId()
+
+                if (syncId) {
+                    console.log('SyncContext: Initializing Realtime Subscription for ID:', syncId)
+                    unsubscribeRealtime = await subscribeToRealtimeChanges(syncId)
+                }
             }
         }
 
@@ -90,7 +95,12 @@ export const SyncProvider = ({ children }) => {
 
     // Process sync queue with debouncing
     const processSyncQueue = useCallback(async () => {
-        if (!user || syncQueueRef.current.length === 0) return
+        if (syncQueueRef.current.length === 0) return
+
+        const { getSyncUserId } = await import('../utils/supabaseClient')
+        const syncId = await getSyncUserId()
+
+        if (!syncId) return
 
         setIsSyncing(true)
         const queue = [...syncQueueRef.current]
@@ -99,9 +109,9 @@ export const SyncProvider = ({ children }) => {
         for (const item of queue) {
             try {
                 if (item.action === 'upsert') {
-                    await pushToCloud(item.tableName, item.record, user.id)
+                    await pushToCloud(item.tableName, item.record, syncId)
                 } else if (item.action === 'delete') {
-                    await deleteFromCloud(item.tableName, item.recordId, user.id)
+                    await deleteFromCloud(item.tableName, item.recordId, syncId)
                 }
             } catch (error) {
                 console.error('Auto-sync error:', error)
@@ -111,7 +121,7 @@ export const SyncProvider = ({ children }) => {
         }
 
         setIsSyncing(false)
-    }, [user])
+    }, [])
 
     // Debounced sync trigger
     const triggerSync = useCallback(() => {
@@ -128,8 +138,8 @@ export const SyncProvider = ({ children }) => {
      * Sync a record after local save (upsert)
      */
     const syncRecord = useCallback(async (tableName, record) => {
-        if (!isConfigured || !user) {
-            // Not configured or not logged in - skip sync
+        if (!isConfigured) {
+            // Not configured - skip sync
             return
         }
 
@@ -142,13 +152,13 @@ export const SyncProvider = ({ children }) => {
 
         // Trigger debounced sync
         triggerSync()
-    }, [isConfigured, user, triggerSync])
+    }, [isConfigured, triggerSync])
 
     /**
      * Sync a delete operation
      */
     const deleteRecord = useCallback(async (tableName, recordId) => {
-        if (!isConfigured || !user) {
+        if (!isConfigured) {
             return
         }
 
@@ -161,7 +171,7 @@ export const SyncProvider = ({ children }) => {
 
         // Trigger debounced sync
         triggerSync()
-    }, [isConfigured, user, triggerSync])
+    }, [isConfigured, triggerSync])
 
     const value = {
         user,

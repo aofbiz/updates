@@ -45,7 +45,7 @@ export const useUpdateManager = () => {
                 return
             }
 
-            if (compareVersions(latest.version, currentVersion) > 1 || compareVersions(latest.version, currentVersion) === 1) {
+            if (compareVersions(latest.version, currentVersion) >= 0) {
                 const isMandatory = latest.is_mandatory || false
 
                 if (isMandatory) {
@@ -63,9 +63,15 @@ export const useUpdateManager = () => {
 
                 setUpdateInfo({
                     ...latest,
-                    is_mandatory: isMandatory
+                    is_mandatory: isMandatory,
+                    // Uses exe_size and apk_size directly from the database row if provided
                 })
-                setStatus('available')
+
+                if (compareVersions(latest.version, currentVersion) > 0) {
+                    setStatus('available')
+                } else {
+                    if (!isSilent) setStatus('up-to-date')
+                }
             } else {
                 if (!isSilent) setStatus('up-to-date')
             }
@@ -150,6 +156,15 @@ export const useUpdateManager = () => {
         }
     }, [])
 
+    const cancelDownload = useCallback(async () => {
+        if (window.electronAPI) {
+            await window.electronAPI.cancelDownload()
+            setStatus('available')
+            setProgress(0)
+            setDownloadStats({ total: 0, transferred: 0, speed: 0 })
+        }
+    }, [])
+
     return {
         status,
         updateInfo,
@@ -158,6 +173,7 @@ export const useUpdateManager = () => {
         error,
         checkForUpdates,
         startDownload,
+        cancelDownload,
         installUpdate,
         currentVersion,
         deadline,

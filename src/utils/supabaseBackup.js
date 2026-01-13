@@ -12,34 +12,10 @@ const BUCKET_NAME = 'backups'
  * Should be called before any storage operations.
  */
 export const ensureBucketExists = async () => {
-    try {
-        const supabase = await getSupabase()
-        if (!supabase) return false
-
-        // In the new "No-Login" setup, the SQL script handles bucket creation.
-        // We just try a simple list to see if we have access.
-        const { data: buckets, error: listError } = await supabase.storage.listBuckets()
-
-        // If we can't list buckets, it might be a permission error.
-        // We'll proceed anyway and let the actual upload/list fail if the bucket is truly missing.
-        if (listError) {
-            console.warn('Could not verify bucket existence (permission restricted):', listError.message)
-            return true
-        }
-
-        const exists = buckets?.some(b => b.name === BUCKET_NAME)
-        if (!exists) {
-            // Attempt to create, but don't crash if it fails (SQL script is the primary way now)
-            await supabase.storage.createBucket(BUCKET_NAME, {
-                public: false,
-                fileSizeLimit: 52428800,
-            })
-        }
-        return true
-    } catch (error) {
-        // Silently fail ensureBucketExists - the actual storage calls will throw meaningful errors
-        return true
-    }
+    // We assume the bucket exists because the Setup SQL script handles its creation.
+    // Anonymous users often lack 'listBuckets' permissions even if they can upload/download,
+    // so checking existence here often leads to false-positive warnings.
+    return true
 }
 
 /**
