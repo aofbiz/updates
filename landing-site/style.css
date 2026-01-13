@@ -1001,46 +1001,33 @@ textarea.form-control {
     position: fixed;
     bottom: 2rem;
     right: 2rem;
-    width: 3.5rem;
-    height: 3.5rem;
+    width: 3rem;
+    height: 3rem;
     background: #25D366;
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     z-index: 1000;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    animation: wa-bounce 0.5s ease-out forwards;
+    transition: all 0.3s ease;
+    opacity: 0.6;
+    filter: grayscale(0.5);
+    /* Muted until hover */
 }
 
 .wa-float-btn:hover {
-    transform: scale(1.1) rotate(10deg);
-    background: #128C7E;
-    box-shadow: 0 8px 20px rgba(37, 211, 102, 0.5);
+    transform: translateY(-2px);
+    opacity: 1;
+    filter: grayscale(0);
+    box-shadow: 0 10px 20px rgba(37, 211, 102, 0.3);
 }
 
 .wa-float-btn svg {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.6rem;
+    height: 1.6rem;
     fill: white;
-}
-
-@keyframes wa-bounce {
-    0% {
-        transform: scale(0);
-        opacity: 0;
-    }
-
-    60% {
-        transform: scale(1.2);
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
 }
 
 /* Back to Top Button */
