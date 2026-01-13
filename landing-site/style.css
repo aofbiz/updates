@@ -230,15 +230,29 @@ h1 {
 .logo {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     height: 48px;
-    /* Increased height for image */
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.logo-wrapper {
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .logo-img {
     height: 100%;
     width: auto;
     object-fit: contain;
+}
+
+.logo span.accent {
+    color: var(--accent-primary);
 }
 
 /* Theme-based logo switching */

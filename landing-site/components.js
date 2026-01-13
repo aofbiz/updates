@@ -8,8 +8,11 @@ const COMPONENTS = {
     <nav class="navbar">
         <div class="container">
             <a href="index.html" class="logo">
-                <img src="logo-light.png" alt="AOF Biz Logo" class="logo-img logo-light">
-                <img src="logo-dark.png" alt="AOF Biz Logo" class="logo-img logo-dark">
+                <div class="logo-wrapper">
+                    <img src="logo-light.png" alt="AOF Biz Logo" class="logo-img logo-light">
+                    <img src="logo-dark.png" alt="AOF Biz Logo" class="logo-img logo-dark">
+                </div>
+                <span>AOF <span class="accent">Biz</span></span>
             </a>
             <div class="nav-links" id="nav-links">
                 <a href="index.html">Home</a>
@@ -38,8 +41,11 @@ const COMPONENTS = {
             <div class="footer-content">
                 <div class="footer-brand">
                     <a href="index.html" class="logo">
-                        <img src="logo-light.png" alt="AOF Biz Logo" class="logo-img logo-light">
-                        <img src="logo-dark.png" alt="AOF Biz Logo" class="logo-img logo-dark">
+                        <div class="logo-wrapper">
+                            <img src="logo-light.png" alt="AOF Biz Logo" class="logo-img logo-light">
+                            <img src="logo-dark.png" alt="AOF Biz Logo" class="logo-img logo-dark">
+                        </div>
+                        <span>AOF <span class="accent">Biz</span></span>
                     </a>
                     <p>Revolutionizing frame business management with cutting-edge tools and intuitive design.</p>
                 </div>
