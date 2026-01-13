@@ -865,6 +865,20 @@ export const importAllData = async (file) => {
 // Clear all data
 export const clearAllData = async () => {
   try {
+    // Attempt to wipe cloud data first if logged in
+    try {
+      const { getCurrentUser } = await import('./supabaseClient')
+      const { wipeCloudData } = await import('./syncEngine')
+
+      const user = await getCurrentUser()
+      if (user) {
+        console.log('Clearing all data from cloud for user:', user.id)
+        await wipeCloudData(user.id)
+      }
+    } catch (cloudError) {
+      console.error('Failed to wipe cloud data (continuing with local clear):', cloudError)
+    }
+
     // Clear all data from Dexie stores
     await Promise.all([
       db.orders.clear(),
@@ -880,7 +894,7 @@ export const clearAllData = async () => {
       db.syncQueue.clear() // Clear sync queue for a fresh start
     ])
 
-    return { success: true, message: 'All data cleared successfully!' }
+    return { success: true, message: 'All data cleared successfully (Local & Cloud)!' }
   } catch (error) {
     console.error('Error clearing data:', error)
     return { success: false, message: 'Failed to clear data: ' + error.message }

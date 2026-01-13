@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { getCurrentUser, onAuthStateChange, isSupabaseConfigured } from '../utils/supabaseClient'
-import { pushToCloud, deleteFromCloud, queueSyncAction } from '../utils/syncEngine'
+import { pushToCloud, deleteFromCloud, queueSyncAction, subscribeToRealtimeChanges } from '../utils/syncEngine'
 
 const SyncContext = createContext(null)
 
@@ -34,6 +34,7 @@ export const SyncProvider = ({ children }) => {
     const syncTimeoutRef = useRef(null)
 
     // Check configuration and auth on mount
+    // Verify configuration and auth on mount
     useEffect(() => {
         const init = async () => {
             const configured = await isSupabaseConfigured()
@@ -47,16 +48,45 @@ export const SyncProvider = ({ children }) => {
         init()
 
         // Subscribe to auth changes
-        let unsubscribe = () => { }
+        let unsubscribeAuth = () => { }
         const setupAuthListener = async () => {
-            unsubscribe = await onAuthStateChange((event, session) => {
+            const result = await onAuthStateChange((event, session) => {
                 setUser(session?.user || null)
             })
+            if (typeof result === 'function') {
+                unsubscribeAuth = result
+            } else if (result && result.unsubscribe) {
+                // handle object return if necessary, but current mocked version returns function
+                // keeping robust just in case implementation details shift
+            }
         }
         setupAuthListener()
 
-        return () => unsubscribe()
+        return () => {
+            unsubscribeAuth()
+        }
     }, [])
+
+    // Real-time Cloud syncing subscription
+    useEffect(() => {
+        let unsubscribeRealtime = null
+
+        const setupRealtime = async () => {
+            if (user && isConfigured) {
+                console.log('SyncContext: Initializing Realtime Subscription...')
+                unsubscribeRealtime = await subscribeToRealtimeChanges(user.id)
+            }
+        }
+
+        setupRealtime()
+
+        return () => {
+            if (unsubscribeRealtime && typeof unsubscribeRealtime === 'function') {
+                console.log('SyncContext: Cleaning up Realtime Subscription')
+                unsubscribeRealtime()
+            }
+        }
+    }, [user, isConfigured])
 
     // Process sync queue with debouncing
     const processSyncQueue = useCallback(async () => {

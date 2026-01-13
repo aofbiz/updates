@@ -371,10 +371,7 @@ export const subscribeToRealtimeChanges = async (userId, onDataChange) => {
                     filter: `user_id=eq.${userId}`
                 },
                 (payload) => {
-                    console.log('Realtime change:', payload)
-                    if (onDataChange) {
-                        onDataChange(payload)
-                    }
+                    handleRealtimeEvent(payload)
                 }
             )
             .subscribe()
@@ -385,5 +382,102 @@ export const subscribeToRealtimeChanges = async (userId, onDataChange) => {
     } catch (error) {
         console.error('Error subscribing to realtime:', error)
         return null
+    }
+}
+
+/**
+ * Handle incoming realtime events from Supabase.
+ */
+const handleRealtimeEvent = async (payload) => {
+    try {
+        const { eventType, table, new: newRecord, old: oldRecord } = payload
+
+        // Find local table name from Supabase table name
+        const localTableName = Object.keys(TABLE_MAP).find(key => TABLE_MAP[key] === table)
+        if (!localTableName) return
+
+        const localTable = db[localTableName]
+        if (!localTable) return
+
+        console.log(`Realtime: processing ${eventType} for ${localTableName}`)
+
+        if (eventType === 'DELETE') {
+            // Delete local record
+            if (oldRecord && oldRecord.id) {
+                await localTable.delete(oldRecord.id)
+                // Dispatch event for UI updates
+                window.dispatchEvent(new Event('ordersUpdated')) // Generic sync event trigger
+            }
+        } else if (eventType === 'INSERT' || eventType === 'UPDATE') {
+            // Upsert local record
+            // Parse the data field if it exists (JSONB storage pattern)
+            let recordData = newRecord.data
+
+            // If the record itself is the data (flat structure), use it directly
+            if (!recordData && newRecord.id) {
+                // Fallback: If your schema changed to flat columns, this would handle it. 
+                // keeping it flexible but primarily relying on .data column pattern
+                recordData = { ...newRecord }
+                delete recordData.user_id
+                delete recordData.updated_at
+            }
+
+            if (recordData) {
+                // Merge logic: ensure we respect the ID and timestamp
+                const mergedRecord = {
+                    ...recordData,
+                    id: newRecord.id,
+                    updatedAt: newRecord.updated_at
+                }
+
+                // Check local timestamp to prevent overwriting newer local changes (basic conflict resolution)
+                const localRecord = await localTable.get(newRecord.id)
+                if (!localRecord || new Date(mergedRecord.updatedAt) > new Date(localRecord.updatedAt || 0)) {
+                    await localTable.put(mergedRecord)
+                    // Dispatch event for UI updates
+                    window.dispatchEvent(new Event('ordersUpdated'))
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error handling realtime event:', error)
+    }
+}
+
+/**
+ * Wipe all data for the user from the cloud.
+ * CAUTION: Destructive action.
+ */
+export const wipeCloudData = async (userId) => {
+    try {
+        const supabase = await getSupabase()
+        if (!supabase || !userId) return { success: false, error: 'Not configured' }
+
+        console.log('Sync: Initiating full cloud wipe...')
+        const results = { deleted: {}, errors: [] }
+
+        for (const tableName of SYNC_TABLES) {
+            const supabaseTable = TABLE_MAP[tableName]
+            if (supabaseTable) {
+                try {
+                    const { count, error } = await supabase
+                        .from(supabaseTable)
+                        .delete({ count: 'exact' })
+                        .eq('user_id', userId)
+
+                    if (error) throw error
+                    results.deleted[tableName] = count
+                } catch (err) {
+                    console.error(`Error wiping ${tableName}:`, err)
+                    results.errors.push(`${tableName}: ${err.message}`)
+                }
+            }
+        }
+
+        console.log('Sync: Cloud wipe complete.', results)
+        return { success: results.errors.length === 0, results }
+    } catch (error) {
+        console.error('Cloud wipe failed:', error)
+        return { success: false, error: error.message }
     }
 }
