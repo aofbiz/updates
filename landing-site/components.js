@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderComponent('navbar-placeholder', COMPONENTS.navbar, initNavbar);
     renderComponent('footer-placeholder', COMPONENTS.footer);
     initBackToTop();
+    initWhatsApp();
 });
 
 function initBackToTop() {
@@ -115,6 +116,21 @@ function initBackToTop() {
             behavior: 'smooth'
         });
     });
+}
+
+function initWhatsApp() {
+    const waBtn = document.createElement('a');
+    waBtn.href = 'https://wa.me/94750350109';
+    waBtn.target = '_blank';
+    waBtn.rel = 'noopener noreferrer';
+    waBtn.className = 'wa-float-btn';
+    waBtn.setAttribute('aria-label', 'Chat on WhatsApp');
+    waBtn.innerHTML = '<i data-lucide="message-circle"></i>';
+    document.body.appendChild(waBtn);
+
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
 }
 
 /**
