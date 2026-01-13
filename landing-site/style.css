@@ -933,32 +933,18 @@ textarea.form-control {
     .navbar .btn-sm {
         display: none;
     }
-}
 
-.navbar .nav-links.active {
-    right: 0;
-}
+    .nav-actions .btn-sm {
+        display: none;
+    }
 
-.nav-links a {
-    font-size: 1.25rem;
-    font-weight: 600;
-}
+    .footer-content {
+        grid-template-columns: 1fr 1fr;
+    }
 
-.navbar .btn-sm {
-    display: none;
-}
-
-.nav-actions .btn-sm {
-    display: none;
-}
-
-.footer-content {
-    grid-template-columns: 1fr 1fr;
-}
-
-.pricing-card.pro {
-    transform: none;
-}
+    .pricing-card.pro {
+        transform: none;
+    }
 }
 
 @media (max-width: 480px) {
