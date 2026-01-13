@@ -558,16 +558,10 @@ h1 {
     position: relative;
 }
 
-.about-image div {
-    width: 100%;
-    height: 350px;
-    background: var(--bg-card);
-    border-radius: 12px;
-    border: var(--glass-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* 
+   Legacy placeholder style removed to prevent conflict with .grid and .mockup-container 
+   .about-image div { ... } 
+*/
 
 .about-content ul {
     margin: 2rem 0;
