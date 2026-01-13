@@ -280,37 +280,7 @@ h1 {
     color: var(--brand-primary);
 }
 
-/* Desktop Menu */
-.nav-menu {
-    display: flex;
-    align-items: center;
-    gap: 2.5rem;
-}
 
-.nav-item {
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text-2);
-    transition: color 0.2s ease;
-    position: relative;
-    text-decoration: none;
-}
-
-.nav-item:hover,
-.nav-item.active {
-    color: var(--text-1);
-}
-
-.nav-item.active::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: var(--brand-primary);
-    border-radius: 2px;
-}
 
 /* Actions (Theme + CTA + Mobile Toggle) */
 .nav-right {
@@ -355,81 +325,7 @@ h1 {
     display: none;
 }
 
-/* Mobile Toggle */
-.mobile-toggle-btn {
-    display: none;
-    width: 44px;
-    height: 44px;
-    background: transparent;
-    border: none;
-    color: var(--text-1);
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    z-index: 10001;
-    /* Above everything */
-    padding: 0;
-}
 
-.mobile-toggle-btn:active {
-    transform: scale(0.95);
-}
-
-/* --- RESPONSIVE NAVIGATION --- */
-@media (max-width: 1024px) {
-    .nav-menu {
-        position: fixed;
-        top: 80px;
-        right: 0;
-        width: 100%;
-        height: calc(100vh - 80px);
-        /* Fill rest of screen */
-        background: var(--surface-1);
-        flex-direction: column;
-        justify-content: flex-start;
-        padding-top: 3rem;
-        gap: 2rem;
-        transform: translateX(100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        z-index: 9998;
-        overflow-y: auto;
-        /* Allow scrolling if menu is long */
-    }
-
-    .nav-menu.is-open {
-        transform: translateX(0);
-        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
-    }
-
-    .nav-item {
-        font-size: 1.25rem;
-        font-weight: 600;
-        width: 100%;
-        text-align: center;
-        padding: 1rem;
-    }
-
-    .mobile-toggle-btn {
-        display: flex !important;
-    }
-
-    .nav-right .btn-primary {
-        display: none;
-    }
-
-    /* Add CTA to mobile menu bottom if needed? 
-       Using .nav-mobile-cta specific class 
-    */
-    .nav-mobile-cta {
-        display: block !important;
-        margin-top: 2rem;
-    }
-}
-
-.nav-mobile-cta {
-    display: none;
-}
 
 /* Theme Toggle Button */
 .theme-toggle {
