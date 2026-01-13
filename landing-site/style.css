@@ -327,42 +327,7 @@ h1 {
 
 
 
-/* Theme Toggle Button */
-.theme-toggle {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
 
-.theme-toggle:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--accent-primary);
-    transform: rotate(15deg);
-}
-
-.theme-toggle .sun {
-    display: none;
-}
-
-.theme-toggle .moon {
-    display: block;
-}
-
-[data-theme="light"] .theme-toggle .sun {
-    display: block;
-}
-
-[data-theme="light"] .theme-toggle .moon {
-    display: none;
-}
 
 /* Hero Section */
 .hero {
