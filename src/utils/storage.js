@@ -2,7 +2,7 @@
 // Data is stored in the browser's IndexedDB.
 
 import { db } from '../db'
-import { isSupabaseConfigured, getCurrentUser } from './supabaseClient'
+import { isSupabaseConfigured, getSyncUserId } from './supabaseClient'
 import { pushToCloud, deleteFromCloud } from './syncEngine'
 
 // Bump version to invalidate any previous cached compat modes that might be too strict.
@@ -19,10 +19,16 @@ const autoSyncRecord = async (tableName, record) => {
     try {
       console.log('Auto-sync: Attempting sync for', tableName)
       const configured = await isSupabaseConfigured()
-      if (!configured) return
+      if (!configured) {
+        console.log('Auto-sync: Supabase not configured')
+        return
+      }
 
-      const user = await getCurrentUser()
-      if (!user) return
+      const userId = await getSyncUserId()
+      if (!userId) {
+        console.log('Auto-sync: No user ID found')
+        return
+      }
 
       // Add timestamp if missing
       const recordWithTimestamp = {
@@ -30,8 +36,12 @@ const autoSyncRecord = async (tableName, record) => {
         updatedAt: record.updatedAt || new Date().toISOString()
       }
 
-      await pushToCloud(tableName, recordWithTimestamp, user.id)
-      console.log(`Auto-sync: Pushed ${tableName} to cloud`)
+      const result = await pushToCloud(tableName, recordWithTimestamp, userId)
+      if (result.success) {
+        console.log(`Auto-sync: Pushed ${tableName} to cloud (User: ${userId})`)
+      } else {
+        console.warn(`Auto-sync: Push failed for ${tableName}`, result.error)
+      }
     } catch (error) {
       console.warn('Auto-sync failed:', error.message)
     }
@@ -46,10 +56,10 @@ const autoSyncDelete = async (tableName, recordId) => {
       const configured = await isSupabaseConfigured()
       if (!configured) return
 
-      const user = await getCurrentUser()
-      if (!user) return
+      const userId = await getSyncUserId()
+      if (!userId) return
 
-      await deleteFromCloud(tableName, recordId, user.id)
+      await deleteFromCloud(tableName, recordId, userId)
       console.log(`Auto-sync: Deleted ${tableName}/${recordId} from cloud`)
     } catch (error) {
       console.warn('Auto-sync delete failed:', error.message)
