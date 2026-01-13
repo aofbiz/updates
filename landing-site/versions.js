@@ -4,7 +4,7 @@
 const AOF_CONFIG = {
     version: "2.0.10",
     exe_link: "https://github.com/aofbiz/updates/releases/download/v2.0.10/AOF-Biz---2.0.10.exe",
-    apk_link: https://github.com/aofbiz/updates/releases/download/v2.0.10/AOF.Biz.-.2.0.10.apk",
+    apk_link: "https://github.com/aofbiz/updates/releases/download/v2.0.10/AOF.Biz.-.2.0.10.apk",
 
     // Status text for the badges
     status_text: "Available Now",
