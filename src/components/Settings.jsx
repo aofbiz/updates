@@ -2136,12 +2136,8 @@ WITH CHECK (bucket_id = 'backups');
 
 -- Enable Realtime for all tables
 -- This is CRITICAL for cross-device sync
-BEGIN;
-  -- Remove tables from publication if they exist to avoid errors
-  ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS orders, expenses, inventory, settings, tracking_numbers, order_sources, products, order_counter, inventory_logs, quotations;
-  -- Add all tables to the realtime publication
-  ALTER PUBLICATION supabase_realtime ADD TABLE orders, expenses, inventory, settings, tracking_numbers, order_sources, products, order_counter, inventory_logs, quotations;
-COMMIT;
+-- Use SET TABLE to ensure exactly these tables are tracked
+ALTER PUBLICATION supabase_realtime SET TABLE orders, expenses, inventory, settings, tracking_numbers, order_sources, products, order_counter, inventory_logs, quotations;
 `
 
 // Unified Supabase Cloud Hub Component
