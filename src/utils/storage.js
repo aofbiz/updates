@@ -2,6 +2,8 @@
 // Data is stored in the browser's IndexedDB.
 
 import { db } from '../db'
+import { isSupabaseConfigured, getCurrentUser } from './supabaseClient'
+import { pushToCloud, deleteFromCloud } from './syncEngine'
 
 // Bump version to invalidate any previous cached compat modes that might be too strict.
 const ORDERS_SCHEMA_CACHE_KEY = 'aof_orders_schema_missing_cols_v4'
@@ -15,10 +17,7 @@ const autoSyncRecord = async (tableName, record) => {
   // Debounce - don't block the main operation
   setTimeout(async () => {
     try {
-      // Dynamic imports to avoid circular dependency
-      const { isSupabaseConfigured, getCurrentUser } = await import('./supabaseClient')
-      const { pushToCloud } = await import('./syncEngine')
-
+      console.log('Auto-sync: Attempting sync for', tableName)
       const configured = await isSupabaseConfigured()
       if (!configured) return
 
@@ -43,9 +42,7 @@ const autoSyncRecord = async (tableName, record) => {
 const autoSyncDelete = async (tableName, recordId) => {
   setTimeout(async () => {
     try {
-      const { isSupabaseConfigured, getCurrentUser } = await import('./supabaseClient')
-      const { deleteFromCloud } = await import('./syncEngine')
-
+      console.log('Auto-sync: Attempting delete for', tableName)
       const configured = await isSupabaseConfigured()
       if (!configured) return
 
