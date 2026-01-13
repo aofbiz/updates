@@ -374,7 +374,9 @@ export const subscribeToRealtimeChanges = async (userId, onDataChange) => {
                     handleRealtimeEvent(payload)
                 }
             )
-            .subscribe()
+            .subscribe((status) => {
+                console.log('Sync: Realtime subscription status:', status)
+            })
 
         return () => {
             supabase.removeChannel(channel)
@@ -406,35 +408,34 @@ const handleRealtimeEvent = async (payload) => {
             if (oldRecord && oldRecord.id) {
                 await localTable.delete(oldRecord.id)
                 // Dispatch event for UI updates
-                window.dispatchEvent(new Event('ordersUpdated')) // Generic sync event trigger
+                window.dispatchEvent(new Event(`sync:${localTableName}`))
+                // Also dispatch generic update for common listeners
+                window.dispatchEvent(new Event('ordersUpdated'))
             }
         } else if (eventType === 'INSERT' || eventType === 'UPDATE') {
             // Upsert local record
-            // Parse the data field if it exists (JSONB storage pattern)
             let recordData = newRecord.data
 
-            // If the record itself is the data (flat structure), use it directly
             if (!recordData && newRecord.id) {
-                // Fallback: If your schema changed to flat columns, this would handle it. 
-                // keeping it flexible but primarily relying on .data column pattern
                 recordData = { ...newRecord }
                 delete recordData.user_id
                 delete recordData.updated_at
             }
 
             if (recordData) {
-                // Merge logic: ensure we respect the ID and timestamp
                 const mergedRecord = {
                     ...recordData,
                     id: newRecord.id,
                     updatedAt: newRecord.updated_at
                 }
 
-                // Check local timestamp to prevent overwriting newer local changes (basic conflict resolution)
+                // Check local timestamp to prevent overwriting newer local changes
                 const localRecord = await localTable.get(newRecord.id)
                 if (!localRecord || new Date(mergedRecord.updatedAt) > new Date(localRecord.updatedAt || 0)) {
                     await localTable.put(mergedRecord)
-                    // Dispatch event for UI updates
+                    // Dispatch specific event for UI updates
+                    window.dispatchEvent(new Event(`sync:${localTableName}`))
+                    // Also dispatch generic update
                     window.dispatchEvent(new Event('ordersUpdated'))
                 }
             }
@@ -453,29 +454,45 @@ export const wipeCloudData = async (userId) => {
         const supabase = await getSupabase()
         if (!supabase || !userId) return { success: false, error: 'Not configured' }
 
-        console.log('Sync: Initiating full cloud wipe...')
+        console.log('Sync: Initiating full cloud wipe for user:', userId)
         const results = { deleted: {}, errors: [] }
+
+        // We iterate through all tables and delete everything belonging to this user
+        // We also attempt to delete 'anon-user' data just in case some syncs happened without auth
+        const userIdsToClear = [userId, 'anon-user']
 
         for (const tableName of SYNC_TABLES) {
             const supabaseTable = TABLE_MAP[tableName]
             if (supabaseTable) {
                 try {
-                    const { count, error } = await supabase
-                        .from(supabaseTable)
-                        .delete({ count: 'exact' })
-                        .eq('user_id', userId)
+                    let totalDeleted = 0
+                    for (const id of userIdsToClear) {
+                        const { count, error } = await supabase
+                            .from(supabaseTable)
+                            .delete({ count: 'exact' })
+                            .eq('user_id', id)
 
-                    if (error) throw error
-                    results.deleted[tableName] = count
+                        if (error) {
+                            console.error(`Error wiping ${tableName} for ${id}:`, error)
+                            results.errors.push(`${tableName}(${id}): ${error.message}`)
+                        } else {
+                            totalDeleted += (count || 0)
+                        }
+                    }
+                    results.deleted[tableName] = totalDeleted
                 } catch (err) {
-                    console.error(`Error wiping ${tableName}:`, err)
+                    console.error(`Exception wiping ${tableName}:`, err)
                     results.errors.push(`${tableName}: ${err.message}`)
                 }
             }
         }
 
         console.log('Sync: Cloud wipe complete.', results)
-        return { success: results.errors.length === 0, results }
+        return {
+            success: results.errors.length === 0,
+            message: results.errors.length === 0 ? 'Cloud wipe successful' : 'Cloud wipe partially failed',
+            results
+        }
     } catch (error) {
         console.error('Cloud wipe failed:', error)
         return { success: false, error: error.message }

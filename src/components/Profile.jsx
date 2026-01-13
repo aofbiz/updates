@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
     Shield, Zap, CheckCircle, Save, Camera, Store, FileText,
     Smartphone, RefreshCw, Crown, MessageCircle, Loader2,
@@ -43,31 +43,43 @@ const Profile = ({ onUpdateSettings }) => {
         isOpen: false, title: '', message: '', type: 'default', confirmText: 'Confirm', onConfirm: null
     })
 
+    // Load Settings function
+    const loadSettings = useCallback(async () => {
+        const savedSettings = await getSettings()
+        if (savedSettings) {
+            setSettings(prev => ({
+                ...prev,
+                businessName: savedSettings.businessName || '',
+                businessTagline: savedSettings.businessTagline || '',
+                businessAddress: savedSettings.businessAddress || '',
+                businessPhone: savedSettings.businessPhone || '',
+                businessWhatsapp: savedSettings.businessWhatsapp || '',
+                businessEmail: savedSettings.businessEmail || '',
+                businessWebsite: savedSettings.businessWebsite || '',
+                businessLogo: savedSettings.businessLogo || null,
+                socialFb: savedSettings.socialFb || '',
+                socialInsta: savedSettings.socialInsta || '',
+                socialYoutube: savedSettings.socialYoutube || '',
+                socialTiktok: savedSettings.socialTiktok || ''
+            }))
+        }
+        setLoading(false)
+    }, [])
+
     // Load Settings on Mount
     useEffect(() => {
-        const loadData = async () => {
-            const savedSettings = await getSettings()
-            if (savedSettings) {
-                setSettings(prev => ({
-                    ...prev,
-                    businessName: savedSettings.businessName || '',
-                    businessTagline: savedSettings.businessTagline || '',
-                    businessAddress: savedSettings.businessAddress || '',
-                    businessPhone: savedSettings.businessPhone || '',
-                    businessWhatsapp: savedSettings.businessWhatsapp || '',
-                    businessEmail: savedSettings.businessEmail || '',
-                    businessWebsite: savedSettings.businessWebsite || '',
-                    businessLogo: savedSettings.businessLogo || null,
-                    socialFb: savedSettings.socialFb || '',
-                    socialInsta: savedSettings.socialInsta || '',
-                    socialYoutube: savedSettings.socialYoutube || '',
-                    socialTiktok: savedSettings.socialTiktok || ''
-                }))
-            }
-            setLoading(false)
+        loadSettings()
+    }, [loadSettings])
+
+    // Listen for cloud sync updates
+    useEffect(() => {
+        const handleSync = () => {
+            console.log('Profile: Sync update detected, refreshing settings...')
+            loadSettings()
         }
-        loadData()
-    }, [])
+        window.addEventListener('sync:settings', handleSync)
+        return () => window.removeEventListener('sync:settings', handleSync)
+    }, [loadSettings])
 
     const handleChange = (field, value) => {
         setSettings(prev => ({ ...prev, [field]: value }))

@@ -93,38 +93,56 @@ function AppContent() {
   const [initialFilters, setInitialFilters] = useState({})
   const [showShortcuts, setShowShortcuts] = useState(false)
 
-  // Load data - Unified for all modes
-  useEffect(() => {
+  // Load data function - extracted for reuse
+  const loadData = useCallback(async () => {
     if (licensingLoading || !userMode) return
 
-    const loadData = async () => {
-      console.log('App: Starting to load data...')
-      setDataLoading(true)
-      try {
-        const [ordersData, expensesData, inventoryData, productsData, quotationsData, settingsData] = await Promise.all([
-          getOrders(),
-          getExpenses(),
-          getInventory(),
-          getProducts(),
-          getQuotations(),
-          getSettings()
-        ])
-        console.log(`App: Data loaded successfully. Orders: ${ordersData?.length}`)
-        setOrders(ordersData || [])
-        setExpenses(expensesData || [])
-        setInventory(inventoryData || [])
-        setProducts(productsData || { categories: [] })
-        setQuotations(quotationsData || [])
-        setSettings(settingsData || null)
-      } catch (error) {
-        console.error('App: Error loading data:', error)
-      } finally {
-        setDataLoading(false)
-      }
-    }
-    loadData()
-  }, [userMode, licensingLoading])
+    console.log('App: Fetching updated data...')
+    try {
+      const [ordersData, expensesData, inventoryData, productsData, quotationsData, settingsData] = await Promise.all([
+        getOrders(),
+        getExpenses(),
+        getInventory(),
+        getProducts(),
+        getQuotations(),
+        getSettings()
+      ])
 
+      setOrders(prev => JSON.stringify(prev) !== JSON.stringify(ordersData) ? (ordersData || []) : prev)
+      setExpenses(expensesData || [])
+      setInventory(inventoryData || [])
+      setProducts(productsData || { categories: [] })
+      setQuotations(quotationsData || [])
+      setSettings(settingsData || null)
+    } catch (error) {
+      console.error('App: Error loading data:', error)
+    } finally {
+      setDataLoading(false)
+    }
+  }, [licensingLoading, userMode])
+
+  // Initial load
+  useEffect(() => {
+    if (licensingLoading || !userMode) return
+    setDataLoading(true)
+    loadData()
+  }, [loadData])
+
+  // LISTEN FOR SYNC EVENTS
+  // This makes the app truly real-time across devices
+  useEffect(() => {
+    const handleSyncUpdate = (e) => {
+      console.log('App: Sync update detected, refreshing data...', e.type)
+      loadData()
+    }
+
+    const events = ['ordersUpdated', 'sync:orders', 'sync:expenses', 'sync:inventory', 'sync:settings', 'sync:products', 'sync:quotations']
+    events.forEach(ev => window.addEventListener(ev, handleSyncUpdate))
+
+    return () => {
+      events.forEach(ev => window.removeEventListener(ev, handleSyncUpdate))
+    }
+  }, [loadData])
 
 
   // Persist active view to localStorage

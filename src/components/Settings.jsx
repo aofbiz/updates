@@ -621,12 +621,16 @@ const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, 
                         showConfirm(
                           'Delete All Data',
                           'Are you absolutely sure you want to delete ALL data? This action cannot be undone.',
-                          () => {
-                            clearAllData()
-                            addToast('All data cleared successfully', 'success')
-                            setTimeout(() => {
-                              window.location.reload()
-                            }, 1500)
+                          async () => {
+                            const result = await clearAllData()
+                            if (result.success) {
+                              addToast(result.message || 'All data cleared successfully', 'success')
+                              setTimeout(() => {
+                                window.location.reload()
+                              }, 1500)
+                            } else {
+                              addToast(result.message || 'Failed to clear some data', 'error')
+                            }
                           },
                           'danger',
                           'Yes, Delete Everything'
@@ -2129,6 +2133,15 @@ CREATE POLICY "Public Manage Backups" ON storage.objects
 FOR ALL TO public
 USING (bucket_id = 'backups')
 WITH CHECK (bucket_id = 'backups');
+
+-- Enable Realtime for all tables
+-- This is CRITICAL for cross-device sync
+BEGIN;
+  -- Remove tables from publication if they exist to avoid errors
+  ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS orders, expenses, inventory, settings, tracking_numbers, order_sources, products, order_counter, inventory_logs, quotations;
+  -- Add all tables to the realtime publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE orders, expenses, inventory, settings, tracking_numbers, order_sources, products, order_counter, inventory_logs, quotations;
+COMMIT;
 `
 
 // Unified Supabase Cloud Hub Component

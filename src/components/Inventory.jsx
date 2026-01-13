@@ -109,6 +109,20 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
     setRecentLogs(logs)
   }
 
+  // Listen for cloud sync updates
+  useEffect(() => {
+    const handleSync = (e) => {
+      console.log('Inventory: Sync update detected, refreshing logs...', e.type)
+      loadLogs()
+    }
+    window.addEventListener('sync:inventoryLogs', handleSync)
+    window.addEventListener('sync:inventory_logs', handleSync) // Handle both naming conventions
+    return () => {
+      window.removeEventListener('sync:inventoryLogs', handleSync)
+      window.removeEventListener('sync:inventory_logs', handleSync)
+    }
+  }, [])
+
   useEffect(() => {
     if (initialFilter) setFilter(initialFilter)
   }, [initialFilter])
