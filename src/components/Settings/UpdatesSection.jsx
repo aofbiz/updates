@@ -248,6 +248,11 @@ const UpdatesSection = () => {
                                         >
                                             <Monitor size={20} />
                                             Update PC (EXE)
+                                            {updateInfo.exe_size && (
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 400, opacity: 0.8, marginLeft: '4px' }}>
+                                                    ({updateInfo.exe_size})
+                                                </span>
+                                            )}
                                         </button>
                                         <button
                                             onClick={() => handleAction('apk')}
@@ -263,6 +268,11 @@ const UpdatesSection = () => {
                                         >
                                             <Smartphone size={20} />
                                             Update Mobile (APK)
+                                            {updateInfo.apk_size && (
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 400, opacity: 0.8, marginLeft: '4px' }}>
+                                                    ({updateInfo.apk_size})
+                                                </span>
+                                            )}
                                         </button>
                                     </>
                                 ) : (
