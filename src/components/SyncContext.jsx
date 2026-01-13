@@ -6,7 +6,7 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { getCurrentUser, onAuthStateChange, isSupabaseConfigured } from '../utils/supabaseClient'
+import { getCurrentUser, onAuthStateChange, isSupabaseConfigured, getSyncUserId } from '../utils/supabaseClient'
 import { pushToCloud, deleteFromCloud, queueSyncAction, subscribeToRealtimeChanges } from '../utils/syncEngine'
 
 const SyncContext = createContext(null)
@@ -73,12 +73,18 @@ export const SyncProvider = ({ children }) => {
 
         const setupRealtime = async () => {
             if (isConfigured) {
-                const { getSyncUserId } = await import('../utils/supabaseClient')
-                const syncId = await getSyncUserId()
+                try {
+                    console.log('SyncContext: Attempting to subscribe to realtime...')
+                    const syncId = await getSyncUserId()
 
-                if (syncId) {
-                    console.log('SyncContext: Initializing Realtime Subscription for ID:', syncId)
-                    unsubscribeRealtime = await subscribeToRealtimeChanges(syncId)
+                    if (syncId) {
+                        console.log('SyncContext: Initializing Realtime Subscription for ID:', syncId)
+                        unsubscribeRealtime = await subscribeToRealtimeChanges(syncId)
+                    } else {
+                        console.warn('SyncContext: No syncId available for realtime.')
+                    }
+                } catch (err) {
+                    console.error('SyncContext: Failed to setup realtime:', err)
                 }
             }
         }
@@ -97,7 +103,6 @@ export const SyncProvider = ({ children }) => {
     const processSyncQueue = useCallback(async () => {
         if (syncQueueRef.current.length === 0) return
 
-        const { getSyncUserId } = await import('../utils/supabaseClient')
         const syncId = await getSyncUserId()
 
         if (!syncId) return
