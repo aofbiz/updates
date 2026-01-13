@@ -123,150 +123,184 @@ const UpdatesSection = () => {
                     </div>
                 )}
 
-                {status === 'available' && updateInfo && (
-                    <div className="update-info-card" style={{
-                        border: '1px solid var(--accent-primary)',
-                        padding: '1.5rem',
-                        borderRadius: '1rem',
-                        marginBottom: '1.5rem',
-                        background: 'rgba(var(--accent-rgb), 0.02)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{
-                                    padding: '8px',
-                                    borderRadius: '8px',
-                                    background: 'var(--accent-primary)',
-                                    color: '#fff'
-                                }}>
-                                    <Zap size={18} />
-                                </div>
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>New Version Available</h3>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Found version v{updateInfo.version}</p>
-                                </div>
-                            </div>
-                            <span style={{
-                                background: 'var(--bg-secondary)',
-                                padding: '4px 12px',
-                                borderRadius: '100px',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                                color: 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)'
-                            }}>
-                                New
-                            </span>
-                        </div>
-
-                        {updateInfo.release_notes && (
-                            <div className="release-notes" style={{
-                                marginTop: '1rem',
-                                padding: '1rem',
-                                background: 'var(--bg-secondary)',
-                                borderRadius: '0.75rem',
-                                border: '1px solid var(--border-color)'
-                            }}>
-                                <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                                    <Info size={14} /> Release Notes
-                                </h4>
-                                <div style={{ fontSize: '0.85rem', lineHeight: '1.6', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
-                                    {updateInfo.release_notes}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {(status === 'downloading' || status === 'ready') && (
-                    <div className="download-status" style={{
-                        padding: '1.5rem',
-                        background: 'var(--bg-secondary)',
-                        borderRadius: '1rem',
-                        border: '1px solid var(--border-color)',
-                        marginBottom: '1.5rem'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>
-                                {status === 'downloading' ? 'Downloading Update...' : 'Ready to Install'}
-                            </span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
-                                {Math.round(progress)}%
-                            </span>
-                        </div>
-
-                        {/* Download Stats Detail */}
-                        {status === 'downloading' && downloadStats && (downloadStats.transferred > 0 || progress > 0) && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                <span>{formatBytes(downloadStats.transferred)} / {formatBytes(downloadStats.total)}</span>
-                                <span>{formatSpeed(downloadStats.speed)}</span>
-                            </div>
-                        )}
-                        <div style={{
-                            height: '10px',
-                            background: 'var(--border-color)',
-                            borderRadius: '5px',
-                            overflow: 'hidden',
-                            position: 'relative'
-                        }}>
+                {/* Split Layout for Active Updates */}
+                {(status === 'available' || status === 'downloading' || status === 'ready') && updateInfo ? (
+                    <div className="update-grid">
+                        {/* LEFT COLUMN: Release Notes */}
+                        <div className="notes-column">
                             <div style={{
-                                height: '100%',
-                                background: 'var(--accent-primary)',
-                                width: `${progress}%`,
-                                transition: 'width 0.3s ease',
-                                boxShadow: '0 0 10px rgba(var(--accent-rgb), 0.5)'
-                            }}></div>
-                        </div>
-                        {status === 'ready' && (
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <ShieldCheck size={14} style={{ color: '#10b981' }} />
-                                Verification complete. Click below to install and restart.
-                            </p>
-                        )}
-                    </div>
-                )}
+                                background: 'var(--bg-secondary)',
+                                borderRadius: '1rem',
+                                border: '1px solid var(--border-color)',
+                                padding: '1.5rem',
+                                height: '100%'
+                            }}>
+                                <h3 style={{
+                                    margin: '0 0 1rem 0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    fontSize: '1.1rem'
+                                }}>
+                                    <Info size={20} style={{ color: 'var(--accent-primary)' }} />
+                                    What's New in v{updateInfo.version}
+                                </h3>
 
-                {/* Main Action Buttons */}
-                <div className="update-actions" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {status === 'available' ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <button
-                                onClick={() => handleAction('apk')}
-                                className="btn btn-secondary"
-                                style={{
-                                    padding: '1rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    fontSize: '0.9rem',
-                                    fontWeight: 700
-                                }}
-                            >
-                                <Smartphone size={24} />
-                                Update Mobile (APK)
-                            </button>
-                            <button
-                                onClick={() => handleAction('exe')}
-                                className="btn btn-primary"
-                                style={{
-                                    padding: '1rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    fontSize: '0.9rem',
-                                    fontWeight: 700
-                                }}
-                            >
-                                <Monitor size={24} />
-                                Update Desktop (EXE)
-                            </button>
+                                {updateInfo.release_notes ? (
+                                    <div className="release-notes-scroll" style={{
+                                        fontSize: '0.9rem',
+                                        lineHeight: '1.7',
+                                        color: 'var(--text-secondary)',
+                                        whiteSpace: 'pre-line',
+                                        maxHeight: '400px',
+                                        overflowY: 'auto',
+                                        paddingRight: '0.5rem'
+                                    }}>
+                                        {updateInfo.release_notes}
+                                    </div>
+                                ) : (
+                                    <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No release notes available.</p>
+                                )}
+                            </div>
                         </div>
-                    ) : (
+
+                        {/* RIGHT COLUMN: Actions & Status */}
+                        <div className="actions-column">
+                            {/* Status info card */}
+                            <div style={{
+                                padding: '1.25rem',
+                                borderRadius: '1rem',
+                                background: 'rgba(var(--accent-rgb), 0.03)',
+                                border: '1px solid rgba(var(--accent-rgb), 0.1)',
+                                marginBottom: '1.5rem'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                    <div style={{
+                                        padding: '8px',
+                                        borderRadius: '8px',
+                                        background: 'var(--accent-primary)',
+                                        color: '#fff'
+                                    }}>
+                                        <Zap size={18} />
+                                    </div>
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Update Available</h4>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>v{currentVersion} → v{updateInfo.version}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Download Progress */}
+                            {(status === 'downloading' || status === 'ready') && (
+                                <div className="download-status" style={{
+                                    padding: '1.25rem',
+                                    background: 'var(--bg-secondary)',
+                                    borderRadius: '1rem',
+                                    border: '1px solid var(--border-color)',
+                                    marginBottom: '1.5rem'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                        <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                                            {status === 'downloading' ? 'Downloading...' : 'Ready to Install'}
+                                        </span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                                            {Math.round(progress)}%
+                                        </span>
+                                    </div>
+
+                                    {status === 'downloading' && downloadStats && (downloadStats.transferred > 0 || progress > 0) && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                            <span>{formatBytes(downloadStats.transferred)} / {formatBytes(downloadStats.total)}</span>
+                                            <span>{formatSpeed(downloadStats.speed)}</span>
+                                        </div>
+                                    )}
+                                    <div style={{
+                                        height: '8px',
+                                        background: 'var(--border-color)',
+                                        borderRadius: '4px',
+                                        overflow: 'hidden'
+                                    }}>
+                                        <div style={{
+                                            height: '100%',
+                                            background: 'var(--accent-primary)',
+                                            width: `${progress}%`,
+                                            transition: 'width 0.3s ease'
+                                        }}></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Buttons */}
+                            <div className="action-buttons-stack" style={{ display: 'grid', gap: '1rem' }}>
+                                {status === 'available' ? (
+                                    <>
+                                        <button
+                                            onClick={() => handleAction('exe')}
+                                            className="btn btn-primary"
+                                            style={{
+                                                padding: '1rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '0.75rem',
+                                                fontWeight: 700
+                                            }}
+                                        >
+                                            <Monitor size={20} />
+                                            Update PC (EXE)
+                                        </button>
+                                        <button
+                                            onClick={() => handleAction('apk')}
+                                            className="btn btn-secondary"
+                                            style={{
+                                                padding: '1rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '0.75rem',
+                                                fontWeight: 700
+                                            }}
+                                        >
+                                            <Smartphone size={20} />
+                                            Update Mobile (APK)
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => handleAction()}
+                                        disabled={status === 'checking' || status === 'downloading'}
+                                        className="btn btn-primary"
+                                        style={{
+                                            padding: '1rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.75rem',
+                                            fontWeight: 700,
+                                            opacity: (status === 'checking' || status === 'downloading') ? 0.7 : 1
+                                        }}
+                                    >
+                                        {status === 'ready' ? (
+                                            <>
+                                                <Zap size={20} /> Install & Restart
+                                            </>
+                                        ) : (
+                                            <>
+                                                <RefreshCw size={20} className={status === 'checking' ? 'animate-spin' : ''} />
+                                                {status === 'checking' ? 'Checking...' : status === 'downloading' ? 'Downloading...' : 'Check Again'}
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* Default/Idle Layout (Centered) */
+                    <div className="center-layout" style={{ maxWidth: '400px', margin: '0 auto' }}>
                         <button
                             onClick={() => handleAction()}
-                            disabled={status === 'checking' || status === 'downloading'}
+                            disabled={status === 'checking'}
                             className="btn btn-primary"
                             style={{
                                 width: '100%',
@@ -277,34 +311,14 @@ const UpdatesSection = () => {
                                 gap: '0.75rem',
                                 fontSize: '1rem',
                                 fontWeight: 700,
-                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                filter: (status === 'checking' || status === 'downloading') ? 'grayscale(0.5) opacity(0.7)' : 'none'
+                                opacity: status === 'checking' ? 0.7 : 1
                             }}
                         >
-                            {status === 'checking' ? (
-                                <>
-                                    <RefreshCw size={20} className="animate-spin" />
-                                    Checking for updates...
-                                </>
-                            ) : status === 'downloading' ? (
-                                <>
-                                    <RefreshCw size={20} className="animate-spin" />
-                                    Downloading Desktop Update...
-                                </>
-                            ) : status === 'ready' ? (
-                                <>
-                                    <Zap size={20} />
-                                    Install & Restart Now
-                                </>
-                            ) : (
-                                <>
-                                    <RefreshCw size={20} />
-                                    Check for Updates
-                                </>
-                            )}
+                            <RefreshCw size={20} className={status === 'checking' ? 'animate-spin' : ''} />
+                            {status === 'checking' ? 'Checking for Updates...' : 'Check for Updates'}
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
 
                 <div className="footer-notes" style={{
                     marginTop: '1.5rem',
@@ -321,6 +335,27 @@ const UpdatesSection = () => {
             </div>
 
             <style>{`
+                .update-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 340px;
+                    gap: 2rem;
+                    align-items: start;
+                }
+                @media (max-width: 900px) {
+                    .update-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+                .release-notes-scroll::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .release-notes-scroll::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .release-notes-scroll::-webkit-scrollbar-thumb {
+                    background: var(--border-color);
+                    border-radius: 3px;
+                }
                 .animate-fade-in {
                     animation: fadeIn 0.4s ease-out;
                 }
@@ -334,7 +369,7 @@ const UpdatesSection = () => {
                     100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0); }
                 }
             `}</style>
-        </div>
+        </div >
     )
 }
 
