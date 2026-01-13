@@ -2,9 +2,9 @@
 // Update these values to change the links and version numbers across the entire landing site.
 
 const AOF_CONFIG = {
-    version: "1.0.30",
-    exe_link: "https://github.com/aofbiz/updates/releases/download/v1.0.30/AOF-Biz---1.0.30.exe",
-    apk_link: "https://github.com/aofbiz/updates/releases/download/v1.0.30/AOF.Biz.-.1.0.30.apk",
+    version: "1.0.31",
+    exe_link: "https://github.com/aofbiz/updates/releases/download/v1.0.31/AOF-Biz---1.0.31.exe",
+    apk_link: "https://github.com/aofbiz/updates/releases/download/v1.0.31/AOF.Biz.-.1.0.31.apk",
 
     // Status text for the badges
     status_text: "Available Now",
