@@ -339,10 +339,27 @@ ipcMain.handle('start-download', async (event, url, checksum) => {
         let downloadedSize = 0;
         const file = fs.createWriteStream(filePath);
 
+        let startTime = Date.now();
+        let lastUpdate = 0;
+
         response.on('data', (chunk) => {
           downloadedSize += chunk.length;
-          const percent = (downloadedSize / totalSize) * 100;
-          sendUpdateStatus('downloading', { percent });
+
+          const now = Date.now();
+          // Debounce updates: only send every 500ms
+          if (now - lastUpdate > 500 || downloadedSize === totalSize) {
+            const percent = (downloadedSize / totalSize) * 100;
+            const duration = (now - startTime) / 1000; // seconds
+            const speed = duration > 0 ? downloadedSize / duration : 0; // bytes per second
+
+            sendUpdateStatus('downloading', {
+              percent,
+              total: totalSize,
+              transferred: downloadedSize,
+              speed
+            });
+            lastUpdate = now;
+          }
         });
 
         response.pipe(file);

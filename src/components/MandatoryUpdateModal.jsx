@@ -1,8 +1,20 @@
 import React from 'react'
 import { AlertCircle, Download, Smartphone, Monitor, Info } from 'lucide-react'
 
-const MandatoryUpdateModal = ({ info, onUpdate }) => {
+const MandatoryUpdateModal = ({ info, onUpdate, progress, downloadStats }) => {
     if (!info) return null
+
+    const formatBytes = (bytes) => {
+        if (!bytes) return '0 B'
+        const k = 1024
+        const sizes = ['B', 'KB', 'MB', 'GB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    }
+
+    const formatSpeed = (bytesPerSec) => {
+        return formatBytes(bytesPerSec) + '/s'
+    }
 
     const handleAction = (platform = null) => {
         onUpdate(platform)
@@ -159,6 +171,34 @@ const MandatoryUpdateModal = ({ info, onUpdate }) => {
                             Update Desktop
                         </button>
                     </div>
+
+                    {/* Download Progress UI */}
+                    {downloadStats && (downloadStats.transferred > 0 || progress > 0) && (
+                        <div style={{ marginTop: '2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                <span>{formatBytes(downloadStats.transferred)} / {formatBytes(downloadStats.total)}</span>
+                                <span>{Math.round(progress)}%</span>
+                            </div>
+                            <div style={{
+                                width: '100%',
+                                height: '8px',
+                                background: 'rgba(255,255,255,0.1)',
+                                borderRadius: '4px',
+                                overflow: 'hidden',
+                                marginBottom: '0.5rem'
+                            }}>
+                                <div style={{
+                                    width: `${progress}%`,
+                                    height: '100%',
+                                    background: 'var(--accent-primary)',
+                                    transition: 'width 0.2s ease-out'
+                                }}></div>
+                            </div>
+                            <div style={{ textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                Speed: {formatSpeed(downloadStats.speed)}
+                            </div>
+                        </div>
+                    )}
 
                     <p style={{
                         marginTop: '2rem',

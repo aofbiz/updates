@@ -28,6 +28,7 @@ import { useToast } from './Toast/ToastContext'
 import ProFeatureLock, { ProFeatureBadge } from './ProFeatureLock'
 import CollapsibleSection from './Settings/CollapsibleSection'
 import UpdatesSection from './Settings/UpdatesSection'
+import { useSyncContext } from './SyncContext'
 
 const Settings = ({ orders = [], expenses = [], inventory = [], onDataImported, onUpdateInventory, onLogout }) => {
   const { addToast } = useToast()
@@ -2133,6 +2134,7 @@ WITH CHECK (bucket_id = 'backups');
 // Unified Supabase Cloud Hub Component
 const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, products, trackingNumbers, orderCounter, showToast, showConfirm, onDataImported }) => {
   const isOnline = useOnlineStatus()
+  const { isSyncing: isAutoSyncing } = useSyncContext()
   const [isAutoBackupEnabled, setIsAutoBackupEnabled] = useState(settings?.cloudBackup?.autoBackup || false)
   const [backupFrequency, setBackupFrequency] = useState(settings?.cloudBackup?.frequency || 'daily')
   const [isUploading, setIsUploading] = useState(false)
@@ -2454,9 +2456,9 @@ const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, 
               className="btn btn-primary btn-sm"
               style={{ width: '100%', padding: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               onClick={handleManualSync}
-              disabled={isSyncing || !isOnline}
+              disabled={isSyncing || isAutoSyncing || !isOnline}
             >
-              <RefreshCw size={14} className={isSyncing ? 'spin' : ''} style={{ marginRight: '0.5rem' }} /> {isSyncing ? 'Syncing...' : 'Sync Now'}
+              <RefreshCw size={14} className={isSyncing || isAutoSyncing ? 'spin' : ''} style={{ marginRight: '0.5rem' }} /> {isSyncing || isAutoSyncing ? 'Syncing...' : 'Sync Now'}
             </button>
           </div>
         </div>

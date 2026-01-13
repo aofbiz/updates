@@ -498,6 +498,8 @@ function AppContent() {
         <MandatoryUpdateModal
           info={updateManager.updateInfo}
           onUpdate={(platform) => updateManager.startDownload(platform)}
+          progress={updateManager.progress}
+          downloadStats={updateManager.downloadStats}
         />
       )}
     </div>

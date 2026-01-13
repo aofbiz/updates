@@ -20,6 +20,7 @@ export const useSyncContext = () => {
             isConfigured: false,
             syncRecord: async () => { },
             deleteRecord: async () => { },
+            isSyncing: false
         }
     }
     return context

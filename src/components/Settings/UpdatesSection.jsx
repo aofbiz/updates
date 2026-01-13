@@ -7,12 +7,25 @@ const UpdatesSection = () => {
         status,
         updateInfo,
         progress,
+        downloadStats,
         error,
         checkForUpdates,
         startDownload,
         installUpdate,
         currentVersion
     } = useUpdateManager()
+
+    const formatBytes = (bytes) => {
+        if (!bytes) return '0 B'
+        const k = 1024
+        const sizes = ['B', 'KB', 'MB', 'GB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    }
+
+    const formatSpeed = (bytesPerSec) => {
+        return formatBytes(bytesPerSec) + '/s'
+    }
 
     useEffect(() => {
         // Only auto-check if we are in 'idle' state (first load of this section)
@@ -181,6 +194,14 @@ const UpdatesSection = () => {
                                 {Math.round(progress)}%
                             </span>
                         </div>
+
+                        {/* Download Stats Detail */}
+                        {status === 'downloading' && downloadStats && (downloadStats.transferred > 0 || progress > 0) && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                <span>{formatBytes(downloadStats.transferred)} / {formatBytes(downloadStats.total)}</span>
+                                <span>{formatSpeed(downloadStats.speed)}</span>
+                            </div>
+                        )}
                         <div style={{
                             height: '10px',
                             background: 'var(--border-color)',

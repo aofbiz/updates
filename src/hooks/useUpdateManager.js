@@ -6,6 +6,7 @@ export const useUpdateManager = () => {
     const [status, setStatus] = useState('idle') // idle, checking, available, downloading, ready, up-to-date, error
     const [updateInfo, setUpdateInfo] = useState(null)
     const [progress, setProgress] = useState(0)
+    const [downloadStats, setDownloadStats] = useState({ speed: 0, total: 0, transferred: 0 })
     const [error, setError] = useState(null)
 
     const currentVersion = pkg.version
@@ -83,8 +84,11 @@ export const useUpdateManager = () => {
             setStatus('downloading')
             setProgress(0)
             try {
-                window.electronAPI.onUpdateStatus(({ type, percent, error: dlError }) => {
-                    if (type === 'downloading') setProgress(percent)
+                window.electronAPI.onUpdateStatus(({ type, percent, total, transferred, speed, error: dlError }) => {
+                    if (type === 'downloading') {
+                        setProgress(percent)
+                        setDownloadStats({ total: total || 0, transferred: transferred || 0, speed: speed || 0 })
+                    }
                     if (type === 'downloaded') setStatus('ready')
                     if (type === 'error') {
                         setError(dlError || 'Download failed.')
@@ -109,6 +113,7 @@ export const useUpdateManager = () => {
         status,
         updateInfo,
         progress,
+        downloadStats,
         error,
         checkForUpdates,
         startDownload,
