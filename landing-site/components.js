@@ -8,8 +8,8 @@ const COMPONENTS = {
     <nav class="navbar">
         <div class="container">
             <a href="index.html" class="logo">
-                <i data-lucide="layout-grid" color="var(--brand-primary)"></i>
-                AOF <span>Biz</span>
+                <img src="logo-light.png" alt="AOF Biz Logo" class="logo-img logo-light">
+                <img src="logo-dark.png" alt="AOF Biz Logo" class="logo-img logo-dark">
             </a>
             <div class="nav-links" id="nav-links">
                 <a href="index.html">Home</a>
@@ -38,8 +38,8 @@ const COMPONENTS = {
             <div class="footer-content">
                 <div class="footer-brand">
                     <a href="index.html" class="logo">
-                        <i data-lucide="layout-grid" color="var(--brand-primary)"></i>
-                        AOF <span>Biz</span>
+                        <img src="logo-light.png" alt="AOF Biz Logo" class="logo-img logo-light">
+                        <img src="logo-dark.png" alt="AOF Biz Logo" class="logo-img logo-dark">
                     </a>
                     <p>Revolutionizing frame business management with cutting-edge tools and intuitive design.</p>
                 </div>
@@ -77,7 +77,39 @@ const COMPONENTS = {
 document.addEventListener('DOMContentLoaded', () => {
     renderComponent('navbar-placeholder', COMPONENTS.navbar, initNavbar);
     renderComponent('footer-placeholder', COMPONENTS.footer);
+    initBackToTop();
 });
+
+function initBackToTop() {
+    // 1. Create Button
+    const btn = document.createElement('button');
+    btn.className = 'back-to-top';
+    btn.setAttribute('aria-label', 'Back to Top');
+    btn.innerHTML = '<i data-lucide="arrow-up"></i>';
+    document.body.appendChild(btn);
+
+    // 2. Initialize Icon (since we manually added it)
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
+    // 3. Scroll Logic
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            btn.classList.add('visible');
+        } else {
+            btn.classList.remove('visible');
+        }
+    });
+
+    // 4. Click Logic
+    btn.addEventListener('click', () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+}
 
 /**
  * Injects HTML component into placeholder

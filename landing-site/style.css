@@ -228,17 +228,36 @@ h1 {
 }
 
 .logo {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--text-primary);
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    height: 48px;
+    /* Increased height for image */
 }
 
-.logo span {
-    color: var(--accent-primary);
+.logo-img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+}
+
+/* Theme-based logo switching */
+/* Default (Dark Mode): Show light logo, hide dark logo */
+.logo-light {
+    display: block;
+}
+
+.logo-dark {
+    display: none;
+}
+
+/* Light Mode: Show dark logo, hide light logo */
+[data-theme="light"] .logo-light {
+    display: none;
+}
+
+[data-theme="light"] .logo-dark {
+    display: block;
 }
 
 .nav-links {
@@ -740,6 +759,43 @@ textarea.form-control {
 
 .plan-features i {
     flex-shrink: 0;
+}
+
+/* Back to Top Button */
+.back-to-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 3rem;
+    height: 3rem;
+    /* Fixed height for circle */
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    /* Flex to center icon */
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 900;
+}
+
+.back-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.back-to-top:hover {
+    background: var(--accent-hover);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(var(--accent-rgb), 0.5);
 }
 
 /* Responsive */
