@@ -214,16 +214,20 @@ h1 {
 }
 
 /* Navbar */
+/* --- AOF BIZ NAVIGATION SYSTEM (2026 Fresh) --- */
+
 .navbar {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    height: var(--header-height);
-    background: var(--bg-glass);
-    backdrop-filter: blur(12px);
-    z-index: 1100;
-    border-bottom: var(--glass-border);
+    height: 80px;
+    background: rgba(5, 5, 5, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    z-index: 9999;
+    transition: all 0.3s ease;
 }
 
 .navbar .container {
@@ -231,44 +235,23 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 0 2rem;
 }
 
-.logo {
+/* Brand */
+.nav-brand {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    height: 48px;
+    gap: 12px;
     text-decoration: none;
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--text-primary);
 }
 
-.logo-wrapper {
-    height: 100%;
-    display: flex;
-    align-items: center;
-}
-
-.logo-img {
-    height: 100%;
+.nav-brand img {
+    height: 48px;
     width: auto;
-    object-fit: contain;
 }
 
-.logo span.accent {
-    color: var(--accent-primary);
-}
-
-/* Theme-based logo switching */
-/* Default (Dark Mode): User requested SWAP - showing dark logo on dark theme? Or just swapping file references? 
-   User said "logo files should be swapped for thr modes". 
-   Previous: Default(Dark) -> LightLogo. LightMode -> DarkLogo.
-   New: Default(Dark) -> DarkLogo. LightMode -> LightLogo. 
-*/
-
-/* Default (Dark Mode) */
+/* Theme Handling for Logo */
 .logo-light {
     display: none;
 }
@@ -277,7 +260,6 @@ h1 {
     display: block;
 }
 
-/* Light Mode */
 [data-theme="light"] .logo-light {
     display: block;
 }
@@ -286,54 +268,156 @@ h1 {
     display: none;
 }
 
-.nav-links {
-    display: flex;
-    gap: 2rem;
-    align-items: center;
-}
-
-.nav-links a {
-    font-weight: 500;
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-}
-
-.mobile-only {
-    display: none !important;
-}
-
-@media (max-width: 1024px) {
-    .mobile-only {
-        display: block !important;
-    }
-}
-
-.nav-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-/* Hide menu toggle by default on desktop */
-.menu-toggle {
-    display: none;
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    cursor: pointer;
+.nav-brand-text {
+    font-family: var(--font-display);
     font-size: 1.5rem;
-    padding: 0.5rem;
-    z-index: 1001;
-    transition: color 0.3s ease;
+    font-weight: 800;
+    color: var(--text-1);
+    letter-spacing: -0.02em;
 }
 
-.menu-toggle:hover {
+.nav-brand-text span {
     color: var(--brand-primary);
 }
 
-.nav-links a:hover,
-.nav-links a.active {
-    color: var(--accent-primary);
+/* Desktop Menu */
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.nav-item {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-2);
+    transition: color 0.2s ease;
+    position: relative;
+    text-decoration: none;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    color: var(--text-1);
+}
+
+.nav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--brand-primary);
+    border-radius: 2px;
+}
+
+/* Actions (Theme + CTA + Mobile Toggle) */
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* Theme Toggle */
+.theme-switch {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.theme-switch:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--brand-primary);
+}
+
+.theme-switch .sun {
+    display: none;
+}
+
+.theme-switch .moon {
+    display: block;
+}
+
+[data-theme="light"] .theme-switch .sun {
+    display: block;
+}
+
+[data-theme="light"] .theme-switch .moon {
+    display: none;
+}
+
+/* Mobile Toggle */
+.mobile-toggle-btn {
+    display: none;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: none;
+    color: var(--text-1);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    /* Above everything */
+}
+
+/* --- RESPONSIVE NAVIGATION --- */
+@media (max-width: 1024px) {
+    .nav-menu {
+        position: fixed;
+        top: 80px;
+        right: 0;
+        width: 100%;
+        height: calc(100vh - 80px);
+        /* Fill rest of screen */
+        background: var(--surface-1);
+        flex-direction: column;
+        justify-content: flex-start;
+        padding-top: 3rem;
+        gap: 2rem;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-menu.is-open {
+        transform: translateX(0);
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .nav-item {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .mobile-toggle-btn {
+        display: flex;
+    }
+
+    .nav-right .btn-primary {
+        display: none;
+    }
+
+    /* Add CTA to mobile menu bottom if needed? 
+       Using .nav-mobile-cta specific class 
+    */
+    .nav-mobile-cta {
+        display: block !important;
+        margin-top: 2rem;
+    }
+}
+
+.nav-mobile-cta {
+    display: none;
 }
 
 /* Theme Toggle Button */

@@ -7,28 +7,28 @@ const COMPONENTS = {
     navbar: `
     <nav class="navbar">
         <div class="container">
-            <a href="index.html" class="logo">
-                <div class="logo-wrapper">
-                    <img src="logo-light.png" alt="AOF Biz Logo" class="logo-img logo-light">
-                    <img src="logo-dark.png" alt="AOF Biz Logo" class="logo-img logo-dark">
-                </div>
-                <span>AOF <span class="accent">Biz</span></span>
+            <a href="index.html" class="nav-brand">
+                <img src="logo-light.png" alt="AOF Logo" class="logo-light">
+                <img src="logo-dark.png" alt="AOF Logo" class="logo-dark">
+                <div class="nav-brand-text">AOF <span>Biz</span></div>
             </a>
-            <div class="nav-links" id="nav-links">
-                <a href="index.html">Home</a>
-                <a href="features.html">Features</a>
-                <a href="index.html#about">About</a>
-                <a href="download.html">Download</a>
-                <a href="contact.html">Contact</a>
-                <a href="download.html" class="btn btn-primary btn-sm mobile-only" style="margin-top: 1rem;">Get Started</a>
+            
+            <div class="nav-menu" id="nav-menu">
+                <a href="index.html" class="nav-item">Home</a>
+                <a href="features.html" class="nav-item">Features</a>
+                <a href="index.html#about" class="nav-item">About</a>
+                <a href="download.html" class="nav-item">Download</a>
+                <a href="contact.html" class="nav-item">Contact</a>
+                <a href="download.html" class="btn btn-primary btn-sm nav-mobile-cta">Get Started</a>
             </div>
-            <div class="nav-actions">
-                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle Theme">
+
+            <div class="nav-right">
+                <button class="theme-switch" id="theme-switch" aria-label="Toggle Theme">
                     <i data-lucide="sun" class="sun"></i>
                     <i data-lucide="moon" class="moon"></i>
                 </button>
                 <a href="download.html" class="btn btn-primary btn-sm">Get Started</a>
-                <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+                <button class="mobile-toggle-btn" id="mobile-toggle" aria-label="Toggle Menu">
                     <i data-lucide="menu"></i>
                 </button>
             </div>
@@ -154,59 +154,63 @@ function renderComponent(placeholderId, html, callback) {
  * Initializes Navbar specific logic after injection
  */
 function initNavbar() {
-    const menuToggle = document.getElementById('menu-toggle');
-    const navLinks = document.getElementById('nav-links');
-    const themeToggle = document.getElementById('theme-toggle');
+    const mobileToggle = document.getElementById('mobile-toggle');
+    const navMenu = document.getElementById('nav-menu');
+    const themeSwitch = document.getElementById('theme-switch');
     const htmlElement = document.documentElement;
 
     // 1. Highlight Active Link
     const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-    const links = navLinks.querySelectorAll('a');
+    const links = navMenu ? navMenu.querySelectorAll('.nav-item') : [];
     links.forEach(link => {
         const href = link.getAttribute('href');
-        if (href === currentPath || (currentPath === 'index.html' && href === 'index.html')) {
+        if (href === currentPath || (currentPath === '' && href === 'index.html')) {
             link.classList.add('active');
         } else {
             link.classList.remove('active');
         }
     });
 
-    // 2. Mobile Menu Toggle
-    if (menuToggle && navLinks) {
-        menuToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-            const icon = menuToggle.querySelector('i');
-            if (navLinks.classList.contains('active')) {
-                icon.setAttribute('data-lucide', 'x');
-            } else {
-                icon.setAttribute('data-lucide', 'menu');
-            }
-            lucide.createIcons();
+    // 2. Mobile Menu Logic
+    if (mobileToggle && navMenu) {
+        // Toggle Open/Close
+        mobileToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = navMenu.classList.toggle('is-open');
+            const icon = mobileToggle.querySelector('i');
+            icon.setAttribute('data-lucide', isOpen ? 'x' : 'menu');
+            if (window.lucide) window.lucide.createIcons();
         });
 
-        // Close menu when clicking a link
-        navLinks.querySelectorAll('a').forEach(link => {
+        // Close on Link Click
+        navMenu.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => {
-                navLinks.classList.remove('active');
-                const menuIcon = menuToggle.querySelector('i');
-                menuIcon.setAttribute('data-lucide', 'menu');
-                lucide.createIcons();
+                navMenu.classList.remove('is-open');
+                mobileToggle.querySelector('i').setAttribute('data-lucide', 'menu');
+                if (window.lucide) window.lucide.createIcons();
             });
+        });
+
+        // Close on Outside Click
+        document.addEventListener('click', (e) => {
+            if (navMenu.classList.contains('is-open') && !navMenu.contains(e.target) && !mobileToggle.contains(e.target)) {
+                navMenu.classList.remove('is-open');
+                mobileToggle.querySelector('i').setAttribute('data-lucide', 'menu');
+                if (window.lucide) window.lucide.createIcons();
+            }
         });
     }
 
     // 3. Theme Toggle
-    if (themeToggle) {
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = htmlElement.getAttribute('data-theme');
+    if (themeSwitch) {
+        themeSwitch.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-theme') || 'dark';
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             htmlElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
         });
     }
 
-    // Fix: Re-initialize Lucide icons specifically for the navbar after setup
-    if (window.lucide) {
-        window.lucide.createIcons();
-    }
+    // Ensure Icons Rendered
+    if (window.lucide) window.lucide.createIcons();
 }
