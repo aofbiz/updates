@@ -18,12 +18,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: landing-site
-          branch: main
-          repository-name: AllSet-App/allset-app.github.io
-          token: ${{ secrets.API_TOKEN_GITHUB }}
-          single-commit: true
-          clean: true
+      - name: Manual Deploy to Landing Site Repo
+        env:
+          GH_TOKEN: ${{ secrets.API_TOKEN_GITHUB }}
+        run: |
+          cd landing-site
+          git init
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add .
+          git commit -m "Deploy: Manual update from updates repo"
+          git push --force https://$GH_TOKEN@github.com/AllSet-App/allset-app.github.io.git main
