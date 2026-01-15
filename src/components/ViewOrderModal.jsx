@@ -121,15 +121,55 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
           }
           if (!authData.token) throw new Error("Could not authenticate with Curfox")
 
+          let hasChanges = false
+          let updatedOrder = { ...localOrder }
+
           // Fetch tracking
           const history = await curfoxService.getTracking(localOrder.trackingNumber, authData)
           if (Array.isArray(history)) {
             setTrackingHistory(history)
+            if (history.length > 0) {
+              const latest = history[0]
+              const courierStatus = (latest.status?.name || latest.status || '').toUpperCase()
+              let mappedStatus = null
+
+              if (courierStatus === 'DELIVERED') mappedStatus = 'Delivered'
+              else if (courierStatus === 'CANCELLED' || courierStatus === 'RETURNED') mappedStatus = 'Cancelled'
+
+              if (mappedStatus && mappedStatus !== updatedOrder.status) {
+                updatedOrder.status = mappedStatus
+                hasChanges = true
+              }
+            }
           }
 
           // Fetch finance
           const fData = await curfoxService.getFinanceStatus(localOrder.trackingNumber, authData)
           setFinanceData(fData)
+          if (fData) {
+            const hasStatusChange = fData.finance_status !== updatedOrder.courierFinanceStatus
+            const hasInvoiceChange = fData.invoice_no !== updatedOrder.courierInvoiceNo || fData.invoice_ref_no !== updatedOrder.courierInvoiceRef
+
+            if (hasStatusChange || hasInvoiceChange) {
+              updatedOrder = {
+                ...updatedOrder,
+                courierFinanceStatus: fData.finance_status,
+                courierInvoiceNo: fData.invoice_no,
+                courierInvoiceRef: fData.invoice_ref_no
+              }
+
+              if (fData.finance_status === 'Deposited' || fData.finance_status === 'Approved') {
+                updatedOrder.paymentStatus = 'Paid'
+              }
+              hasChanges = true
+            }
+          }
+
+          if (hasChanges) {
+            setLocalOrder(updatedOrder)
+            if (onSave) await onSave(updatedOrder)
+            addToast('Order details auto-synced with Courier', 'info')
+          }
         } catch (error) {
           console.error("Error fetching tracking/finance:", error)
         } finally {
