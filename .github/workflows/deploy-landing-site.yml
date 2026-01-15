@@ -27,11 +27,10 @@ jobs:
             exit 1
           fi
           cd landing-site
-          git init
+          git init -b main
           git config user.name "AllSet-App"
           git config user.email "action@github.com"
-          git checkout -b main
           git add .
           git commit -m "Deploy: Manual update from updates repo"
           echo "Pushing to allset-app.github.io..."
-          git push --force https://x-access-token:${GH_TOKEN}@github.com/AllSet-App/allset-app.github.io.git main
+          git push --force https://x-access-token:${GH_TOKEN}@github.com/AllSet-App/allset-app.github.io.git main:main
