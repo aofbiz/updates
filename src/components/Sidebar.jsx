@@ -60,8 +60,8 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen, onAdd
         onClick={() => setSidebarOpen(!sidebarOpen)}
         style={{
           position: 'fixed',
-          top: 'calc(0.75rem + var(--safe-area-top))',
-          right: 'calc(0.75rem + var(--safe-area-right))',
+          top: 'calc(1.25rem + var(--safe-area-top))',
+          right: 'calc(1rem + var(--safe-area-right))',
           left: 'unset',
           zIndex: 101,
           backgroundColor: 'var(--bg-card)',

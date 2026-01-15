@@ -837,7 +837,7 @@ tr:hover {
 /* Responsive */
 @media (max-width: 768px) {
   :root {
-    --safe-area-top: calc(env(safe-area-inset-top, 0px) + 20px);
+    --safe-area-top: calc(env(safe-area-inset-top, 0px) + 25px);
     --safe-area-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
   }
 
@@ -851,7 +851,7 @@ tr:hover {
 
   .main-content {
     margin-left: 0 !important;
-    padding-top: calc(3.5rem + var(--safe-area-top)) !important;
+    padding-top: calc(4.5rem + var(--safe-area-top)) !important;
     padding-bottom: calc(1rem + var(--safe-area-bottom)) !important;
     padding-left: calc(0.75rem + var(--safe-area-left)) !important;
     padding-right: calc(0.75rem + var(--safe-area-right)) !important;
