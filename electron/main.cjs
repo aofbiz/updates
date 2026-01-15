@@ -18,10 +18,10 @@ const { spawn } = require('child_process')
 // Protocol registration
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient('aof-biz', process.execPath, [path.resolve(process.argv[1])])
+    app.setAsDefaultProtocolClient('allset', process.execPath, [path.resolve(process.argv[1])])
   }
 } else {
-  app.setAsDefaultProtocolClient('aof-biz')
+  app.setAsDefaultProtocolClient('allset')
 }
 
 // Single instance lock for deep links on Windows/Linux
@@ -37,7 +37,7 @@ if (!gotTheLock) {
 
       // Capture the URL from the command line (for deep links)
       const url = commandLine.pop()
-      if (url && url.startsWith('aof-biz://')) {
+      if (url && url.startsWith('allset://')) {
         mainWindow.webContents.send('auth-callback', url)
       }
     }
@@ -196,7 +196,7 @@ ipcMain.handle('open-auth-window', async (event, url) => {
     width: 600,
     height: 700,
     autoHideMenuBar: true,
-    title: 'AOF Biz Login',
+    title: 'AllSet Login',
     icon: path.join(__dirname, '../public/icon-512.png'),
     webPreferences: {
       nodeIntegration: false,
@@ -342,7 +342,7 @@ ipcMain.handle('cancel-download', () => {
 
 ipcMain.handle('start-download', async (event, url, checksum) => {
   const tempDir = os.tmpdir();
-  const fileName = `aof-biz-update-${Date.now()}.exe`;
+  const fileName = `allset-update-${Date.now()}.exe`;
   const filePath = path.join(tempDir, fileName);
   downloadedFilePath = filePath;
 
