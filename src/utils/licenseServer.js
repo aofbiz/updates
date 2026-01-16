@@ -21,37 +21,37 @@ const masterClient = createClient(MASTER_SUPABASE_URL, MASTER_SUPABASE_ANON_KEY)
  * Perform Google Sign-In with platform-specific logic.
  */
 export const signInWithGoogle = async () => {
-    const platform = Capacitor.getPlatform()
+    const isWeb = Capacitor.getPlatform() === 'web' || window.location.protocol.startsWith('http')
     const isElectron = !!window.electronAPI
-    const isNative = Capacitor.isNativePlatform()
+    const isNative = Capacitor.isNativePlatform() && !isWeb
 
-    // Determine the correct redirect URL
     let redirectTo = window.location.origin
+    let flowType = undefined // Default to implicit (for Desktop/Native)
 
-    // ULTRA-ROBUST ENVIRONMENT DETECTION
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    const isStandardWeb = window.location.protocol === 'http:' || window.location.protocol === 'https:'
-    const isElectronEnv = !!window.electronAPI
-    const isNativeEnv = Capacitor.isNativePlatform()
-
-    // Priority: Web (if protocol is standard) > Electron > Native
-    if (isStandardWeb || isLocalhost) {
+    // ISOLATED PLATFORM PATHS
+    if (isWeb) {
+        // Path A: Standard Web Browser
         redirectTo = window.location.origin
-    } else if (isElectronEnv) {
+        flowType = 'pkce' // Use query params (?code=...) to prevent native scheme "launch" prompts
+    } else if (isElectron) {
+        // Path B: Electron Desktop App
         redirectTo = 'allset://auth-callback'
-    } else if (isNativeEnv) {
+    } else if (isNative) {
+        // Path C: Native Mobile App (APK/IPA)
         redirectTo = 'com.aofbiz.app://auth-callback'
     } else {
+        // Fallback
         redirectTo = window.location.origin
     }
 
-    console.error(`[AUTH DIAGNOSTIC] Host: ${window.location.hostname}, Proto: ${window.location.protocol}, isWeb: ${isStandardWeb}, isElectron: ${isElectronEnv}, isNative: ${isNativeEnv} => Using Redirect: ${redirectTo}`)
+    console.warn(`[AUTH FLOW EXCLUSIVE] Detected: ${isWeb ? 'WEB' : isElectron ? 'ELECTRON' : 'NATIVE'}, Protocol: ${window.location.protocol}, Flow: ${flowType || 'implicit'} => Using: ${redirectTo}`)
 
     const { data, error } = await masterClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
             redirectTo: redirectTo,
-            skipBrowserRedirect: isElectron, // Prevent main window from navigating
+            skipBrowserRedirect: isElectron,
+            flowType: flowType,
             queryParams: {
                 access_type: 'offline',
                 prompt: 'consent',
