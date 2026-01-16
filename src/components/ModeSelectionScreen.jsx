@@ -29,19 +29,9 @@ const ModeSelectionScreen = ({ onModeSelected }) => {
         setIsLoading(true)
         setLocalError(null)
         try {
-            // Mandate login for Free mode to collect lead
-            // AGGRESSIVE PERSISTENCE BEFORE LOGIN
-            localStorage.setItem('allset_user_mode', 'free')
-            sessionStorage.setItem('allset_user_mode', 'free')
-            localStorage.setItem('allset_auth_intent', 'free')
-            sessionStorage.setItem('allset_auth_intent', 'free')
-
-            await login()
-            // Success handled by LicensingContext after authentication
+            await login('free', 'free')
         } catch (err) {
             console.error('Free login error:', err)
-            localStorage.removeItem('allset_auth_intent')
-            sessionStorage.removeItem('allset_auth_intent')
             setLocalError('Google sign-in required to open free version.')
             setIsLoading(false)
         }
@@ -51,16 +41,7 @@ const ModeSelectionScreen = ({ onModeSelected }) => {
         setIsLoading(true)
         setLocalError(null)
         try {
-            // AGGRESSIVE PERSISTENCE BEFORE LOGIN
-            localStorage.setItem('allset_user_mode', 'pro')
-            sessionStorage.setItem('allset_user_mode', 'pro')
-            localStorage.removeItem('allset_auth_intent')
-            sessionStorage.removeItem('allset_auth_intent')
-
-            await login()
-            // Removal of setUserMode('pro') here prevents bypassing verification.
-            // LicensingContext will verify the DB record and then set the mode.
-            setIsLoading(false)
+            await login('pro', null)
         } catch (err) {
             console.error('Login error:', err)
             setLocalError('Google sign-in failed. Please try again.')
@@ -72,18 +53,9 @@ const ModeSelectionScreen = ({ onModeSelected }) => {
         setIsLoading(true)
         setLocalError(null)
         try {
-            // AGGRESSIVE PERSISTENCE BEFORE LOGIN
-            localStorage.setItem('allset_user_mode', 'pro')
-            sessionStorage.setItem('allset_user_mode', 'pro')
-            localStorage.setItem('allset_auth_intent', 'trial')
-            sessionStorage.setItem('allset_auth_intent', 'trial')
-
-            await login()
-            // Success handled by LicensingContext after authentication
+            await login('pro', 'trial')
         } catch (err) {
             console.error('Trial login error:', err)
-            localStorage.removeItem('allset_auth_intent')
-            sessionStorage.removeItem('allset_auth_intent')
             setLocalError('Google sign-in failed. Please try again.')
             setIsLoading(false)
         }

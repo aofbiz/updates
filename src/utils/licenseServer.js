@@ -1,5 +1,5 @@
 /**
- * License Server Utility
+ * License Server Utility (Refactored v2.1.15)
  * 
  * Handles identity verification (Google Sign-In) and license status 
  * checks against the Master License Server.
@@ -9,52 +9,41 @@ import { createClient } from '@supabase/supabase-js'
 import { Capacitor } from '@capacitor/core'
 
 // --- MASTER LICENSE SERVER CREDENTIALS ---
-// These are for the developer's licensing project, NOT the user's data project.
 const MASTER_SUPABASE_URL = 'https://qrueudowswugtidmsphk.supabase.co'
 const MASTER_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFydWV1ZG93c3d1Z3RpZG1zcGhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMjcxMTYsImV4cCI6MjA4MzYwMzExNn0.mAASDPbmjEv_KVmeFtYQcagfB90Ea3eAv5U6gY69zds'
-// ------------------------------------------
 
 // Create a separate client for the Master License Server
-const masterClient = createClient(MASTER_SUPABASE_URL, MASTER_SUPABASE_ANON_KEY)
+export const masterClient = createClient(MASTER_SUPABASE_URL, MASTER_SUPABASE_ANON_KEY, {
+    auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce' // Force PKCE globally for better security and stability
+    }
+})
 
 /**
  * Perform Google Sign-In with platform-specific logic.
  */
 export const signInWithGoogle = async () => {
     const isElectron = !!window.electronAPI
-    const isNative = Capacitor.isNativePlatform() // TRUE for Android/iOS APK/IPA
-    const isWeb = !isElectron && !isNative // TRUE for Browsers (Chrome, Safari, etc.)
+    const isNative = Capacitor.isNativePlatform()
 
-    const protocol = window.location.protocol
-    const hostname = window.location.hostname
-
+    // Determine the correct redirect URL
     let redirectTo = window.location.origin
-    let flowType = undefined
-
-    if (isWeb) {
-        redirectTo = window.location.origin
-        flowType = 'pkce'
-    } else if (isElectron) {
+    if (isElectron) {
         redirectTo = 'allset://auth-callback'
-        flowType = undefined // Keep implicit for Electron
     } else if (isNative) {
         redirectTo = 'com.aofbiz.app://auth-callback'
-        flowType = 'pkce' // Switch to PKCE for Mobile (more reliable for deep links)
     }
 
-    // DIAGNOSTIC ALERT
-    if (isWeb && (redirectTo.startsWith('allset://') || redirectTo.startsWith('com.aofbiz.app://'))) {
-        alert(`STOP! Logic Error: Web app is trying to use Native Redirect: ${redirectTo}. Standard Web Protocol: ${protocol}`)
-    }
-
-    console.warn(`[AUTH FLOW EXCLUSIVE] Platform: ${isWeb ? 'WEB' : isElectron ? 'ELECTRON' : 'NATIVE'}, Protocol: ${protocol}, Origin: ${window.location.origin}, Flow: ${flowType || 'implicit'} => Redirect: ${redirectTo}`)
+    console.log(`[AUTH] Starting Google Login. Platform: ${isNative ? 'Mobile' : isElectron ? 'Desktop' : 'Web'}, Redirect: ${redirectTo}`)
 
     const { data, error } = await masterClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
             redirectTo: redirectTo,
-            skipBrowserRedirect: isElectron,
-            flowType: flowType,
+            skipBrowserRedirect: isElectron, // Electron handles its own browser window
             queryParams: {
                 access_type: 'offline',
                 prompt: 'consent',
@@ -64,8 +53,7 @@ export const signInWithGoogle = async () => {
 
     if (error) throw error
 
-    // In web, Supabase handles the redirect automatically.
-    // In Electron, we open the auth URL in the system's default browser (e.g. Chrome/Edge)
+    // Special handling for Electron: open the system browser manually
     if (isElectron && data?.url) {
         window.electronAPI.openExternal(data.url)
     }
@@ -73,7 +61,6 @@ export const signInWithGoogle = async () => {
 
 /**
  * Verify license status for a given email.
- * @param {string} email - The user's verified Google email.
  */
 export const checkLicenseStatus = async (email) => {
     try {
@@ -83,58 +70,44 @@ export const checkLicenseStatus = async (email) => {
             .eq('email', email)
             .maybeSingle()
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "No rows found"
-            console.error('License check error:', error)
+        if (error && error.code !== 'PGRST116') {
             return { status: 'free', error: error.message }
         }
 
-        if (!data) {
-            return { status: 'free' } // Not found = Free user
-        }
-
         return {
-            status: data.status, // 'pro', 'trial', 'expired'
-            expiry: data.expiry
+            status: data?.status || 'free',
+            expiry: data?.expiry || null
         }
     } catch (err) {
-        console.error('License check exception:', err)
         return { status: 'free', error: err.message }
     }
 }
 
 /**
- * Get the current authenticated identity user from the Master Server.
- */
-export const getIdentityUser = async () => {
-    const { data: { user } } = await masterClient.auth.getUser()
-    return user
-}
-
-/**
  * Handle Auth Callback (Token exchange)
- * Used specifically for Electron's deep linking flow.
+ * Supports both Implicit (tokens in fragment) and PKCE (code in query)
  */
 export const handleAuthCallback = async (url) => {
     if (!url) return null
 
-    // Extract access_token, refresh_token or PKCE code
-    // We check both the fragment (#) and the query (?) because different browsers/platforms handle them differently
-    const urlObj = new URL(url.replace('#', '?'))
+    // Normalize URL for easier parsing (handle fragment vs query)
+    const normalizedUrl = url.replace('#', '?')
+    const urlObj = new URL(normalizedUrl)
+
     const accessToken = urlObj.searchParams.get('access_token')
     const refreshToken = urlObj.searchParams.get('refresh_token')
     const code = urlObj.searchParams.get('code')
 
     if (accessToken && refreshToken) {
-        // Path A: Implicit Flow (Fragment tokens)
         const { data, error } = await masterClient.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
         })
         if (error) throw error
         return { user: data.user, session: data.session }
-    } else if (code) {
-        // Path B: PKCE Flow (Exchange code for tokens)
-        // This requires the verifier to be in the client's current storage
+    }
+
+    if (code) {
         const { data, error } = await masterClient.auth.exchangeCodeForSession(code)
         if (error) throw error
         return { user: data.user, session: data.session }
@@ -144,70 +117,53 @@ export const handleAuthCallback = async (url) => {
 }
 
 /**
- * Log an unauthorized access attempt to the master database.
- * @param {string} email - The email that tried to sign in.
+ * Get current Google identity
  */
-/**
- * Register or update a free user's information for marketing leads.
- * @param {object} user - The Supabase user object.
- */
-export const registerFreeUser = async (user) => {
-    if (!user) return
-    try {
-        await masterClient
-            .from('free_users_leads')
-            .upsert({
-                email: user.email,
-                full_name: user.user_metadata?.full_name || user.email.split('@')[0],
-                last_login: new Date().toISOString()
-            }, {
-                onConflict: 'email'
-            })
-    } catch (err) {
-        console.error('Failed to register free user lead:', err)
-    }
+export const getIdentityUser = async () => {
+    const { data: { user } } = await masterClient.auth.getUser()
+    return user
 }
 
 /**
- * Register a user starting a free trial.
- * @param {object} user - The Supabase user object.
+ * Sign out
  */
-export const registerTrialUser = async (user) => {
-    if (!user) return
-    try {
-        await masterClient
-            .from('trial_users_leads')
-            .upsert({
-                email: user.email,
-                full_name: user.user_metadata?.full_name || user.email.split('@')[0],
-                trial_started_at: new Date().toISOString(),
-                trial_ends_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-                last_login: new Date().toISOString(),
-                platform: window.electronAPI ? 'Desktop' : 'Web'
-            }, {
-                onConflict: 'email'
-            })
-    } catch (err) {
-        console.error('Failed to register trial user lead:', err)
-    }
-}
-
-export const logUnauthorizedAttempt = async (email) => {
-    try {
-        await masterClient
-            .from('unauthorized_attempts')
-            .insert([{
-                email,
-                attempted_at: new Date().toISOString(),
-                platform: window.electronAPI ? 'Desktop' : 'Web'
-            }])
-    } catch (err) {
-        console.error('Failed to log unauthorized attempt:', err)
-    }
-}
-
 export const signOutIdentity = async () => {
     await masterClient.auth.signOut()
 }
 
-export { masterClient }
+/**
+ * Logging Leads
+ */
+export const registerFreeUser = async (user) => {
+    if (!user) return
+    try {
+        await masterClient.from('free_users_leads').upsert({
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.email.split('@')[0],
+            last_login: new Date().toISOString()
+        }, { onConflict: 'email' })
+    } catch (err) { console.error('Lead error:', err) }
+}
+
+export const registerTrialUser = async (user) => {
+    if (!user) return
+    try {
+        await masterClient.from('trial_users_leads').upsert({
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.email.split('@')[0],
+            trial_started_at: new Date().toISOString(),
+            trial_ends_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            last_login: new Date().toISOString()
+        }, { onConflict: 'email' })
+    } catch (err) { console.error('Trial Lead error:', err) }
+}
+
+export const logUnauthorizedAttempt = async (email) => {
+    if (!email) return
+    try {
+        await masterClient.from('unauthorized_attempts').insert([{
+            email,
+            attempted_at: new Date().toISOString()
+        }])
+    } catch (err) { console.error('Audit log error:', err) }
+}
