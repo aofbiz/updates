@@ -20,7 +20,10 @@ import {
     setMonth,
     setYear,
     getYear,
-    getMonth
+    getMonth,
+    isBefore,
+    isAfter,
+    startOfDay
 } from 'date-fns'
 import { useTheme } from '../ThemeContext'
 
@@ -113,11 +116,21 @@ const CustomDatePicker = ({
             const isCurrentMonth = isSameMonth(day, monthStart)
             const isToday = isSameDay(day, new Date())
 
+            let isDisabled = false
+            if (min) {
+                const minD = typeof min === 'string' ? parse(min, 'yyyy-MM-dd', new Date()) : min
+                if (isBefore(startOfDay(day), startOfDay(minD))) isDisabled = true
+            }
+            if (max) {
+                const maxD = typeof max === 'string' ? parse(max, 'yyyy-MM-dd', new Date()) : max
+                if (isAfter(startOfDay(day), startOfDay(maxD))) isDisabled = true
+            }
+
             week.push(
                 <div
                     key={day.toString()}
-                    className={`calendar-day ${!isCurrentMonth ? 'outside' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
-                    onClick={() => handleDateSelect(day)}
+                    className={`calendar-day ${!isCurrentMonth ? 'outside' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''} ${isDisabled ? 'disabled' : ''}`}
+                    onClick={() => !isDisabled && handleDateSelect(day)}
                 >
                     {format(day, dateFormat)}
                 </div>
@@ -199,9 +212,17 @@ const CustomDatePicker = ({
 
                     <div className="datepicker-footer">
                         <button type="button" className="footer-btn action" onClick={() => {
-                            const today = new Date()
-                            if (type === 'date') handleDateSelect(today)
-                            else handleMonthSelect(today)
+                            let now = new Date()
+                            if (min) {
+                                const minD = typeof min === 'string' ? parse(min, 'yyyy-MM-dd', new Date()) : min
+                                if (isBefore(now, minD)) now = minD
+                            }
+                            if (max) {
+                                const maxD = typeof max === 'string' ? parse(max, 'yyyy-MM-dd', new Date()) : max
+                                if (isAfter(now, maxD)) now = maxD
+                            }
+                            if (type === 'date') handleDateSelect(now)
+                            else handleMonthSelect(now)
                         }}>
                             {type === 'date' ? 'Today' : 'This Month'}
                         </button>
@@ -414,6 +435,16 @@ const CustomDatePicker = ({
                     color: var(--accent-primary);
                     font-weight: 700;
                     border: 1px solid var(--accent-primary);
+                }
+                
+                .calendar-day.disabled {
+                    cursor: not-allowed;
+                    opacity: 0.2;
+                    color: var(--text-muted);
+                }
+                
+                .calendar-day.disabled:hover {
+                    background: transparent;
                 }
 
                 .month-grid {

@@ -38,7 +38,8 @@ const CurfoxTrackingModal = ({ order, onSave, onClose }) => {
                 ...order,
                 courierFinanceStatus: financeData.finance_status,
                 courierInvoiceNo: financeData.invoice_no,
-                courierInvoiceRef: financeData.invoice_ref_no
+                courierInvoiceRef: financeData.invoice_ref_no,
+                courierDepositedDate: financeData.finance_deposited_date || financeData.deposited_date || financeData.deposited_at
             }
 
             // Auto-mark as paid if deposited or approved
@@ -333,6 +334,12 @@ const CurfoxTrackingModal = ({ order, onSave, onClose }) => {
                                                 <span style={{ color: 'var(--text-muted)' }}>Invoice No.</span>
                                                 <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{financeData.invoice_no || '—'}</span>
                                             </div>
+                                            {(financeData.finance_deposited_date || financeData.deposited_date || financeData.deposited_at) && (
+                                                <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: 'var(--text-muted)' }}>Deposited Date</span>
+                                                    <span style={{ fontWeight: 600 }}>{financeData.finance_deposited_date || financeData.deposited_date || financeData.deposited_at}</span>
+                                                </div>
+                                            )}
                                             <div style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between' }}>
                                                 <span style={{ color: 'var(--text-muted)' }}>Waybill ID</span>
                                                 <span style={{ fontWeight: 600 }}>{order.trackingNumber}</span>

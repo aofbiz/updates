@@ -101,8 +101,8 @@ const ProductsManagement = () => {
   }
 
   const handleAddCategory = () => {
-    if (isFreeUser && products.categories.length >= 3) {
-      addToast('Free plan limit: Maximum 3 categories allowed. Upgrade to Pro for unlimited categories.', 'error')
+    if (isFreeUser && products.categories.length >= 1) {
+      addToast('Free plan limit: Maximum 1 category allowed. Upgrade to Pro for unlimited categories.', 'error')
       return
     }
     setCategoryFormData({ name: '' })
@@ -171,7 +171,7 @@ const ProductsManagement = () => {
     if (isFreeUser) {
       const totalItems = products.categories.reduce((acc, cat) => acc + cat.items.length, 0)
       if (totalItems >= 10) {
-        addToast('Free plan limit: Maximum 10 products allowed. Upgrade to Pro for unlimited products.', 'error')
+        addToast('Free plan limit: Maximum 10 items allowed. Upgrade to Pro for unlimited items.', 'error')
         return
       }
     }

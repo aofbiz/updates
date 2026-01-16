@@ -5,7 +5,7 @@ import CustomDatePicker from './Common/CustomDatePicker'
 import FormValidation from './FormValidation'
 import { useLicensing } from './LicensingContext'
 import { useToast } from './Toast/ToastContext'
-import { calculateNextOrderNumber, markTrackingNumberAsUsed, getProducts, getOrders, getOrderSources, getSettings } from '../utils/storage'
+import { calculateNextOrderNumber, markTrackingNumberAsUsed, getProducts, getOrders, getOrderSources, getSettings, getTotalMonthlyRecordsCount } from '../utils/storage'
 import { uploadOrderItemImage, deleteOrderItemImage } from '../utils/fileStorage'
 import { formatWhatsAppForStorage } from '../utils/whatsapp'
 import { toTitleCase, toSentenceCase } from '../utils/textUtils'
@@ -518,6 +518,16 @@ const OrderForm = ({ order, onClose, onSave, checkIsBlacklisted, onBlacklistWarn
       if (firstInvalidStep) setCurrentStep(firstInvalidStep)
       addToast('Please correct the highlighted errors.', 'warning')
       return
+    }
+
+    // Check Monthly Limit for Free Users
+    if (isFreeUser && !order?.id) {
+      const recordsCount = await getTotalMonthlyRecordsCount()
+      if (recordsCount >= 30) {
+        addToast('Free plan limit: 30 orders/month reached. Upgrade to Pro for unlimited orders! 🚀', 'error')
+        setIsSaving(false)
+        return
+      }
     }
 
     setIsSaving(true)

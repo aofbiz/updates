@@ -24,6 +24,7 @@ const STATUS_OPTIONS = [
   { value: 'New Order', label: 'New Order' },
   { value: 'Packed', label: 'Packed' },
   { value: 'Dispatched', label: 'Dispatched' },
+  { value: 'Delivered', label: 'Delivered' },
   { value: 'returned', label: 'Returned' },
   { value: 'refund', label: 'Refund' },
   { value: 'cancelled', label: 'Cancelled' },
@@ -272,6 +273,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
       let matchesStatus = true
       if (statusFilter === 'pendingDispatch') {
         matchesStatus = order.status !== 'Dispatched' &&
+          order.status !== 'Delivered' &&
           order.status !== 'returned' &&
           order.status !== 'refund' &&
           order.status !== 'cancelled'
@@ -289,7 +291,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
       }
 
       const matchesScheduled = scheduledDeliveriesOnly
-        ? isWithinNextDays(order.deliveryDate, 3) && !['Dispatched', 'returned', 'refund', 'cancelled'].includes(order.status)
+        ? isWithinNextDays(order.deliveryDate, 3) && !['Dispatched', 'Delivered', 'returned', 'refund', 'cancelled'].includes(order.status)
         : true
 
       // Date filtering
@@ -339,7 +341,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
           break
         case 'status':
           // Custom status order: New Order, Packed, Dispatched, then others
-          const statusOrder = ['New Order', 'Packed', 'Dispatched', 'returned', 'refund', 'cancelled']
+          const statusOrder = ['New Order', 'Packed', 'Dispatched', 'Delivered', 'returned', 'refund', 'cancelled']
           const aStatus = a.status || ''
           const bStatus = b.status || ''
           const aIndex = statusOrder.indexOf(aStatus) !== -1 ? statusOrder.indexOf(aStatus) : statusOrder.length
@@ -553,6 +555,10 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
         // If marking as Dispatched and dispatchDate isn't set (e.g., tracking already exists), set it automatically.
         if (field === 'status' && newValue === 'Dispatched' && !updated.dispatchDate) {
           updated.dispatchDate = today
+        }
+        // If marking as Delivered and deliveredDate isn't set, set it automatically.
+        if (field === 'status' && newValue === 'Delivered' && !updated.deliveredDate) {
+          updated.deliveredDate = today
         }
         return updated
       }
@@ -965,6 +971,10 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
             // Auto-generate dispatch date if setting status to Dispatched
             if (newStatus === 'Dispatched') {
               updates.dispatchDate = today
+            }
+            // Auto-generate delivered date if setting status to Delivered
+            if (newStatus === 'Delivered') {
+              updates.deliveredDate = today
             }
             return { ...order, ...updates }
           }
@@ -1528,12 +1538,12 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                             fontSize: '0.875rem'
                           }}>
                             #{order.id}
-                            {order.scheduledDeliveryDate && !['Dispatched', 'returned', 'refund', 'cancelled'].includes(order.status) && (
+                            {order.scheduledDeliveryDate && !['Dispatched', 'Delivered', 'returned', 'refund', 'cancelled'].includes(order.status) && (
                               (() => {
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
                                 const deliveryDate = new Date(order.scheduledDeliveryDate);
-                                const isOverdue = deliveryDate < today && !['Dispatched', 'returned', 'refund', 'cancelled'].includes(order.status);
+                                const isOverdue = deliveryDate < today && !['Dispatched', 'Delivered', 'returned', 'refund', 'cancelled'].includes(order.status);
 
                                 return (
                                   <Calendar
@@ -1661,6 +1671,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                             <option value="New Order">New Order</option>
                             <option value="Packed">Packed</option>
                             <option value="Dispatched">Dispatched</option>
+                            <option value="Delivered">Delivered</option>
                             <option value="returned">Returned</option>
                             <option value="refund">Refund</option>
                             <option value="cancelled">Cancelled</option>
@@ -1688,6 +1699,11 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                             {order.status?.toLowerCase() === 'dispatched' && order.dispatchDate ? (
                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                                 {order.dispatchDate.includes('T') ? order.dispatchDate.split('T')[0] : order.dispatchDate}
+                              </div>
+                            ) : null}
+                            {order.status === 'Delivered' && order.deliveredDate ? (
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                {order.deliveredDate.includes('T') ? order.deliveredDate.split('T')[0] : order.deliveredDate}
                               </div>
                             ) : null}
                           </div>
@@ -1875,12 +1891,12 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontWeight: 700, color: 'var(--accent-primary)', fontSize: '1.1rem' }}>#{order.id}</span>
-                        {order.scheduledDeliveryDate && !['Dispatched', 'returned', 'refund', 'cancelled'].includes(order.status) && (
+                        {order.scheduledDeliveryDate && !['Dispatched', 'Delivered', 'returned', 'refund', 'cancelled'].includes(order.status) && (
                           (() => {
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
                             const deliveryDate = new Date(order.scheduledDeliveryDate);
-                            const isOverdue = deliveryDate < today && !['Dispatched', 'returned', 'refund', 'cancelled'].includes(order.status);
+                            const isOverdue = deliveryDate < today && !['Dispatched', 'Delivered', 'returned', 'refund', 'cancelled'].includes(order.status);
 
                             return (
                               <Calendar

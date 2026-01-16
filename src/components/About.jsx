@@ -93,7 +93,7 @@ const About = () => {
                             <span>Website</span>
                             <ExternalLink size={14} className="link-arrow" />
                         </button>
-                        <button onClick={() => openExternal('mailto:loojabrandings@gmail.com')} className="social-link">
+                        <button onClick={() => openExternal('mailto:aofbizhelp@gmail.com')} className="social-link">
                             <Mail size={20} />
                             <span>Support Email</span>
                             <ExternalLink size={14} className="link-arrow" />

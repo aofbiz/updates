@@ -37,7 +37,7 @@ a:focus-visible,
   --bg-primary-rgb: 5, 5, 5;
   --bg-secondary: rgba(15, 15, 15, 0.5);
   --bg-sidebar: rgba(8, 8, 8, 0.6);
-  --bg-card: rgba(20, 20, 20, 0.4);
+  --bg-card: rgba(20, 20, 20, 0.9);
   --bg-card-hover: rgba(30, 30, 30, 0.5);
   --text-primary: #ffffff;
   --text-secondary: #e0e0e0;
@@ -2093,5 +2093,42 @@ tr:hover {
   .restrictions-icon-wrapper {
     width: 48px;
     height: 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hidden-mobile {
+    display: none !important;
+  }
+}
+
+.status-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.status-icon-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

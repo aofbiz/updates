@@ -23,6 +23,7 @@ export const getTodaysOrders = (orders) => {
 export const getPendingDispatch = (orders) => {
   return orders.filter(order =>
     order.status !== 'Dispatched' &&
+    order.status !== 'Delivered' &&
     order.status !== 'returned' &&
     order.status !== 'refund' &&
     order.status !== 'cancelled'

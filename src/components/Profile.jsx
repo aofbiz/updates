@@ -191,8 +191,11 @@ const Profile = ({ onUpdateSettings }) => {
             const totalSeconds = Math.floor(ms / 1000)
             const days = Math.floor(totalSeconds / (24 * 3600))
             const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600)
+            const minutes = Math.floor((totalSeconds % 3600) / 60)
+
             if (days > 0) return `${days}d ${hours}h left`
-            return `${hours}h left`
+            if (hours > 0) return `${hours}h ${minutes}m left`
+            return `${minutes}m left`
         }
 
         return (
@@ -214,11 +217,29 @@ const Profile = ({ onUpdateSettings }) => {
 
                     <div className="licensing-section-container">
                         <div className="licensing-info">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                                 <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>
-                                    {isProUser ? 'Pro Plan Active' : 'Free Plan'}
+                                    {isProUser ? (isTrialActive ? 'Pro Trial' : 'Pro Plan Active') : 'Free Plan'}
                                 </h3>
-                                {isTrialActive && <span className="badge badge-warning">Trial Active</span>}
+                                {isTrialActive && (
+                                    <div style={{
+                                        padding: '0.25rem 0.75rem',
+                                        backgroundColor: 'rgba(var(--accent-rgb), 0.1)',
+                                        border: '1px solid rgba(var(--accent-rgb), 0.3)',
+                                        borderRadius: '20px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        color: 'var(--accent-primary)',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 800,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        animation: 'pulse 2s infinite ease-in-out'
+                                    }}>
+                                        <Zap size={12} fill="var(--accent-primary)" /> Trial Active
+                                    </div>
+                                )}
                                 {!isProUser && isTrialExpired && <span className="badge badge-danger">Trial Expired</span>}
                             </div>
                             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0 }}>

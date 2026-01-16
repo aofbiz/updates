@@ -3,10 +3,14 @@ import { X, Plus, Trash2, ChevronLeft, ChevronRight, Check, AlertCircle, Papercl
 import CustomDropdown from './Common/CustomDropdown'
 import CustomDatePicker from './Common/CustomDatePicker'
 import FormValidation from './FormValidation'
-import { getProducts, getQuotations, calculateNextQuotationNumber, getSettings } from '../utils/storage'
+import { getProducts, getQuotations, calculateNextQuotationNumber, getSettings, getTotalMonthlyRecordsCount } from '../utils/storage'
 import { toTitleCase, toSentenceCase } from '../utils/textUtils'
+import { useLicensing } from './LicensingContext'
+import { useToast } from './Toast/ToastContext'
 
 const QuotationForm = ({ quotation, onClose, onSave }) => {
+    const { isFreeUser } = useLicensing()
+    const { addToast } = useToast()
     const today = new Date().toISOString().split('T')[0]
     const [expiryDays, setExpiryDays] = useState(7)
     const defaultExpiry = (() => {
@@ -214,6 +218,16 @@ const QuotationForm = ({ quotation, onClose, onSave }) => {
 
     const handleSubmit = async () => {
         if (!validateStep(1) || !validateStep(2)) return
+
+        // Check Monthly Limit for Free Users
+        if (isFreeUser && !quotation?.id) {
+            const recordsCount = await getTotalMonthlyRecordsCount()
+            if (recordsCount >= 30) {
+                addToast('Free plan limit: 30 records/month reached. Upgrade to Pro for unlimited access! 🚀', 'error')
+                return
+            }
+        }
+
         setIsSaving(true)
         try {
             const cleanedItems = (orderItems || []).map(it => ({

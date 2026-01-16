@@ -12,6 +12,7 @@ import {
   calculateNetProfit,
   getPendingDispatch
 } from '../utils/calculations'
+import { getTotalMonthlyRecordsCount } from '../utils/storage'
 import { getTopSellingProducts, formatCurrency } from '../utils/reportUtils'
 import { COLORS, tooltipStyle, renderDonutLabel, chartTheme, CustomTooltip } from './Reports/ChartConfig'
 import { useLicensing } from './LicensingContext'
@@ -24,6 +25,14 @@ import { useTheme } from './ThemeContext'
 const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) => {
   const { isFreeUser } = useLicensing()
   const { effectiveTheme } = useTheme()
+  const [monthlyRecords, setMonthlyRecords] = useState(0)
+
+  useEffect(() => {
+    if (isFreeUser) {
+      getTotalMonthlyRecordsCount().then(setMonthlyRecords)
+    }
+  }, [isFreeUser, orders.length]) // Refresh when orders list changes
+
   // --- Filter State ---
   const [filterType, setFilterType] = useState('month') // 'month' or 'range'
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'))
@@ -306,7 +315,7 @@ const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) =
 
     return (orders || []).filter(o => {
       // Exclude orders that are already processed/dispatched
-      if (['Dispatched', 'returned', 'refund', 'cancelled'].includes(o.status)) return false
+      if (['Dispatched', 'Delivered', 'returned', 'refund', 'cancelled'].includes(o.status)) return false
 
       const d = o.scheduledDeliveryDate || o.deliveryDate
       if (!d) return false
@@ -366,6 +375,81 @@ const Dashboard = ({ orders, expenses, inventory = [], products, onNavigate }) =
         gap: '1.25rem',
         marginBottom: '2.5rem'
       }}>
+        {isFreeUser && (
+          <div className="card" style={{
+            position: 'relative',
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, var(--bg-card), rgba(var(--accent-rgb), 0.05))',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            padding: '1.75rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '12px',
+                  backgroundColor: 'rgba(var(--accent-rgb), 0.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--accent-primary)'
+                }}>
+                  <ShoppingBag size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Monthly Orders</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Free Plan Usage</p>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>{monthlyRecords}</span>
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>/30</span>
+              </div>
+            </div>
+
+            <div style={{
+              height: '10px',
+              backgroundColor: 'rgba(var(--accent-rgb), 0.1)',
+              borderRadius: '6px',
+              overflow: 'hidden',
+              marginBottom: '0.75rem',
+              border: '1px solid rgba(var(--accent-rgb), 0.05)'
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.min(100, (monthlyRecords / 30) * 100)}%`,
+                backgroundColor: monthlyRecords >= 30 ? 'var(--error)' : 'var(--accent-primary)',
+                transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                boxShadow: monthlyRecords >= 30 ? '0 0 12px rgba(239, 68, 68, 0.4)' : '0 0 12px rgba(var(--accent-rgb), 0.4)'
+              }} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ fontSize: '0.8rem', fontWeight: 500, color: monthlyRecords >= 25 ? 'var(--error)' : 'var(--text-muted)' }}>
+                {monthlyRecords >= 30 ? 'Limit reached' : `${30 - monthlyRecords} remaining this month`}
+              </p>
+              <button
+                onClick={() => onNavigate('contact')}
+                style={{
+                  background: 'rgba(var(--accent-rgb), 0.1)', border: 'none',
+                  color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: 700,
+                  cursor: 'pointer', padding: '6px 12px', borderRadius: '8px',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = 'var(--accent-primary)'
+                  e.currentTarget.style.color = 'white'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = 'rgba(var(--accent-rgb), 0.1)'
+                  e.currentTarget.style.color = 'var(--accent-primary)'
+                }}
+              >
+                <Crown size={14} /> Upgrade
+              </button>
+            </div>
+          </div>
+        )}
         <SummaryCard
           title="Total Orders"
           value={totalOrdersThisMonth}

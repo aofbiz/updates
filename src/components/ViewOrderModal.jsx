@@ -149,18 +149,38 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
           if (fData) {
             const hasStatusChange = fData.finance_status !== updatedOrder.courierFinanceStatus
             const hasInvoiceChange = fData.invoice_no !== updatedOrder.courierInvoiceNo || fData.invoice_ref_no !== updatedOrder.courierInvoiceRef
+            const depositedDate = fData.finance_deposited_date || fData.deposited_date || fData.deposited_at
+            const hasDepositDateChange = depositedDate && depositedDate !== updatedOrder.courierDepositedDate
 
-            if (hasStatusChange || hasInvoiceChange) {
+            if (hasStatusChange || hasInvoiceChange || hasDepositDateChange) {
               updatedOrder = {
                 ...updatedOrder,
                 courierFinanceStatus: fData.finance_status,
                 courierInvoiceNo: fData.invoice_no,
-                courierInvoiceRef: fData.invoice_ref_no
+                courierInvoiceRef: fData.invoice_ref_no,
+                courierDepositedDate: depositedDate
               }
 
               if (fData.finance_status === 'Deposited' || fData.finance_status === 'Approved') {
                 updatedOrder.paymentStatus = 'Paid'
               }
+              hasChanges = true
+            }
+          }
+
+          // Auto-set delivered date if courier says delivered
+          if (mappedStatus === 'Delivered' && !updatedOrder.deliveredDate) {
+            const events = Array.isArray(trackingData) ? trackingData : (trackingData.events || [])
+            const deliveredEvent = events.find(e => {
+              const s = (e.status_name || e.status || '').toUpperCase()
+              return s.includes('DELIVERED')
+            })
+            if (deliveredEvent) {
+              updatedOrder.deliveredDate = deliveredEvent.created_at || deliveredEvent.time || deliveredEvent.date
+              hasChanges = true
+            } else {
+              // Fallback to today if courier says delivered but no event date found
+              updatedOrder.deliveredDate = new Date().toISOString().split('T')[0]
               hasChanges = true
             }
           }
@@ -357,7 +377,8 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
         ...localOrder,
         courierFinanceStatus: financeData.finance_status,
         courierInvoiceNo: financeData.invoice_no,
-        courierInvoiceRef: financeData.invoice_ref_no
+        courierInvoiceRef: financeData.invoice_ref_no,
+        courierDepositedDate: financeData.finance_deposited_date || financeData.deposited_date || financeData.deposited_at
       }
 
       // Auto-mark as paid if deposited or approved
@@ -1186,6 +1207,12 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ color: 'var(--text-muted)' }}>Invoice No:</span>
                             <span style={{ fontWeight: 500, fontFamily: 'monospace' }}>{financeData.invoice_no}</span>
+                          </div>
+                        )}
+                        {(financeData.finance_deposited_date || financeData.deposited_date || financeData.deposited_at) && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Deposited Date:</span>
+                            <span style={{ fontWeight: 500 }}>{financeData.finance_deposited_date || financeData.deposited_date || financeData.deposited_at}</span>
                           </div>
                         )}
                       </div>

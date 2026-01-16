@@ -1070,3 +1070,34 @@ export const calculateNextQuotationNumber = (quotations = []) => {
   }
 }
 
+// ===== RECORD USAGE TRACKING =====
+
+/**
+ * Counts total orders and quotations created in the current month.
+ * @param {string} excludeRecordId - Optional, used when editing to avoid counting the current record
+ * @returns {Promise<number>}
+ */
+export const getTotalMonthlyRecordsCount = async (excludeRecordId = null) => {
+  try {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+
+    // 1. Count Orders
+    const orders = await getOrders()
+    const monthlyOrders = orders.filter(order =>
+      order.createdDate >= firstDay && order.id !== excludeRecordId
+    ).length
+
+    // 2. Count Quotations
+    const quotations = await getQuotations()
+    const monthlyQuotations = quotations.filter(q =>
+      q.createdDate >= firstDay && q.id !== excludeRecordId
+    ).length
+
+    return monthlyOrders + monthlyQuotations
+  } catch (error) {
+    console.error('Error calculating monthly records count:', error)
+    return 0
+  }
+}
+

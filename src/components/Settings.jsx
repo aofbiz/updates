@@ -1641,6 +1641,7 @@ const DataManagement = ({ orders, expenses, inventory, products, settings, track
 const CurfoxSettings = ({ settings, setSettings, showToast }) => {
   const [email, setEmail] = useState(settings?.curfox?.email || '')
   const [password, setPassword] = useState(settings?.curfox?.password || '')
+  const [showPassword, setShowPassword] = useState(false)
   const [tenant, setTenant] = useState(settings?.curfox?.tenant || '')
   const [businessId, setBusinessId] = useState(settings?.curfox?.businessId || '')
   const [originCity, setOriginCity] = useState(settings?.curfox?.originCity || '')
@@ -1772,13 +1773,36 @@ const CurfoxSettings = ({ settings, setSettings, showToast }) => {
           </div>
           <div className="form-group">
             <label className="form-label">Password</label>
-            <input
-              type="password"
-              className="form-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your Curfox password"
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                className="form-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your Curfox password"
+                style={{ paddingRight: '2.5rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  padding: '0.25rem',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <div className="form-group">
@@ -2125,6 +2149,7 @@ const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, 
   const [completedSteps, setCompletedSteps] = useState([])
   const [projectUrl, setProjectUrl] = useState('')
   const [anonKey, setAnonKey] = useState('')
+  const [showAnonKey, setShowAnonKey] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const isConnected = !!settings?.supabase?.url && !!settings?.supabase?.anonKey
@@ -2405,7 +2430,36 @@ const SupabaseCloudHub = ({ settings, setSettings, orders, expenses, inventory, 
               </div>
               <div className="form-group">
                 <label className="form-label">Anon Key</label>
-                <input type="password" className="form-input" value={anonKey} onChange={e => setAnonKey(e.target.value)} placeholder="eyJhbGciOiJIUz..." />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showAnonKey ? "text" : "password"}
+                    className="form-input"
+                    value={anonKey}
+                    onChange={e => setAnonKey(e.target.value)}
+                    placeholder="eyJhbGciOiJIUz..."
+                    style={{ paddingRight: '2.5rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAnonKey(!showAnonKey)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      padding: '0.25rem',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {showAnonKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleConnect} disabled={isLoading}>
                 {isLoading ? 'Connecting...' : 'Connect Supabase'}

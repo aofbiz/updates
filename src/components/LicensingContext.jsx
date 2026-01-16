@@ -54,6 +54,10 @@ export const LicensingProvider = ({ children }) => {
             if (remaining <= 0) {
                 // Trial Expired
                 setTimeLeft(0)
+                // Automatically switch to free mode if trial expires while in pro mode
+                if (userMode === 'pro' && licenseStatus !== 'pro') {
+                    setUserMode('free')
+                }
                 // We do NOT clear allset_trial_start here so we know they DID have a trial that is now expired
                 // This prevents them from starting a new one.
                 return false
@@ -64,7 +68,7 @@ export const LicensingProvider = ({ children }) => {
             }
         }
         return false
-    }, [])
+    }, [userMode, licenseStatus])
 
     // Periodically check trial status while app is running
     useEffect(() => {

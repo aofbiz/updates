@@ -297,7 +297,7 @@ const ModeSelectionScreen = ({ onModeSelected }) => {
                                 <div style={{ textAlign: 'center' }}>
                                     <p style={{ color: '#666', fontSize: '0.8rem', margin: 0 }}>
                                         Need help? Contact support at <br />
-                                        <a href="mailto:AllSethelp@gmail.com" style={{ color: 'var(--pro-accent)', textDecoration: 'none', fontWeight: 500 }}>AllSethelp@gmail.com</a>
+                                        <a href="mailto:aofbizhelp@gmail.com" style={{ color: 'var(--pro-accent)', textDecoration: 'none', fontWeight: 500 }}>aofbizhelp@gmail.com</a>
                                     </p>
                                 </div>
                             </div>

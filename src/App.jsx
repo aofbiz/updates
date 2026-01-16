@@ -93,6 +93,16 @@ function AppContent() {
   const [initialFilters, setInitialFilters] = useState({})
   const [showShortcuts, setShowShortcuts] = useState(false)
 
+  // Force sidebar to be always expanded on desktop (User request)
+  const [sidebarExpanded, setSidebarExpanded] = useState(true)
+
+  // Remove resize listener for auto-collapse
+  /* 
+  useEffect(() => {
+    // Disabled auto-collapse
+  }, []) 
+  */
+
   // Load data function - extracted for reuse
   const loadData = useCallback(async () => {
     if (licensingLoading || !userMode) return
@@ -486,6 +496,8 @@ function AppContent() {
         setActiveView={handleViewChange}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
+        sidebarExpanded={sidebarExpanded}
+        setSidebarExpanded={setSidebarExpanded}
         onAddOrder={handleAddOrder}
         onAddExpense={handleAddExpense}
         onLogout={handleLogout}
@@ -498,14 +510,14 @@ function AppContent() {
         paddingBottom: 'calc(1rem + var(--safe-area-bottom))',
         paddingLeft: 'calc(1rem + var(--safe-area-left))',
         paddingRight: 'calc(1rem + var(--safe-area-right))',
-        marginLeft: '0',
+        marginLeft: sidebarExpanded ? '250px' : '80px',
         backgroundColor: 'transparent',
         transition: 'margin-left 0.3s ease',
         minWidth: 0,
         width: '100%',
         boxSizing: 'border-box'
       }}
-        className="main-content"
+        className={`main-content ${sidebarExpanded ? 'expanded' : 'collapsed'}`}
       >
         <TrialCountdownBar />
         {renderView()}
