@@ -30,10 +30,7 @@ export const LicensingProvider = ({ children }) => {
     const [authError, setAuthError] = useState(null)
 
     // Mode selection persistence
-    const [userMode, setUserMode] = useState(() => {
-        const saved = localStorage.getItem('allset_user_mode') || sessionStorage.getItem('allset_user_mode')
-        return saved || null
-    })
+    const [userMode, setUserMode] = useState(null)
     const [rememberSelection, setRememberSelection] = useState(() => localStorage.getItem('allset_remember_selection') === 'true')
 
     // Trial state
@@ -147,8 +144,11 @@ export const LicensingProvider = ({ children }) => {
                         }
                     }
                 } else {
-                    // 3. Fallback to local trial logic if no identity
-                    updateTrialTime()
+                    // 3. No Identity User Found -> KILL Guest Session
+                    console.log('Licensing: No identity user found. Resetting guest mode.')
+                    setUserMode(null)
+                    setIdentityUser(null)
+                    setLicenseStatus('free')
                 }
             } catch (err) {
                 console.error('Licensing check failed:', err)

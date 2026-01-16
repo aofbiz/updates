@@ -21,30 +21,39 @@ const masterClient = createClient(MASTER_SUPABASE_URL, MASTER_SUPABASE_ANON_KEY)
  * Perform Google Sign-In with platform-specific logic.
  */
 export const signInWithGoogle = async () => {
-    const isWeb = Capacitor.getPlatform() === 'web' || window.location.protocol.startsWith('http')
     const isElectron = !!window.electronAPI
+    const protocol = window.location.protocol
+    const hostname = window.location.hostname
+
+    // AGGRESSIVE WEB DETECTION
+    const isWeb = !isElectron && (
+        Capacitor.getPlatform() === 'web' ||
+        protocol === 'http:' ||
+        protocol === 'https:' ||
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1'
+    )
+
     const isNative = Capacitor.isNativePlatform() && !isWeb
 
     let redirectTo = window.location.origin
-    let flowType = undefined // Default to implicit (for Desktop/Native)
+    let flowType = undefined
 
-    // ISOLATED PLATFORM PATHS
     if (isWeb) {
-        // Path A: Standard Web Browser
         redirectTo = window.location.origin
-        flowType = 'pkce' // Use query params (?code=...) to prevent native scheme "launch" prompts
+        flowType = 'pkce'
     } else if (isElectron) {
-        // Path B: Electron Desktop App
         redirectTo = 'allset://auth-callback'
     } else if (isNative) {
-        // Path C: Native Mobile App (APK/IPA)
         redirectTo = 'com.aofbiz.app://auth-callback'
-    } else {
-        // Fallback
-        redirectTo = window.location.origin
     }
 
-    console.warn(`[AUTH FLOW EXCLUSIVE] Detected: ${isWeb ? 'WEB' : isElectron ? 'ELECTRON' : 'NATIVE'}, Protocol: ${window.location.protocol}, Flow: ${flowType || 'implicit'} => Using: ${redirectTo}`)
+    // DIAGNOSTIC ALERT
+    if (isWeb && (redirectTo.startsWith('allset://') || redirectTo.startsWith('com.aofbiz.app://'))) {
+        alert(`STOP! Logic Error: Web app is trying to use Native Redirect: ${redirectTo}. Standard Web Protocol: ${protocol}`)
+    }
+
+    console.warn(`[AUTH FLOW EXCLUSIVE] Platform: ${isWeb ? 'WEB' : isElectron ? 'ELECTRON' : 'NATIVE'}, Protocol: ${protocol}, Origin: ${window.location.origin}, Flow: ${flowType || 'implicit'} => Redirect: ${redirectTo}`)
 
     const { data, error } = await masterClient.auth.signInWithOAuth({
         provider: 'google',
