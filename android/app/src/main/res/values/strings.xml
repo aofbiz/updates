@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">AllSet</string>
     <string name="title_activity_main">AllSet</string>
-    <string name="package_name">com.allset.app</string>
-    <string name="custom_url_scheme">com.allset.app</string>
+    <string name="package_name">com.aofbiz.app</string>
+    <string name="custom_url_scheme">com.aofbiz.app</string>
 </resources>
