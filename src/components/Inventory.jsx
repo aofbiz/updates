@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Package, Filter, Search, AlertTriangle, CheckCircle, Plus, X, Save, History, ArrowDownLeft, ArrowUpRight, Trash2 } from 'lucide-react'
 import CustomDropdown from './Common/CustomDropdown'
 import CollapsibleDateFilter from './Common/CollapsibleDateFilter'
-import { getInventory, getInventoryCategories, saveInventory, addInventoryLog, getInventoryLogs, deleteInventoryLog } from '../utils/storage'
+import { getInventory, getInventoryCategories, saveInventory, addInventoryLog, getInventoryLogs, deleteInventoryLog, clearInventoryLogs, deleteInventoryItem } from '../utils/storage'
 import ProFeatureLock from './ProFeatureLock'
 import { useLicensing } from './LicensingContext'
 import { format, startOfMonth, endOfMonth, parse, isWithinInterval } from 'date-fns'
@@ -256,10 +256,29 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
     }
   }
 
+  const handleClearLogs = async () => {
+    showConfirm('Clear All History', 'Are you sure you want to delete all transaction history? This cannot be undone.', async () => {
+      await clearInventoryLogs()
+      loadLogs()
+    })
+  }
+
   const handleDeleteLog = async (logId) => {
     showConfirm('Delete Log Entry', 'Are you sure you want to delete this log entry?', async () => {
       await deleteInventoryLog(logId)
       loadLogs()
+    })
+  }
+
+  const handleDeleteItem = async (itemId) => {
+    showConfirm('Delete Inventory Item', 'Are you sure you want to delete this item? This will also remove it from the dashboard.', async () => {
+      const success = await deleteInventoryItem(itemId)
+      if (success) {
+        if (onUpdateInventory) {
+          const updated = inventory.filter(i => i.id !== itemId)
+          onUpdateInventory(updated)
+        }
+      }
     })
   }
 
@@ -418,7 +437,24 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
       {showHistory && (
         <div className="card" style={{ marginBottom: '2rem', padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Recent Transactions</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Recent Transactions</h3>
+              {filteredLogs.length > 0 && (
+                <button
+                  onClick={handleClearLogs}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--error)',
+                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                    padding: '4px 8px', borderRadius: '4px',
+                    display: 'flex', alignItems: 'center', gap: '4px'
+                  }}
+                  onMouseEnter={e => e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                  onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}
+                >
+                  Clear History
+                </button>
+              )}
+            </div>
             <CollapsibleDateFilter
               filterType={filterType}
               onFilterTypeChange={setFilterType}
@@ -612,6 +648,16 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
                           >
                             <Plus size={14} />
                           </button>
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => handleDeleteItem(item.id)}
+                            title="Delete Item"
+                            style={{ padding: '0.4rem', color: 'var(--text-muted)', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                            onMouseEnter={e => e.currentTarget.style.color = 'var(--error)'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -669,6 +715,13 @@ const Inventory = ({ inventory, onUpdateInventory, initialFilter }) => {
                       style={{ flex: 2, justifyContent: 'center' }}
                     >
                       <Plus size={14} /> Add Stock
+                    </button>
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => handleDeleteItem(item.id)}
+                      style={{ padding: '0.5rem', color: 'var(--text-muted)', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: 'none' }}
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>

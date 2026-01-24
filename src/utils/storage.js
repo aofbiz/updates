@@ -968,6 +968,23 @@ export const deleteInventoryLog = async (logId) => {
   }
 }
 
+export const clearInventoryLogs = async () => {
+  try {
+    const logs = await db.inventoryLogs.toArray()
+    await db.inventoryLogs.clear()
+
+    // Sync deletions to cloud
+    for (const log of logs) {
+      autoSyncDelete('inventoryLogs', log.id)
+    }
+    return true
+  } catch (error) {
+    console.error('Error clearing inventory logs:', error)
+    return false
+  }
+}
+
+
 export const saveInventoryLogs = async (logs) => {
   try {
     // Bulk put to Dexie
