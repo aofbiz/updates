@@ -3,12 +3,12 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('allset_db');
 
-db.version(6).stores({
+db.version(7).stores({
     // Main data
-    orders: 'id, createdDate, status, paymentStatus, customerName, orderSource',
+    orders: 'id, createdDate, status, paymentStatus, customerName, orderSource, _v, _deleted',
     products: 'id',
-    inventory: 'id, category, itemName',
-    expenses: 'id, date, category',
+    inventory: 'id, category, itemName, _v, _deleted',
+    expenses: 'id, date, category, _v, _deleted',
     trackingNumbers: 'number, status',
 
     // Settings & Meta

@@ -30,13 +30,20 @@ const autoSyncRecord = async (tableName, record) => {
         return
       }
 
-      // Add timestamp if missing
-      const recordWithTimestamp = {
+      // CRDT: Ensure a logical version exists and increments
+      const existing = await db[tableName].get(record.id)
+      const currentVersion = existing?._v || 0
+
+      const recordWithMetadata = {
         ...record,
-        updatedAt: record.updatedAt || new Date().toISOString()
+        _v: Math.max(currentVersion + 1, record._v || 0),
+        updatedAt: new Date().toISOString()
       }
 
-      const result = await pushToCloud(tableName, recordWithTimestamp, userId)
+      // Update local storage with version before pushing
+      await db[tableName].update(record.id, { _v: recordWithMetadata._v, updatedAt: recordWithMetadata.updatedAt })
+
+      const result = await pushToCloud(tableName, recordWithMetadata, userId)
       if (result.success) {
         console.log(`Auto-sync: Pushed ${tableName} to cloud (User: ${userId})`)
       } else {
@@ -79,8 +86,9 @@ const handleStorageError = (error, operation) => {
 
 export const getOrders = async () => {
   try {
-    // Fetch all orders from Dexie, ordered by createdDate descending
-    const data = await db.orders.orderBy('createdDate').reverse().toArray()
+    // Filter out soft-deleted records
+    const data = (await db.orders.orderBy('createdDate').reverse().toArray())
+      .filter(o => !o._deleted)
 
     // DECISION: We will store frontend-ready (camelCase) objects in Dexie.
     // So we don't need `transformOrderFromDB` if we save it clean.
@@ -143,9 +151,20 @@ export const saveOrders = async (orders) => {
 
 export const deleteOrder = async (orderId) => {
   try {
-    await db.orders.delete(orderId)
-    // Auto-sync deletion
-    autoSyncDelete('orders', orderId)
+    const existing = await db.orders.get(orderId)
+    if (existing) {
+      const tombstone = {
+        ...existing,
+        _deleted: true,
+        _v: (existing._v || 0) + 1,
+        updatedAt: new Date().toISOString()
+      }
+      await db.orders.put(tombstone)
+      autoSyncRecord('orders', tombstone)
+
+      // We keep it in local DB for a moment to sync, 
+      // but UI should filter out _deleted: true
+    }
     return true
   } catch (error) {
     console.error('Error deleting order:', error)
@@ -159,7 +178,8 @@ export const deleteOrder = async (orderId) => {
 
 export const getExpenses = async () => {
   try {
-    const data = await db.expenses.orderBy('date').reverse().toArray()
+    const data = (await db.expenses.orderBy('date').reverse().toArray())
+      .filter(e => !e._deleted)
 
     // Data stored in Dexie should already be in camelCase, so no transformation needed.
     console.log(`storage: getExpenses - Fetched ${data?.length} rows.`)
@@ -210,9 +230,17 @@ export const saveExpenses = async (expenses) => {
 
 export const deleteExpense = async (expenseId) => {
   try {
-    await db.expenses.delete(expenseId)
-    // Auto-sync deletion
-    autoSyncDelete('expenses', expenseId)
+    const existing = await db.expenses.get(expenseId)
+    if (existing) {
+      const tombstone = {
+        ...existing,
+        _deleted: true,
+        _v: (existing._v || 0) + 1,
+        updatedAt: new Date().toISOString()
+      }
+      await db.expenses.put(tombstone)
+      autoSyncRecord('expenses', tombstone)
+    }
     return true
   } catch (error) {
     console.error('Error deleting expense:', error)
@@ -350,7 +378,8 @@ export const saveOrderCounter = async (counter) => {
 
 export const getInventory = async () => {
   try {
-    const data = await db.inventory.orderBy('itemName').toArray()
+    const data = (await db.inventory.orderBy('itemName').toArray())
+      .filter(i => !i._deleted)
 
     // Data stored in Dexie should already be in camelCase, so no transformation needed.
     console.log(`storage: getInventory - Fetched ${data?.length} rows.`)
@@ -395,8 +424,17 @@ export const saveInventory = async (inventory) => {
 
 export const deleteInventoryItem = async (itemId) => {
   try {
-    await db.inventory.delete(itemId)
-    autoSyncDelete('inventory', itemId)
+    const existing = await db.inventory.get(itemId)
+    if (existing) {
+      const tombstone = {
+        ...existing,
+        _deleted: true,
+        _v: (existing._v || 0) + 1,
+        updatedAt: new Date().toISOString()
+      }
+      await db.inventory.put(tombstone)
+      autoSyncRecord('inventory', tombstone)
+    }
     return true
   } catch (error) {
     console.error('Error deleting inventory item:', error)
@@ -552,7 +590,8 @@ export const renameOrderSourceInOrders = async (oldName, newName) => {
 
 export const getTrackingNumbers = async () => {
   try {
-    const data = await db.trackingNumbers.orderBy('number').toArray()
+    const data = (await db.trackingNumbers.orderBy('number').toArray())
+      .filter(tn => !tn._deleted)
 
     // Data stored in Dexie should already be in camelCase, so no transformation needed.
     return data || []
@@ -919,7 +958,7 @@ export const getInventoryLogs = async (limit = 100) => {
       query = query.limit(limit)
     }
 
-    const data = await query.toArray()
+    const data = (await query.toArray()).filter(log => !log._deleted)
 
     // Data stored in Dexie should already be in camelCase, so no transformation needed.
     return data || []
@@ -959,8 +998,17 @@ export const addInventoryLog = async (logData) => {
 
 export const deleteInventoryLog = async (logId) => {
   try {
-    await db.inventoryLogs.delete(logId)
-    autoSyncDelete('inventoryLogs', logId)
+    const existing = await db.inventoryLogs.get(logId)
+    if (existing) {
+      const tombstone = {
+        ...existing,
+        _deleted: true,
+        _v: (existing._v || 0) + 1,
+        updatedAt: new Date().toISOString()
+      }
+      await db.inventoryLogs.put(tombstone)
+      autoSyncRecord('inventoryLogs', tombstone)
+    }
     return true
   } catch (error) {
     console.error('Error deleting inventory log:', error)
@@ -1011,7 +1059,8 @@ export const saveInventoryLogs = async (logs) => {
 
 export const getQuotations = async () => {
   try {
-    const data = await db.quotations.orderBy('createdDate').reverse().toArray()
+    const data = (await db.quotations.orderBy('createdDate').reverse().toArray())
+      .filter(q => !q._deleted)
     console.log(`storage: getQuotations - Fetched ${data?.length} rows.`)
     return data || []
   } catch (error) {
@@ -1058,8 +1107,17 @@ export const saveQuotations = async (quotations) => {
 
 export const deleteQuotation = async (id) => {
   try {
-    await db.quotations.delete(id)
-    autoSyncDelete('quotations', id)
+    const existing = await db.quotations.get(id)
+    if (existing) {
+      const tombstone = {
+        ...existing,
+        _deleted: true,
+        _v: (existing._v || 0) + 1,
+        updatedAt: new Date().toISOString()
+      }
+      await db.quotations.put(tombstone)
+      autoSyncRecord('quotations', tombstone)
+    }
     return true
   } catch (error) {
     console.error('Error deleting quotation:', error)

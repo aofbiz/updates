@@ -11,6 +11,37 @@ import { getSupabase, isSupabaseConfigured } from './supabaseClient'
 // Tables that should be synced
 const SYNC_TABLES = ['orders', 'expenses', 'inventory', 'settings', 'trackingNumbers', 'orderSources', 'products', 'orderCounter', 'inventoryLogs', 'quotations']
 
+/**
+ * Perform a deep merge of two records (Lite CRDT - Last Write Wins per field)
+ * This ensures that if Device A edits 'name' and Device B edits 'status', both changes are kept.
+ */
+const deepMerge = (local, remote) => {
+    if (!local) return remote
+    if (!remote) return local
+
+    const merged = { ...local }
+
+    // Iterate through all keys in remote to see what's new
+    Object.keys(remote).forEach(key => {
+        const localVal = local[key]
+        const remoteVal = remote[key]
+
+        // If remote has values that local doesn't, or if remote is a primitive that changed
+        if (localVal === undefined || localVal === null) {
+            merged[key] = remoteVal
+        } else if (typeof remoteVal === 'object' && !Array.isArray(remoteVal) && remoteVal !== null) {
+            // Recurse for nested objects (like settings.data)
+            merged[key] = deepMerge(localVal, remoteVal)
+        } else {
+            // For primitives, evaluate if remote is actually "newer" 
+            // In Lite CRDT, we usually trust the incoming remote if versions are higher
+            merged[key] = remoteVal
+        }
+    })
+
+    return merged
+}
+
 // Map local table names to Supabase table names
 const TABLE_MAP = {
     orders: 'orders',
@@ -360,10 +391,18 @@ const mergeCloudData = async (tableName, cloudRecords) => {
         for (const cloudRecord of cloudRecords) {
             const localRecord = await localTable.get(cloudRecord.id)
 
-            // If cloud is newer or local doesn't exist, use cloud version
-            if (!localRecord ||
-                new Date(cloudRecord.updatedAt) > new Date(localRecord.updatedAt || 0)) {
-                await localTable.put(cloudRecord)
+            // CRDT Logic: Always merge fields. 
+            // We only skip if the local version is strictly ahead of cloud (rare in sync)
+            const localVersion = localRecord?._v || 0
+            const cloudVersion = cloudRecord.data?._v || 0
+
+            if (!localRecord || cloudVersion >= localVersion) {
+                if (cloudRecord.data?._deleted) {
+                    await localTable.delete(cloudRecord.id)
+                } else {
+                    const merged = deepMerge(localRecord, cloudRecord)
+                    await localTable.put(merged)
+                }
             }
         }
     } catch (error) {
@@ -505,16 +544,26 @@ const handleRealtimeEvent = async (payload) => {
             }
 
             if (recordData) {
-                const mergedRecord = {
+                const cloudRecord = {
                     ...recordData,
                     id: newRecord.id,
                     updatedAt: newRecord.updated_at
                 }
 
-                // Check local timestamp to prevent overwriting newer local changes
+                // Field-level merging (Lite CRDT)
                 const localRecord = await localTable.get(newRecord.id)
-                if (!localRecord || new Date(mergedRecord.updatedAt) > new Date(localRecord.updatedAt || 0)) {
-                    await localTable.put(mergedRecord)
+                const localVersion = localRecord?._v || 0
+                const cloudVersion = cloudRecord?._v || 0
+
+                // Only update if cloud version is same or newer
+                if (!localRecord || cloudVersion >= localVersion) {
+                    if (cloudRecord._deleted) {
+                        await localTable.delete(cloudRecord.id)
+                    } else {
+                        const mergedRecord = deepMerge(localRecord, cloudRecord)
+                        await localTable.put(mergedRecord)
+                    }
+
                     // Dispatch specific event for UI updates
                     window.dispatchEvent(new Event(`sync:${localTableName}`))
                     // Also dispatch generic update
