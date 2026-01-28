@@ -110,6 +110,8 @@ export const useUpdateManager = () => {
 
                     const fileName = downloadUrl.split('/').pop() || 'update.apk'
 
+                    console.log('UpdateManager: Starting APK download...', { fileName, downloadUrl })
+
                     // 1. Download the file
                     const downloadResult = await Filesystem.downloadFile({
                         url: downloadUrl,
@@ -118,22 +120,28 @@ export const useUpdateManager = () => {
                         progress: true
                     })
 
-                    // Handle progress if the plugin provides it via listener (standard Capacitor way)
-                    // Note: Filesystem.addListener('downloadFileProgress', ...) is used in some versions
-                    // but for simplicity and reliability in this specific v8 environment, 
-                    // we'll assume the downloadFile call handles the heavy lifting.
+                    console.log('UpdateManager: Download complete, result:', downloadResult)
+
+                    // 2. Get the full file URI (required for FileOpener)
+                    const uriResult = await Filesystem.getUri({
+                        path: fileName,
+                        directory: Directory.Cache
+                    })
+
+                    console.log('UpdateManager: Full file URI:', uriResult.uri)
 
                     setStatus('ready')
                     setProgress(100)
-                    setDownloadedFilePath(downloadResult.path)
+                    setDownloadedFilePath(uriResult.uri) // Store the full URI, not relative path
 
-                    // 2. Trigger installation immediately
+                    // 3. Trigger installation immediately
                     await FileOpener.openFile({
-                        path: downloadResult.path
+                        path: uriResult.uri,
+                        mimeType: 'application/vnd.android.package-archive' // Explicit APK MIME type
                     })
                 } catch (err) {
                     console.error('Capacitor Download/Install error:', err)
-                    setError('Failed to download or install update.')
+                    setError('Failed to download or install update: ' + (err.message || err))
                     setStatus('error')
                 }
             } else {
@@ -197,14 +205,18 @@ export const useUpdateManager = () => {
             window.electronAPI.installUpdate()
         } else if (isCapacitor() && downloadedFilePath) {
             try {
+                console.log('installUpdate: Opening APK for installation:', downloadedFilePath)
                 const { FileOpener } = await import('@capawesome-team/capacitor-file-opener')
                 await FileOpener.openFile({
-                    path: downloadedFilePath
+                    path: downloadedFilePath,
+                    mimeType: 'application/vnd.android.package-archive' // Explicit APK MIME type
                 })
             } catch (err) {
                 console.error('File opener error:', err)
-                setError('Failed to open installer. Please try again.')
+                setError('Failed to open installer: ' + (err.message || err))
             }
+        } else {
+            console.warn('installUpdate: Cannot install - no Electron API and no downloaded file path')
         }
     }, [downloadedFilePath])
 
