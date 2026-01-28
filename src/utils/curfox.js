@@ -363,10 +363,12 @@ export const curfoxService = {
                 return s === 'DELIVERED' || s === 'CANCELLED' || s === 'RETURNED';
             });
 
+            // If terminal status, we store with a flag so bulkGetTracking can skip it permanently
             localStorage.setItem(cacheKey, JSON.stringify({
                 data: history,
                 _terminal: isDelivered,
-                _ts: Date.now()
+                _ts: Date.now(),
+                _status: isDelivered ? 'TERMINAL' : 'PENDING'
             }));
 
             return history
@@ -629,9 +631,10 @@ export const curfoxService = {
         if (onProgress) onProgress(cachedCount, waybills.length);
 
         if (tasks.length > 0) {
-            const fetched = await limitConcurrency(tasks, 1, (done, total) => {
+            // Increased to 2 requests per second for better performance
+            const fetched = await limitConcurrency(tasks, 2, (done, total) => {
                 if (onProgress) onProgress(cachedCount + done, waybills.length);
-            }, 1000); // 1 request / 1 sec
+            }, 500);
             return [...results, ...fetched.filter(Boolean)];
         }
         return results;

@@ -66,7 +66,7 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
   const [editingOrder, setEditingOrder] = useState(null)
   const [trackingOrder, setTrackingOrder] = useState(null)
   const [trackingTargetStatus, setTrackingTargetStatus] = useState('Packed')
-  const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem('allset_orders_search') || '')
+  const [searchTerm, setSearchTerm] = useState(() => initialFilters.searchTerm || localStorage.getItem('allset_orders_search') || '')
   const [statusFilter, setStatusFilter] = useState(() => initialFilters.statusFilter || 'all')
   const [paymentFilter, setPaymentFilter] = useState(() => initialFilters.paymentFilter || 'all')
   const [scheduledDeliveriesOnly, setScheduledDeliveriesOnly] = useState(() => {
@@ -220,6 +220,10 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     }
     if (initialFilters?.paymentFilter !== undefined) {
       setPaymentFilter(initialFilters.paymentFilter || 'all')
+    }
+    if (initialFilters?.searchTerm !== undefined) {
+      setSearchTerm(initialFilters.searchTerm || '')
+      setCurrentPage(1)
     }
     setScheduledDeliveriesOnly(!!initialFilters?.scheduledDeliveries)
   }, [initialFilters])

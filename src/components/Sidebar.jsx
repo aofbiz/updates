@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { LayoutDashboard, ShoppingBag, Package, DollarSign, Settings, Menu, X, Plus, Pencil, FileText, BarChart3, Crown, Sun, Moon, LogOut, User, ChevronRight, ChevronLeft, HelpCircle, Phone, LifeBuoy, Info, Bell, MessageSquare, Check, Circle, AlertTriangle, Trash2, Clock, ArrowDown, Zap } from 'lucide-react'
+import { LayoutDashboard, ShoppingBag, Package, DollarSign, Settings, Menu, X, Plus, Pencil, FileText, BarChart3, Crown, Sun, Moon, LogOut, User, ChevronRight, ChevronLeft, HelpCircle, Phone, LifeBuoy, Info, Bell, MessageSquare, Check, Circle, AlertTriangle, Trash2, Clock, ArrowDown, Zap, Truck } from 'lucide-react'
 import { useTheme } from './ThemeContext'
 import { useLicensing } from './LicensingContext'
 import { ProFeatureBadge } from './ProFeatureLock'
@@ -319,6 +319,7 @@ const Sidebar = ({ activeView, setActiveView, sidebarOpen, setSidebarOpen, sideb
     { id: 'expenses', label: 'Expenses', icon: DollarSign, proOnly: true },
     { id: 'quotations', label: 'Quotations', icon: FileText, proOnly: true },
     { id: 'reports', label: 'Reports', icon: BarChart3, proOnly: true },
+    { id: 'courier', label: 'Courier', icon: Truck, proOnly: true },
   ]
 
   const handleNavClick = (id, proOnly) => {

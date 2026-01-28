@@ -149,6 +149,18 @@ export const saveOrders = async (orders) => {
   }
 }
 
+export const saveOrder = async (order) => {
+  try {
+    if (!order?.id) return false
+    await db.orders.put(order)
+    autoSyncRecord('orders', order)
+    return true
+  } catch (error) {
+    console.error('Error saving order:', error)
+    return false
+  }
+}
+
 export const deleteOrder = async (orderId) => {
   try {
     const existing = await db.orders.get(orderId)

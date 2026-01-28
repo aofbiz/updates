@@ -10,6 +10,7 @@ import Contact from './components/Contact'
 import Profile from './components/Profile'
 import ModeSelectionScreen from './components/ModeSelectionScreen'
 import About from './components/About'
+import CourierReconciliation from './components/CourierReconciliation'
 import { getOrders, getExpenses, getInventory, getProducts, getQuotations, getSettings } from './utils/storage'
 import { openExternalUrl } from './utils/platform'
 import { Loader2 } from 'lucide-react'
@@ -78,7 +79,7 @@ function AppContent() {
   const [dataLoading, setDataLoading] = useState(false)
   const [activeView, setActiveView] = useState(() => {
     const savedView = localStorage.getItem('allset_active_view')
-    const validViews = ['dashboard', 'orders', 'inventory', 'expenses', 'quotations', 'reports', 'settings', 'about', 'contact', 'profile']
+    const validViews = ['dashboard', 'orders', 'inventory', 'expenses', 'quotations', 'reports', 'settings', 'about', 'contact', 'profile', 'courier']
     return validViews.includes(savedView) ? savedView : 'dashboard'
   })
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -401,6 +402,14 @@ function AppContent() {
             expenses={expenses}
             inventory={inventory}
             onUpdateOrders={updateOrders}
+          />
+        )
+      case 'courier':
+        return (
+          <CourierReconciliation
+            orders={orders}
+            onUpdateOrders={loadData}
+            onNavigate={handleNavigate}
           />
         )
       case 'settings':
