@@ -12,7 +12,6 @@ export const useUpdateManager = () => {
     const [deadline, setDeadline] = useState(null)
     const [timeRemaining, setTimeRemaining] = useState(null)
     const [isBlocked, setIsBlocked] = useState(false)
-    const [downloadedFilePath, setDownloadedFilePath] = useState(null)
 
     const currentVersion = pkg.version
 
@@ -97,61 +96,19 @@ export const useUpdateManager = () => {
             return
         }
 
-        // If it's an APK or we are not in Electron, check for Capacitor or Web
+        // If it's an APK or we are not in Electron, use External Browser
         if (useApk || !window.electronAPI) {
-            if (isCapacitor()) {
-                // Capacitor Mobile Download & Install Flow
-                try {
-                    setStatus('downloading')
-                    setProgress(0)
+            try {
+                // Open the download link in the external browser
+                await openExternalUrl(downloadUrl)
 
-                    const { Filesystem, Directory } = await import('@capacitor/filesystem')
-                    const { FileOpener } = await import('@capawesome-team/capacitor-file-opener')
-
-                    const fileName = downloadUrl.split('/').pop() || 'update.apk'
-
-                    console.log('UpdateManager: Starting APK download...', { fileName, downloadUrl })
-
-                    // 1. Download the file
-                    const downloadResult = await Filesystem.downloadFile({
-                        url: downloadUrl,
-                        path: fileName,
-                        directory: Directory.Cache,
-                        progress: true
-                    })
-
-                    console.log('UpdateManager: Download complete, result:', downloadResult)
-
-                    // 2. Get the full file URI (required for FileOpener)
-                    const uriResult = await Filesystem.getUri({
-                        path: fileName,
-                        directory: Directory.Cache
-                    })
-
-                    console.log('UpdateManager: Full file URI:', uriResult.uri)
-
-                    setStatus('ready')
-                    setProgress(100)
-                    setDownloadedFilePath(uriResult.uri) // Store the full URI, not relative path
-
-                    // 3. Trigger installation immediately
-                    await FileOpener.openFile({
-                        path: uriResult.uri,
-                        mimeType: 'application/vnd.android.package-archive' // Explicit APK MIME type
-                    })
-                } catch (err) {
-                    console.error('Capacitor Download/Install error:', err)
-                    setError('Failed to download or install update: ' + (err.message || err))
-                    setStatus('error')
-                }
-            } else {
-                // Web Browser flow
-                openExternalUrl(downloadUrl)
-                if (useApk && window.electronAPI) {
-                    // If we are in Electron but downloading APK, just keep status as available
-                    return
-                }
-                setStatus('ready')
+                // We don't set 'ready' here because the installation happens outside the app
+                // Resetting to 'available' allows the user to click again if the browser failed to open
+                setStatus('available')
+            } catch (err) {
+                console.error('UpdateManager: Failed to open external URL:', err)
+                setError('Failed to open download link in browser.')
+                setStatus('error')
             }
         } else {
             // Electron EXE flow
@@ -203,22 +160,10 @@ export const useUpdateManager = () => {
     const installUpdate = useCallback(async () => {
         if (window.electronAPI) {
             window.electronAPI.installUpdate()
-        } else if (isCapacitor() && downloadedFilePath) {
-            try {
-                console.log('installUpdate: Opening APK for installation:', downloadedFilePath)
-                const { FileOpener } = await import('@capawesome-team/capacitor-file-opener')
-                await FileOpener.openFile({
-                    path: downloadedFilePath,
-                    mimeType: 'application/vnd.android.package-archive' // Explicit APK MIME type
-                })
-            } catch (err) {
-                console.error('File opener error:', err)
-                setError('Failed to open installer: ' + (err.message || err))
-            }
         } else {
-            console.warn('installUpdate: Cannot install - no Electron API and no downloaded file path')
+            console.warn('installUpdate: Internal installation not supported on this platform. Please use the downloaded file.')
         }
-    }, [downloadedFilePath])
+    }, [])
 
     const cancelDownload = useCallback(async () => {
         if (window.electronAPI) {
