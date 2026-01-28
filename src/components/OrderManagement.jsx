@@ -16,6 +16,7 @@ import { openExternalUrl } from '../utils/platform'
 import * as XLSX from 'xlsx'
 import { useToast } from './Toast/ToastContext'
 import { curfoxService } from '../utils/curfox'
+import { deductOrderFromInventory, returnOrderToInventory } from '../utils/inventoryUtils'
 import { format, startOfMonth, endOfMonth, isWithinInterval, parse } from 'date-fns'
 
 // Dropdown Options Constants
@@ -533,6 +534,8 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
             })
             await saveOrders(updatedOrders)
             onUpdateOrders(updatedOrders)
+            // Deduct from inventory
+            deductOrderFromInventory(order)
             addToast('Order marked as Dispatched locally', 'success')
           },
           confirmDisabled: !isCurfoxConnected
@@ -568,6 +571,15 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
     await saveOrders(updatedOrders)
     onUpdateOrders(updatedOrders)
     setEditingStatus(null)
+
+    // Handle inventory adjustments after state update
+    const updatedOrder = updatedOrders.find(o => o.id === orderId)
+    if (field === 'status' && newValue === 'Dispatched' && updatedOrder) {
+      deductOrderFromInventory(updatedOrder)
+    }
+    if (field === 'status' && newValue === 'returned' && updatedOrder) {
+      returnOrderToInventory(updatedOrder)
+    }
   }
 
   // Curfox Dispatch Logic
@@ -623,6 +635,9 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
       onUpdateOrders(updatedOrders)
 
       addToast('Order dispatched to Curfox successfully!', 'success')
+
+      // Deduct from inventory
+      deductOrderFromInventory(updatedOrder)
     } catch (error) {
       console.error(error)
       addToast('Curfox Dispatch Failed: ' + error.message, 'error')
@@ -709,6 +724,12 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
           addToast(`Successfully dispatched ${successCount} orders to Curfox!`, 'success')
         } else {
           addToast(`Dispatched ${successCount} orders. ${failedCount} failed to send.`, 'warning')
+        }
+
+        // Deduct dispatched orders from inventory
+        for (const orderId of Object.keys(updates)) {
+          const dispatched = orders.find(o => o.id === orderId)
+          if (dispatched) deductOrderFromInventory(dispatched)
         }
       }, 'primary', 'Dispatch Orders')
 
@@ -954,6 +975,11 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
             onUpdateOrders(updatedOrders)
             setSelectedOrders(new Set())
             addToast(`Marked ${ordersToUpdate.length} orders as Dispatched locally`, 'success')
+
+            // Deduct from inventory
+            for (const order of ordersToUpdate) {
+              deductOrderFromInventory(order)
+            }
           },
           confirmDisabled: !isCurfoxConnected || packedWithWaybill.length === 0
         }
@@ -987,6 +1013,18 @@ const OrderManagement = ({ orders, onUpdateOrders, triggerFormOpen, initialFilte
           onUpdateOrders(updatedOrders)
           setSelectedOrders(new Set()) // Clear selection after update
           addToast(`Successfully updated ${ordersToUpdate.length} order(s) status to "${newStatus}"`, 'success')
+
+          // Handle inventory adjustments
+          if (newStatus === 'Dispatched') {
+            for (const order of ordersToUpdate) {
+              deductOrderFromInventory(order)
+            }
+          }
+          if (newStatus === 'returned') {
+            for (const order of ordersToUpdate) {
+              returnOrderToInventory(order)
+            }
+          }
         } else {
           addToast('Failed to update orders. Please try again.', 'error')
         }

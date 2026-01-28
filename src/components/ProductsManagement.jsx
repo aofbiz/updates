@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Save, X, Package, Tag } from 'lucide-react'
+import { Plus, Edit2, Trash2, Save, X, Package, Tag, BoxSelect } from 'lucide-react'
 import FormValidation from './FormValidation'
-import { getProducts, saveProducts } from '../utils/storage'
+import { getProducts, saveProducts, getInventory, saveInventory, getInventoryCategories, saveInventoryCategories } from '../utils/storage'
 import { toTitleCase } from '../utils/textUtils'
 import ConfirmationModal from './ConfirmationModal'
 import { useToast } from './Toast/ToastContext'
@@ -23,6 +23,11 @@ const ProductsManagement = () => {
   const [itemFormData, setItemFormData] = useState({ name: '', price: '' })
   const [selectedCategoryId, setSelectedCategoryId] = useState(null)
   const [validationErrors, setValidationErrors] = useState({})
+
+  // Add to Inventory modal state
+  const [showInventoryModal, setShowInventoryModal] = useState(false)
+  const [selectedCategoryForInventory, setSelectedCategoryForInventory] = useState(null)
+  const [inventoryItemsStock, setInventoryItemsStock] = useState({}) // { itemId: { stock: '', reorderLevel: '10' } }
 
   const getErrorStyle = (fieldName) => {
     if (validationErrors[fieldName]) {
@@ -254,6 +259,138 @@ const ProductsManagement = () => {
         addToast('Item deleted successfully', 'success')
       }
     }, 'danger', 'Delete')
+  }
+
+  // Handle adding entire category to inventory
+  const handleAddCategoryToInventory = (category) => {
+    // Initialize stock values for each item
+    const initialStock = {}
+    category.items.forEach(item => {
+      initialStock[item.id] = {
+        stock: '',
+        reorderLevel: '10',
+        unitCost: item.price?.toString() || '0'
+      }
+    })
+    setInventoryItemsStock(initialStock)
+    setSelectedCategoryForInventory(category)
+    setValidationErrors({})
+    setShowInventoryModal(true)
+  }
+
+  const handleSaveToInventory = async () => {
+    if (!selectedCategoryForInventory) return
+
+    // Validate that all items have valid stock values
+    const errors = {}
+    let hasError = false
+    selectedCategoryForInventory.items.forEach(item => {
+      const stockVal = inventoryItemsStock[item.id]?.stock
+      if (stockVal === '' || stockVal === undefined || isNaN(parseFloat(stockVal)) || parseFloat(stockVal) < 0) {
+        errors[item.id] = 'Required'
+        hasError = true
+      }
+    })
+
+    if (hasError) {
+      setValidationErrors(errors)
+      addToast('Please enter stock quantity for all items', 'warning')
+      return
+    }
+    setValidationErrors({})
+
+    try {
+      // === 1. Save to main inventory array (for Inventory page) ===
+      const inventory = await getInventory() || []
+      const categoryName = selectedCategoryForInventory.name
+      let addedCount = 0
+      let skippedCount = 0
+      const newItemsForCat = [] // Items to add to inventoryCategories
+
+      for (const item of selectedCategoryForInventory.items) {
+        // Check if item already exists in inventory
+        const existingItem = inventory.find(
+          inv => inv.itemName?.toLowerCase().trim() === item.name.toLowerCase().trim()
+        )
+
+        if (existingItem) {
+          skippedCount++
+          continue
+        }
+
+        const stockData = inventoryItemsStock[item.id] || {}
+        const newItem = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9) + item.id,
+          itemName: item.name,
+          category: categoryName,
+          currentStock: parseFloat(stockData.stock) || 0,
+          reorderLevel: parseFloat(stockData.reorderLevel) || 10,
+          unitCost: parseFloat(stockData.unitCost) || item.price || 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+        inventory.push(newItem)
+
+        // Also prepare item for inventoryCategories
+        newItemsForCat.push({
+          id: newItem.id,
+          name: item.name,
+          reorderLevel: newItem.reorderLevel,
+          unitCost: newItem.unitCost,
+          supplier: '',
+          currentStock: newItem.currentStock
+        })
+        addedCount++
+      }
+
+      await saveInventory(inventory)
+
+      // === 2. Save to inventoryCategories (for Settings page) ===
+      if (newItemsForCat.length > 0) {
+        const invCats = await getInventoryCategories() || { categories: [] }
+
+        // Check if category already exists
+        let existingCat = invCats.categories.find(
+          c => c.name.toLowerCase().trim() === categoryName.toLowerCase().trim()
+        )
+
+        if (existingCat) {
+          // Add new items to existing category (avoid duplicates)
+          for (const newIt of newItemsForCat) {
+            const alreadyInCat = existingCat.items.some(
+              it => it.name.toLowerCase().trim() === newIt.name.toLowerCase().trim()
+            )
+            if (!alreadyInCat) {
+              existingCat.items.push(newIt)
+            }
+          }
+        } else {
+          // Create new category with items
+          invCats.categories.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            name: categoryName,
+            items: newItemsForCat
+          })
+        }
+
+        await saveInventoryCategories(invCats)
+      }
+
+      window.dispatchEvent(new CustomEvent('inventoryUpdated'))
+
+      if (skippedCount > 0) {
+        addToast(`Added ${addedCount} items to inventory. ${skippedCount} already existed.`, 'success')
+      } else {
+        addToast(`Added ${addedCount} items from "${categoryName}" to inventory`, 'success')
+      }
+
+      setShowInventoryModal(false)
+      setSelectedCategoryForInventory(null)
+      setInventoryItemsStock({})
+    } catch (error) {
+      console.error('Error adding to inventory:', error)
+      addToast('Failed to add to inventory', 'error')
+    }
   }
 
   const selectedCategory = (selectedCategoryId && products?.categories)
@@ -528,6 +665,116 @@ const ProductsManagement = () => {
         </div>
       )}
 
+      {/* Add Category to Inventory Modal */}
+      {showInventoryModal && selectedCategoryForInventory && (
+        <div className="modal-overlay" onClick={() => setShowInventoryModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', width: '95%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid var(--border-color)'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                  Add to Inventory
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
+                  Category: <strong>{selectedCategoryForInventory.name}</strong> ({selectedCategoryForInventory.items.length} items)
+                </p>
+              </div>
+              <button
+                onClick={() => setShowInventoryModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                  padding: '0.25rem'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--bg-secondary)', position: 'sticky', top: 0 }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, fontSize: '0.8rem' }}>Item</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 600, fontSize: '0.8rem', width: '100px' }}>Stock *</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 600, fontSize: '0.8rem', width: '100px' }}>Reorder</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedCategoryForInventory.items.map((item) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '0.75rem' }}>
+                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rs. {item.price?.toFixed(2) || '0.00'}</div>
+                      </td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={inventoryItemsStock[item.id]?.stock || ''}
+                          onChange={(e) => setInventoryItemsStock(prev => ({
+                            ...prev,
+                            [item.id]: { ...prev[item.id], stock: e.target.value }
+                          }))}
+                          placeholder="0"
+                          className="form-input"
+                          style={{
+                            padding: '0.4rem',
+                            textAlign: 'right',
+                            fontSize: '0.85rem',
+                            ...(validationErrors[item.id] ? { borderColor: 'var(--danger)' } : {})
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={inventoryItemsStock[item.id]?.reorderLevel || '10'}
+                          onChange={(e) => setInventoryItemsStock(prev => ({
+                            ...prev,
+                            [item.id]: { ...prev[item.id], reorderLevel: e.target.value }
+                          }))}
+                          placeholder="10"
+                          className="form-input"
+                          style={{ padding: '0.4rem', textAlign: 'right', fontSize: '0.85rem' }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <button
+                onClick={() => setShowInventoryModal(false)}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveToInventory}
+                className="btn btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <Package size={18} />
+                Add {selectedCategoryForInventory.items.length} Items to Inventory
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Categories List */}
       {(!products || !products.categories || products.categories.length === 0) ? (
         <div className="card" style={{
@@ -586,6 +833,15 @@ const ProductsManagement = () => {
                   </div>
                 </button>
                 <div className="category-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button
+                    onClick={() => handleAddCategoryToInventory(category)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '0.4rem' }}
+                    title="Add Category to Inventory"
+                    disabled={category.items.length === 0}
+                  >
+                    <BoxSelect size={16} />
+                  </button>
                   <button
                     onClick={() => handleAddItem(category.id)}
                     className="btn btn-primary btn-sm"

@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import {
     Check, Loader2, Zap, Globe, Lock, ShieldCheck,
     Smartphone, RefreshCw, Layers, Database, BarChart3, Cloud,
-    FileText, ShoppingBag, LayoutDashboard, Sun, Moon, X
+    FileText, ShoppingBag, LayoutDashboard, Sun, Moon, X, WifiOff
 } from 'lucide-react'
 import { useLicensing } from './LicensingContext'
 import { useTheme } from './ThemeContext'
+import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import '../login.css'
 
 const ModeSelectionScreen = ({ onModeSelected }) => {
@@ -14,9 +15,16 @@ const ModeSelectionScreen = ({ onModeSelected }) => {
         login, authError, setAuthError
     } = useLicensing()
     const { effectiveTheme, setTheme } = useTheme()
+    const isOnline = useOnlineStatus()
     const [isLoading, setIsLoading] = useState(false)
     const [localError, setLocalError] = useState(null)
     const [activeMode, setActiveMode] = useState('pro') // Start with Pro to highlight premium
+
+    // Check if user has cached credentials (can work offline)
+    const hasCachedCredentials = Boolean(
+        localStorage.getItem('allset_cached_identity') &&
+        localStorage.getItem('allset_user_mode')
+    )
 
     // Clear local errors when switching tabs, but preserve server-side authError if it just arrived
     useEffect(() => {
@@ -163,6 +171,27 @@ const ModeSelectionScreen = ({ onModeSelected }) => {
                         </button>
                     </div>
 
+                    {/* Offline Notice for first-time users */}
+                    {!isOnline && !hasCachedCredentials && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '1rem',
+                            backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                            border: '1px solid rgba(251, 191, 36, 0.2)',
+                            borderRadius: '12px',
+                            marginBottom: '1.5rem',
+                            color: '#fbbf24'
+                        }}>
+                            <WifiOff size={20} />
+                            <div style={{ fontSize: '0.85rem', lineHeight: 1.4 }}>
+                                <strong>You're offline.</strong><br />
+                                <span style={{ color: 'var(--text-muted)' }}>Connect to the internet to sign in for the first time.</span>
+                            </div>
+                        </div>
+                    )}
+
                     {(localError || (authError && authError !== 'ACCOUNT_NOT_AUTHORIZED')) && (
                         <div style={{
                             color: 'var(--pro-accent)',
@@ -306,7 +335,7 @@ const ModeSelectionScreen = ({ onModeSelected }) => {
 
                     <div className="action-zone" style={{ marginBottom: '1.5rem' }}>
                         {activeMode === 'pro' ? (
-                            <button className="btn-google" onClick={handleGoogleLogin} disabled={isLoading}>
+                            <button className="btn-google" onClick={handleGoogleLogin} disabled={isLoading || (!isOnline && !hasCachedCredentials)}>
                                 {isLoading ? (
                                     <Loader2 className="animate-spin" size={20} />
                                 ) : (
@@ -322,7 +351,7 @@ const ModeSelectionScreen = ({ onModeSelected }) => {
                                 )}
                             </button>
                         ) : (
-                            <button className="btn-google" onClick={handleFreeMode} disabled={isLoading}>
+                            <button className="btn-google" onClick={handleFreeMode} disabled={isLoading || (!isOnline && !hasCachedCredentials)}>
                                 {isLoading ? (
                                     <Loader2 className="animate-spin" size={20} />
                                 ) : (
@@ -379,7 +408,7 @@ const ModeSelectionScreen = ({ onModeSelected }) => {
 
                         <button
                             onClick={handleTrialLogin}
-                            disabled={isLoading}
+                            disabled={isLoading || (!isOnline && !hasCachedCredentials)}
                             className="btn-trial-action"
                         >
                             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} fill="currentColor" />}

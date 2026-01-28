@@ -147,7 +147,7 @@ function AppContent() {
       loadData()
     }
 
-    const events = ['ordersUpdated', 'sync:orders', 'sync:expenses', 'sync:inventory', 'sync:settings', 'sync:products', 'sync:quotations']
+    const events = ['ordersUpdated', 'inventoryUpdated', 'sync:orders', 'sync:expenses', 'sync:inventory', 'sync:settings', 'sync:products', 'sync:quotations']
     events.forEach(ev => window.addEventListener(ev, handleSyncUpdate))
 
     return () => {

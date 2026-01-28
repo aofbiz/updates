@@ -37,6 +37,12 @@ export const LicensingProvider = ({ children }) => {
     const [timeLeft, setTimeLeft] = useState(0)
     const TRIAL_DURATION = 3 * 24 * 60 * 60 * 1000 // 3 days
 
+    // Timeout utility for network calls
+    const withTimeout = (promise, ms) => Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Network timeout')), ms))
+    ])
+
     /**
      * Helper: Re-evaluate everything for a user
      */
@@ -50,6 +56,14 @@ export const LicensingProvider = ({ children }) => {
         const result = await checkLicenseStatus(user.email)
         setIdentityUser(user)
         setLicenseStatus(result.status)
+
+        // Cache identity and license for offline use
+        localStorage.setItem('allset_cached_identity', JSON.stringify({
+            email: user.email,
+            name: user.user_metadata?.full_name,
+            cachedAt: Date.now()
+        }))
+        localStorage.setItem('allset_cached_license', result.status)
 
         // Retrieval of intents/modes
         const savedMode = localStorage.getItem('allset_user_mode') || sessionStorage.getItem('allset_user_mode')
@@ -103,14 +117,36 @@ export const LicensingProvider = ({ children }) => {
         const init = async () => {
             setIsLoading(true)
             try {
-                const user = await getIdentityUser()
+                // Try to get identity with 5s timeout
+                const user = await withTimeout(getIdentityUser(), 5000)
                 if (user) {
-                    await refreshUserLicense(user)
+                    await withTimeout(refreshUserLicense(user), 10000)
                 } else {
                     setUserMode(null)
                 }
             } catch (err) {
-                console.error('Initialization error:', err)
+                console.warn('Network unavailable or timeout, using cached state:', err.message)
+
+                // Fallback to cached identity/license
+                const cachedIdentityStr = localStorage.getItem('allset_cached_identity')
+                const cachedLicense = localStorage.getItem('allset_cached_license')
+                const cachedMode = localStorage.getItem('allset_user_mode') || sessionStorage.getItem('allset_user_mode')
+
+                if (cachedIdentityStr && cachedMode) {
+                    try {
+                        const cachedIdentity = JSON.parse(cachedIdentityStr)
+                        setIdentityUser(cachedIdentity)
+                        setLicenseStatus(cachedLicense || 'free')
+                        setUserMode(cachedMode)
+                        console.log('Loaded cached identity for offline use:', cachedIdentity.email)
+                    } catch (parseErr) {
+                        console.error('Failed to parse cached identity:', parseErr)
+                        setUserMode(null)
+                    }
+                } else {
+                    // No cache available - stay on mode selection (offline first-time)
+                    setUserMode(null)
+                }
             } finally {
                 setIsLoading(false)
             }

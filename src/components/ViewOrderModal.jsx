@@ -15,6 +15,7 @@ import { useTheme, PALETTES } from './ThemeContext'
 import InvoicePdfDocument from './pdf/InvoicePdfDocument'
 import { generateAndSavePdf } from '../utils/pdfUtils'
 import { openExternalUrl } from '../utils/platform'
+import { deductOrderFromInventory, returnOrderToInventory } from '../utils/inventoryUtils'
 
 
 
@@ -335,6 +336,8 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
             setLocalOrder(updatedOrder)
             if (onSave) await onSave(updatedOrder)
             addToast('Order dispatched to Curfox successfully', 'success')
+            // Deduct from inventory
+            deductOrderFromInventory(updatedOrder)
           } catch (error) {
             addToast('Curfox Dispatch Failed: ' + error.message, 'error')
           }
@@ -349,6 +352,8 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
             setLocalOrder(updatedOrder)
             if (onSave) await onSave(updatedOrder)
             addToast('Order marked as Dispatched locally', 'success')
+            // Deduct from inventory
+            deductOrderFromInventory(updatedOrder)
           },
           confirmDisabled: !isCurfoxConnected || !localOrder?.trackingNumber
         }
@@ -374,6 +379,14 @@ const ViewOrderModal = ({ order, customerOrderCount = 1, onClose, onSave, onRequ
     setLocalOrder(updatedOrder)
     if (onSave) {
       await onSave(updatedOrder)
+    }
+
+    // Handle inventory adjustments
+    if (field === 'status' && newValue === 'Dispatched') {
+      deductOrderFromInventory(updatedOrder)
+    }
+    if (field === 'status' && newValue === 'returned') {
+      returnOrderToInventory(updatedOrder)
     }
   }
 
